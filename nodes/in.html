@@ -1,0 +1,70 @@
+<script src="openhab4/constants.js"></script>
+<script src="openhab4/ui-utils.js"></script>
+
+<script type="text/x-red" data-template-name="openhab4-in">
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+    <div class="form-row">
+        <label for="node-input-controller"><i class="fa fa-globe"></i> Controller</label>
+        <input type="text" id="node-input-controller">
+    </div>
+    <div class="form-row">
+        <label for="node-input-itemname"><i class="fa fa-crosshairs"></i> Item Name</label>
+    	<select id="node-input-itemname" name="node-input-itemname">
+    	</select>
+    </div>
+</script>
+
+<script type="text/x-red" data-help-name="openhab4-in">
+    <p>Listens to state changes of a selected openHAB Item.</p>
+	<p></p>
+	<b>Configuration</b>
+    <ul>
+        <li><b>Name:</b> the name of the node instance (optional - auto-generated from item name if empty)</li>
+        <li><b>Controller:</b> the openHAB controller name</li>
+        <li><b>Item:</b> the name of the item to listen to. Overrides <kbd>msg.item</kbd>.</li>
+   	 </ul>
+	<p></p>
+
+	<b>Output messages (2 channels):</b>
+    <ul>
+        <li>Channel 1:
+			<ul>
+        		<li><code>msg.item</code>: the name of the item</li>
+        		<li><code>msg.event</code>: "StateEvent"</li>
+        		<li><code>msg.payload</code>: the new state of the selected item</li>
+  	 		</ul>
+		</li>
+        <li>Channel 2:
+			<ul>
+        		<li><code>msg.item</code>: the name of the item</li>
+        		<li><code>msg.event</code>: "RawEvent"</li>
+        		<li><code>msg.payload</code>: raw (unprocessed) event data for the selected item</li>
+  	 		</ul>
+		</li>
+   	 </ul>
+</script>
+
+<script type="text/javascript">
+    RED.nodes.registerType('openhab4-in', {
+        category: 'home automation',
+        color: window.OPENHAB4.NODE_COLOR,
+        defaults: {
+            name: { value: "" },
+            controller: { value: "", type: "openhab4-controller", required: true },
+            itemname: { value: "", required: true },
+        },
+        inputs: 0,
+        outputs: 2,
+        icon: "openhab4-logo-in.svg",
+        paletteLabel: "openhab4-in",
+        label: function () {
+            return window.OPENHAB4.generateNodeName('in', this.name, this.itemname);
+        },
+        oneditprepare: function () {
+            openhabEditPrepare(this, false);
+        }
+    });
+</script>

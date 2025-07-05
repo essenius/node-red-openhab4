@@ -14,7 +14,19 @@ window.OPENHAB4 = window.OPENHAB4 || {};
 
 // Attach constants
 ;(function(ns) {
-  ns.NODE_COLOR = "#3bd17e";
+  ns.NODE_COLOR = "#3bd17e"; // balanced spring = #3bd17e, seafoam green = #33cc99, spring green = #00e676, #4caf50 = moss green
+  
+  // Shared naming utilities to avoid code duplication
+  ns.generateNodeName = function(nodeType, customName, itemName) {
+    if (customName) {
+      return customName;
+    }
+    const trimmedItemName = (itemName || "").trim();
+    if (trimmedItemName) {
+      return `${nodeType} (${trimmedItemName})`;
+    }
+    return `openhab4-${nodeType}`;
+  };
 })(window.OPENHAB4);
 
 console.log("[openhab4 constants] loaded", window.OPENHAB4);

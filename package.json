@@ -1,8 +1,12 @@
 {
   "name": "@essenius/node-red-openhab4",
   "type": "commonjs",
-  "version": "0.2.80",
+  "version": "0.2.91",
   "description": "OpenHAB 4 integration nodes for Node-RED",
+  "main": "nodes/controller.js",
+  "engines": {
+    "node": ">=14.0.0"
+  },
   "keywords": [
     "node-red"
   ],
@@ -11,7 +15,8 @@
       "openhab4-test": "nodes/test.js",
       "openhab4-controller": "nodes/controller.js",
       "openhab4-events": "nodes/events.js",
-      "openhab4-get": "nodes/get.js"
+      "openhab4-get": "nodes/get.js",
+      "openhab4-in": "nodes/in.js"
     }
   },
   "dependencies": {

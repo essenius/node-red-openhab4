@@ -9,8 +9,9 @@
 // distributed on an "AS IS" BASIS WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and limitations under the License.
 
+
 const { fetchOpenHAB, getConnectionString } = require("../lib/connectionUtils");
-const { setupOpenHABController } = require("../lib/openhabControllerLogic");
+const {  setupOpenhabController } = require("../lib/openhabControllerLogic");
 
 module.exports = function (RED) {
     console.log("[controller.js] loading admin");
@@ -38,11 +39,13 @@ module.exports = function (RED) {
         response.send(result.data);
     });
 
-    function OpenHABControllerNode(config) {
+    function OpenhabControllerNode(config) {
         RED.nodes.createNode(this, config);
-        setupOpenHABController(this, config);
+        const host = config.host || 'unknown';
+        this.name = config.name || `openhab4-controller (${host})`;
+        setupOpenhabController(this, config);
     }
-    RED.nodes.registerType("openhab4-controller", OpenHABControllerNode, {
+    RED.nodes.registerType("openhab4-controller", OpenhabControllerNode, {
         credentials: {
             username: { type: "text" },
             password: { type: "password" }

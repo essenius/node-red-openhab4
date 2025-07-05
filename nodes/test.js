@@ -9,16 +9,20 @@
 // distributed on an "AS IS" BASIS WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and limitations under the License.
 
+const { addStatusMethods, validateController } = require('../lib/statusUtils');
+
 module.exports = function (RED) {
   function OpenHABTestNode(config) {
     
     RED.nodes.createNode(this, config);
     const node = this;
 
+    // Add semantic status methods to the node
+    addStatusMethods(node);
+
     const controller = RED.nodes.getNode(config.controller);
 
-    if (!controller) {
-      node.error("No controller configured");
+    if (!validateController(node, controller)) {
       return;
     }
 

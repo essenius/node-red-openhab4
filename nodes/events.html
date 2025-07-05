@@ -35,8 +35,7 @@
         icon: "openhab4-logo-events.svg",
         paletteLabel: "openhab4-events",
         label: function () {
-
-            return (this.name || this.itemname || "openhab4 events");
+            return this.name;
         },
         oneditprepare: function () {
             //openhabEditPrepare(this, true);

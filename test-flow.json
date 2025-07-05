@@ -1,0 +1,152 @@
+[
+    {
+        "id": "test-flow-tab",
+        "type": "tab",
+        "label": "OpenHAB4 Test Flow",
+        "disabled": false,
+        "info": "Test flow for modernized OpenHAB4 nodes"
+    },
+    {
+        "id": "controller-node",
+        "type": "openhab4-controller",
+        "z": "test-flow-tab",
+        "name": "OpenHAB Controller",
+        "host": "localhost",
+        "port": "8080",
+        "protocol": "http",
+        "username": "",
+        "password": "",
+        "x": 200,
+        "y": 100
+    },
+    {
+        "id": "in-node",
+        "type": "openhab4-in",
+        "z": "test-flow-tab",
+        "name": "Item State Monitor",
+        "controller": "controller-node",
+        "itemname": "TestItem",
+        "x": 200,
+        "y": 200,
+        "wires": [
+            ["debug-state"],
+            ["debug-raw"]
+        ]
+    },
+    {
+        "id": "get-node",
+        "type": "openhab4-get",
+        "z": "test-flow-tab",
+        "name": "Get Item State",
+        "controller": "controller-node",
+        "itemname": "TestItem",
+        "x": 200,
+        "y": 300,
+        "wires": [
+            ["debug-get"]
+        ]
+    },
+    {
+        "id": "events-node",
+        "type": "openhab4-events",
+        "z": "test-flow-tab",
+        "name": "All Events",
+        "controller": "controller-node",
+        "x": 200,
+        "y": 400,
+        "wires": [
+            ["debug-events"]
+        ]
+    },
+    {
+        "id": "inject-get",
+        "type": "inject",
+        "z": "test-flow-tab",
+        "name": "Test Get",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 50,
+        "y": 300,
+        "wires": [
+            ["get-node"]
+        ]
+    },
+    {
+        "id": "debug-state",
+        "type": "debug",
+        "z": "test-flow-tab",
+        "name": "State Changes",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 450,
+        "y": 180,
+        "wires": []
+    },
+    {
+        "id": "debug-raw",
+        "type": "debug",
+        "z": "test-flow-tab",
+        "name": "Raw Events",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 450,
+        "y": 220,
+        "wires": []
+    },
+    {
+        "id": "debug-get",
+        "type": "debug",
+        "z": "test-flow-tab",
+        "name": "Get Response",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 450,
+        "y": 300,
+        "wires": []
+    },
+    {
+        "id": "debug-events",
+        "type": "debug",
+        "z": "test-flow-tab",
+        "name": "All Events",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 450,
+        "y": 400,
+        "wires": []
+    }
+]

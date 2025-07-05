@@ -30,7 +30,7 @@ Listens to state changes of a selected openHAB Item.
 *Configuration:*
 - Name: the name of the node instance (default empty, then takes over the item name)
 - Controller: the openHAB controller
-- Item: the name of the item to listen to. overrides <kbd>msg.item</kbd>.
+- Item: the name of the item to listen to. Overrides <kbd>msg.item</kbd>.
 
 *Output messages (2 channels):*
 
