@@ -105,3 +105,7 @@ The input message with addition of:
 
 - Nodes openhab4-controller and openhab4-get working 
 - First push to GitHub
+
+## v0.2.91
+- openhab-in working
+- loads of code optimizations
