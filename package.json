@@ -1,0 +1,21 @@
+{
+  "name": "@essenius/node-red-openhab4",
+  "type": "commonjs",
+  "version": "0.2.80",
+  "description": "OpenHAB 4 integration nodes for Node-RED",
+  "keywords": [
+    "node-red"
+  ],
+  "node-red": {
+    "nodes": {
+      "openhab4-test": "nodes/test.js",
+      "openhab4-controller": "nodes/controller.js",
+      "openhab4-events": "nodes/events.js",
+      "openhab4-get": "nodes/get.js"
+    }
+  },
+  "dependencies": {
+    "@joeybaker/eventsource": "^0.3.0",
+    "node-fetch": "^3.3.2"
+  }
+}

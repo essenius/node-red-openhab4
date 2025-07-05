@@ -1,0 +1,43 @@
+# Node.js dependencies
+node_modules/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Runtime data
+*.pid
+*.seed
+
+# Build artifacts
+build/
+dist/
+
+# Node-RED specific files
+.config.json
+.config.json.backup
+.flow.json.backup
+.flow_cred.json.backup
+flow_cred.json
+
+# Environment variables
+.env
+.env.test
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+
+# Package manager
+package-lock.json
+yarn.lock
+
+# Test coverage
+coverage/
+
+# tars
+*.tgz

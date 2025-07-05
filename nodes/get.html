@@ -1,0 +1,80 @@
+<script src="openhab4/constants.js"></script>
+<script src="openhab4/ui-utils.js"></script>
+
+<script type="text/x-red" data-template-name="openhab4-get">
+    <style type="text/css">
+        .btn-group {
+            width: 70%;
+        }
+        .dropdown-menu {
+            width: 100% !important;
+        }
+    </style>
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+    <div class="form-row">
+        <label for="node-input-controller"><i class="fa fa-globe"></i> Controller</label>
+        <input type="text" id="node-input-controller">
+    </div>
+    <div class="form-row">
+        <label for="node-input-itemname"><i class="fa fa-crosshairs"></i> Item Name</label>
+        <select id="node-input-itemname" name="node-input-itemname" style="width: 70%; height: auto; appearance: menulist;"></select>
+    </div>
+</script>
+
+<script type="text/x-red" data-help-name="openhab4-get">
+    <p>Gets an openHAB item (i.e. fetch on demand).</p>
+    <p>
+	<b>Configuration</b>
+    <ul>
+        <li><b>Name:</b>the name of the node instance (default empty, then takes over the item name)</li>
+        <li><b>Controller:</b> the openHAB controller</li>
+        <li><b>Item:</b> the item to get. Overrides <code>msg.item</code>.</li>
+   	 </ul>
+	</p>
+
+	<b>Output messages (1 channel):</b>
+	The input message with addition of:
+    <ul>
+        <li><code>msg.payload</code>: the item object (name, label, state, ...)</li>
+         <li><code>msg.payload_in</code>: copy of incoming message payload.</li>
+  	</ul>
+</script>
+
+<script type="text/javascript">
+    RED.nodes.registerType('openhab4-get', {
+        category: 'home automation',
+        color: window.OPENHAB4.NODE_COLOR,
+        defaults: {
+            name: { value: "" },
+            controller: { value: "", type: "openhab4-controller", required: true },
+            itemname: { value: "", required: false },
+        },
+        inputs: 1,
+        outputs: 1,
+        icon: "openhab4-logo-get.svg",
+        paletteLabel: "openhab4-get",
+        label: function () {
+            return (this.name || this.itemname || "openhab4 get");
+        },
+        oneditprepare: function () {
+            openhabEditPrepare(this, true);
+        },
+
+        oneditsave: function () {
+            // force string conversion on save
+            const rawValue = $('#node-input-itemname').val();
+            console.log('Raw value type:', typeof rawValue, 'value:', rawValue);
+
+            if (Array.isArray(rawValue)) {
+                this.itemname = rawValue.length > 0 ? String(rawValue[0]) : "";
+            } else {
+                this.itemname = String(rawValue || "");
+            }
+
+            console.log('Saved as string:', this.itemname, typeof this.itemname);
+        }
+    });
+</script>
