@@ -12,7 +12,7 @@
 const { addStatusMethods, validateController } = require('../lib/statusUtils');
 
 module.exports = function (RED) {
-  function OpenHABTestNode(config) {
+  function createTestNode(config) {
     
     RED.nodes.createNode(this, config);
     const node = this;
@@ -39,5 +39,5 @@ module.exports = function (RED) {
     });
   }
 
-  RED.nodes.registerType("openhab4-test", OpenHABTestNode);
+  RED.nodes.registerType("openhab4-test", createTestNode);
 };

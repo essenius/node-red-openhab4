@@ -9,16 +9,16 @@
 // distributed on an "AS IS" BASIS WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and limitations under the License.
 
-const { setupOpenhabEvents } = require("../lib/openhabEventsLogic");
+const { setupEventsNode } = require('../lib/eventsLogic');
 
 module.exports = function (RED) {
-  function OpenhabEventsNode(config) {
+  function createEventsNode(config) {
     RED.nodes.createNode(this, config);
     this.name = config.name || 'openhab4-events';
 
     const controller = RED.nodes.getNode(config.controller);
-    setupOpenhabEvents(this, config, controller);
+    setupEventsNode(this, config, controller);
   }
 
-  RED.nodes.registerType("openhab4-events", OpenhabEventsNode);
+  RED.nodes.registerType("openhab4-events", createEventsNode);
 };

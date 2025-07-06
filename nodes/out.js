@@ -9,14 +9,14 @@
 // distributed on an "AS IS" BASIS WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and limitations under the License.
 
-const { setupOpenhabOut } = require("../lib/openhabOutLogic");
+const { setupOutNode } = require('../lib/outLogic');
 
 module.exports = function (RED) {
-  function OpenhabOutNode(config) {
+  function createOutNode(config) {
     RED.nodes.createNode(this, config);
     const controller = RED.nodes.getNode(config.controller);
-    setupOpenhabOut(this, config, controller);
+    setupOutNode(this, config, controller);
   }
 
-  RED.nodes.registerType("openhab4-out", OpenhabOutNode);
+  RED.nodes.registerType("openhab4-out", createOutNode);
 };

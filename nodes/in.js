@@ -9,14 +9,14 @@
 // distributed on an "AS IS" BASIS WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and limitations under the License.
 
-const { setupOpenhabIn } = require("../lib/openhabInLogic");
+const { setupInNode } = require('../lib/inLogic');
 
 module.exports = function (RED) {
-    function OpenhabInNode(config) {
+    function createInNode(config) {
         RED.nodes.createNode(this, config);
         const controller = RED.nodes.getNode(config.controller);
-        setupOpenhabIn(this, config, controller, { generateId: RED.util.generateId });
+        setupInNode(this, config, controller, { generateId: RED.util.generateId });
     }
-    
-    RED.nodes.registerType("openhab4-in", OpenhabInNode);
+
+    RED.nodes.registerType("openhab4-in", createInNode);
 };

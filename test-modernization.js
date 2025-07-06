@@ -8,11 +8,11 @@ console.log('🧪 Testing Node-RED openHAB4 nodes...\n');
 const requiredFiles = [
     'lib/statusUtils.js',
     'lib/openhabConstants.js', 
-    'lib/openhabInLogic.js',
-    'lib/openhabGetLogic.js',
-    'lib/openhabEventsLogic.js',
-    'lib/openhabControllerLogic.js',
-    'lib/openhabOutLogic.js',
+    'lib/inLogic.js',
+    'lib/getLogic.js',
+    'lib/eventsLogic.js',
+    'lib/controllerLogic.js',
+    'lib/outLogic.js',
     'lib/openhabConnection.js',
     'nodes/in.js',
     'nodes/in.html',
@@ -46,17 +46,17 @@ try {
     console.log(`     - STATUS_STATES available: ${Object.keys(constants.STATUS_STATES).length} states`);
     console.log(`     - STATUS_MAPPING available: ${Object.keys(constants.STATUS_MAPPING).length} mappings`);
     
-    const { setupOpenhabIn } = require('./lib/openhabInLogic');
-    console.log('  ✅ openhabInLogic.js loaded successfully');
+    const { setupInNode } = require('./lib/inLogic');
+    console.log('  ✅ inLogic.js loaded successfully');
     
-    const { setupOpenhabGet } = require('./lib/openhabGetLogic');
-    console.log('  ✅ openhabGetLogic.js loaded successfully');
+    const { setupGetNode } = require('./lib/getLogic');
+    console.log('  ✅ getLogic.js loaded successfully');
     
-    const { setupOpenhabEvents } = require('./lib/openhabEventsLogic');
-    console.log('  ✅ openhabEventsLogic.js loaded successfully');
+    const { setupEventsNode } = require('./lib/eventsLogic');
+    console.log('  ✅ eventsLogic.js loaded successfully');
     
-    const { setupOpenhabOut } = require('./lib/openhabOutLogic');
-    console.log('  ✅ openhabOutLogic.js loaded successfully');
+    const { setupOutNode } = require('./lib/outLogic');
+    console.log('  ✅ outLogic.js loaded successfully');
     
 } catch (error) {
     console.log(`  ❌ Module loading failed: ${error.message}`);
