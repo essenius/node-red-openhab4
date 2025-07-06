@@ -10,7 +10,8 @@ const config = {
   host: process.env.OPENHAB_HOST || 'localhost',
   port: process.env.OPENHAB_PORT || '8080',
   username: process.env.OPENHAB_USERNAME || '',
-  password: process.env.OPENHAB_PASSWORD || ''
+  password: process.env.OPENHAB_PASSWORD || '',
+  testItem: process.env.OPENHAB_TEST_ITEM || 'TestSwitch'
 };
 
 // Test flow template
@@ -23,26 +24,13 @@ const testFlow = [
         "info": "Test flow for modernized OpenHAB4 nodes"
     },
     {
-        "id": "controller-node",
-        "type": "openhab4-controller",
-        "z": "test-flow-tab",
-        "name": "OpenHAB Controller",
-        "host": config.host,
-        "port": config.port,
-        "protocol": config.protocol,
-        "username": config.username,
-        "password": config.password,
-        "x": 200,
-        "y": 100
-    },
-    {
         "id": "in-node",
         "type": "openhab4-in",
         "z": "test-flow-tab",
-        "name": "Item State Monitor",
+        "name": "",
         "controller": "controller-node",
-        "itemname": "ub_warning",
-        "x": 200,
+        "itemname": config.testItem,
+        "x": 100,
         "y": 200,
         "wires": [
             ["debug-state"],
@@ -53,10 +41,10 @@ const testFlow = [
         "id": "get-node",
         "type": "openhab4-get",
         "z": "test-flow-tab",
-        "name": "Get Item State",
+        "name": "",
         "controller": "controller-node",
-        "itemname": "ub_warning",
-        "x": 200,
+        "itemname": config.testItem,
+        "x": 290,
         "y": 300,
         "wires": [
             ["debug-get"]
@@ -66,12 +54,11 @@ const testFlow = [
         "id": "out-node",
         "type": "openhab4-out",
         "z": "test-flow-tab",
-        "name": "Send Command",
         "controller": "controller-node",
-        "itemname": "ub_warning",
+        "itemname": config.testItem,
         "topic": "",
         "payload": "",
-        "x": 200,
+        "x": 350,
         "y": 500,
         "wires": [
             ["debug-out"]
@@ -81,9 +68,8 @@ const testFlow = [
         "id": "events-node",
         "type": "openhab4-events",
         "z": "test-flow-tab",
-        "name": "All Events",
         "controller": "controller-node",
-        "x": 200,
+        "x": 100,
         "y": 400,
         "wires": [
             ["debug-events"]
@@ -93,7 +79,6 @@ const testFlow = [
         "id": "inject-get",
         "type": "inject",
         "z": "test-flow-tab",
-        "name": "Test Get",
         "props": [
             {
                 "p": "payload"
@@ -106,7 +91,7 @@ const testFlow = [
         "topic": "",
         "payload": "",
         "payloadType": "date",
-        "x": 50,
+        "x": 100,
         "y": 300,
         "wires": [
             ["get-node"]
@@ -116,13 +101,14 @@ const testFlow = [
         "id": "inject-command",
         "type": "inject",
         "z": "test-flow-tab",
-        "name": "Send ON",
+        "name": "",
         "props": [
             {
                 "p": "payload"
             },
             {
-                "p": "topic"
+                "p": "topic",
+                "vt": "str"
             }
         ],
         "repeat": "",
@@ -130,9 +116,9 @@ const testFlow = [
         "once": false,
         "onceDelay": 0.1,
         "topic": "ItemCommand",
-        "payload": "Test Alert",
+        "payload": "ON",
         "payloadType": "str",
-        "x": 50,
+        "x": 130,
         "y": 480,
         "wires": [
             ["out-node"]
@@ -142,13 +128,14 @@ const testFlow = [
         "id": "inject-update",
         "type": "inject",
         "z": "test-flow-tab",
-        "name": "Send UPDATE",
+        "name": "",
         "props": [
             {
                 "p": "payload"
             },
             {
-                "p": "topic"
+                "p": "topic",
+                "vt": "str"
             }
         ],
         "repeat": "",
@@ -156,9 +143,9 @@ const testFlow = [
         "once": false,
         "onceDelay": 0.1,
         "topic": "ItemUpdate",
-        "payload": "",
+        "payload": "OFF",
         "payloadType": "str",
-        "x": 50,
+        "x": 120,
         "y": 520,
         "wires": [
             ["out-node"]
@@ -168,7 +155,7 @@ const testFlow = [
         "id": "debug-state",
         "type": "debug",
         "z": "test-flow-tab",
-        "name": "State Changes",
+        "name": "Debug In Channel 1",
         "active": true,
         "tosidebar": true,
         "console": false,
@@ -177,7 +164,7 @@ const testFlow = [
         "targetType": "msg",
         "statusVal": "",
         "statusType": "auto",
-        "x": 450,
+        "x": 320,
         "y": 180,
         "wires": []
     },
@@ -185,7 +172,7 @@ const testFlow = [
         "id": "debug-raw",
         "type": "debug",
         "z": "test-flow-tab",
-        "name": "Raw Events",
+        "name": "Debug In Channel 2",
         "active": true,
         "tosidebar": true,
         "console": false,
@@ -194,7 +181,7 @@ const testFlow = [
         "targetType": "msg",
         "statusVal": "",
         "statusType": "auto",
-        "x": 450,
+        "x": 320,
         "y": 220,
         "wires": []
     },
@@ -202,7 +189,7 @@ const testFlow = [
         "id": "debug-get",
         "type": "debug",
         "z": "test-flow-tab",
-        "name": "Get Response",
+        "name": "Debug Get",
         "active": true,
         "tosidebar": true,
         "console": false,
@@ -211,7 +198,7 @@ const testFlow = [
         "targetType": "msg",
         "statusVal": "",
         "statusType": "auto",
-        "x": 450,
+        "x": 490,
         "y": 300,
         "wires": []
     },
@@ -219,7 +206,7 @@ const testFlow = [
         "id": "debug-out",
         "type": "debug",
         "z": "test-flow-tab",
-        "name": "Command Response",
+        "name": "Debug Out",
         "active": true,
         "tosidebar": true,
         "console": false,
@@ -228,7 +215,7 @@ const testFlow = [
         "targetType": "msg",
         "statusVal": "",
         "statusType": "auto",
-        "x": 450,
+        "x": 550,
         "y": 500,
         "wires": []
     },
@@ -236,7 +223,7 @@ const testFlow = [
         "id": "debug-events",
         "type": "debug",
         "z": "test-flow-tab",
-        "name": "All Events",
+        "name": "Debug Events",
         "active": true,
         "tosidebar": true,
         "console": false,
@@ -245,9 +232,18 @@ const testFlow = [
         "targetType": "msg",
         "statusVal": "",
         "statusType": "auto",
-        "x": 450,
+        "x": 300,
         "y": 400,
         "wires": []
+    },
+    {
+        "id": "controller-node",
+        "type": "openhab4-controller",
+        "z": "test-flow-tab",
+        "name": "openhab4",
+        "protocol": config.protocol,
+        "host": config.host,
+        "port": config.port
     }
 ];
 
@@ -259,10 +255,11 @@ console.log('🔧 Generated test flow with configuration:');
 console.log(`   Host: ${config.host}`);
 console.log(`   Port: ${config.port}`);
 console.log(`   Protocol: ${config.protocol}`);
-console.log(`📄 Written to: ${outputPath}`);
+console.log(`   Test Item: ${config.testItem}`);
+console.log('📄 Written to:', outputPath);
 console.log('');
 console.log('💡 To use different settings:');
-console.log('   OPENHAB_HOST=your.host.ip node generate-test-flow.js');
+console.log('   OPENHAB_HOST=your.host.ip OPENHAB_TEST_ITEM=YourItem node generate-test-flow.js');
 console.log('');
 console.log('📋 To import into Node-RED:');
 console.log('   1. Copy the contents of test-flow-generated.json');
