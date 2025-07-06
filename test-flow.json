@@ -17,7 +17,8 @@
         "username": "",
         "password": "",
         "x": 200,
-        "y": 100
+        "y": 100,
+        "_comment": "Update host/port for your openHAB instance or use generate-test-flow.js"
     },
     {
         "id": "in-node",

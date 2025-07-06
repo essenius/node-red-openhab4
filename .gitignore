@@ -22,6 +22,7 @@ flow_cred.json
 
 # Environment variables
 .env
+.env.local
 .env.test
 
 # OS-specific files
@@ -41,3 +42,8 @@ coverage/
 
 # tars
 *.tgz
+
+# Local test configuration (contains URLs/credentials)
+test-config.js
+test-config.json
+test-flow-generated.json

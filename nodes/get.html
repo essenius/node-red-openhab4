@@ -27,21 +27,23 @@
 <script type="text/x-red" data-help-name="openhab4-get">
     <p>Gets an openHAB item (i.e. fetch on demand).</p>
     <p>
-	<b>Configuration</b>
-    <ul>
-        <li><b>Name:</b> the name of the node instance (optional - auto-generated from item name if empty)</li>
-        <li><b>Controller:</b> the openHAB controller</li>
+	  <b>Configuration</b>
+      <ul>
+        <li><b>Name:</b> the name of the node instance (optional - auto-generated from item name if empty).</li>
+        <li><b>Controller:</b> the openHAB controller to use.</li>
         <li><b>Item:</b> the item to get. Overrides <code>msg.item</code>.</li>
-   	 </ul>
+   	  </ul>
 	</p>
 
-	<b>Output messages (1 channel):</b>
-	The input message with addition of:
-    <ul>
-        <li><code>msg.payload</code>: the item object (name, label, state, ...)</li>
-         <li><code>msg.payload_in</code>: copy of incoming message payload.</li>
+    <p>
+	  <b>Output channel (1)</b>
+	  The input message with addition of:
+      <ul>
+        <li><code>msg.payload</code>: the item's value object.</li>
+         <li><code>msg.payload_in</code>: incoming message payload.</li>
          <li><code>msg.item</code>: the name of the item that was queried.</li>
-  	</ul>
+  	  </ul>
+    </p>
 </script>
 
 <script type="text/javascript">

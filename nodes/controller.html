@@ -1,4 +1,3 @@
-
 <script type="text/x-red" data-template-name="openhab4-controller">
     <div class="form-row">
         <label for="node-config-input-name"><i class="fa fa-tag"></i> Name</label>
@@ -35,17 +34,18 @@
 
 <script type="text/x-red" data-help-name="openhab4-controller">
     <p>Configuration node for communication with an openHAB controller.</p>
-	<p></p>
-	<b>Configuration</b>
-    <ul>
+	<p>
+	  <b>Configuration</b>
+      <ul>
         <li><b>Name:</b> name for the configuration node (mandatory as referred to by the other nodes)</li>
-        <li><b>Protocol:</b> "http" or "https"</li>
-        <li><b>Host:</b> the host name or IP address (default localhost)</li>
-        <li><b>Port:</b> the IP port (default 8080)</li>
+        <li><b>Protocol:</b> <kbd>http</kbd> or <kbd>https</kbd></li>
+        <li><b>Host:</b> the host name or IP address (default <kbd>localhost</kbd>)</li>
+        <li><b>Port:</b> the IP port (default <kbd>8080</kbd>)</li>
         <li><b>Path:</b> the additional base path (default empty)</li>
         <li><b>Username:</b> the user name to authenticate on openHAB (default empty)</li>
         <li><b>Password:</b> the password to authenticate (default empty)</li>
-   	 </ul>
+   	  </ul>
+    </p>
 </script>
 
 <script type="text/javascript">

@@ -11,12 +11,22 @@
 
 <script type="text/x-red" data-help-name="openhab4-events">
     <p>Watches the event bus.</p>
-	<p></p>
-	<b>Configuration</b>
-    <ul>
-        <li><b>Name:</b> the name of the node instance (default empty)</li>
-        <li><b>Controller:</b> the openHAB controller to listen to</li>
-   	 </ul>
+	<p>
+	  <b>Configuration</b>
+      <ul>
+        <li><b>Name:</b> the name of the node instance (default empty).</li>
+        <li><b>Controller:</b> the openHAB controller to listen to.</li>
+   	  </ul>
+    </p>
+    <p>
+      <b>Output channel (1)</b>
+      The event object received from the bus:
+      <ul>
+        <li><code>msg.topic</code>: the item URL (e.g. <kbd>openhab/items/my_item/statechanged</kbd>).</li>
+        <li><code>msg.payload</code>: the payload.</li>
+        <li><code>msg.type</code>: the event type (e.g. <kbd>ItemStateChangedEvent</kbd>).</li>
+      </ul>
+    </p>
 </script>
 
 <script src="openhab4/constants.js"></script>

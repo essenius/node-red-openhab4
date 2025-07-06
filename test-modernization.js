@@ -12,11 +12,14 @@ const requiredFiles = [
     'lib/openhabGetLogic.js',
     'lib/openhabEventsLogic.js',
     'lib/openhabControllerLogic.js',
+    'lib/openhabOutLogic.js',
     'lib/openhabConnection.js',
     'nodes/in.js',
     'nodes/in.html',
     'nodes/get.js',
     'nodes/get.html',
+    'nodes/out.js',
+    'nodes/out.html',
     'package.json'
 ];
 
@@ -51,6 +54,9 @@ try {
     
     const { setupOpenhabEvents } = require('./lib/openhabEventsLogic');
     console.log('  ✅ openhabEventsLogic.js loaded successfully');
+    
+    const { setupOpenhabOut } = require('./lib/openhabOutLogic');
+    console.log('  ✅ openhabOutLogic.js loaded successfully');
     
 } catch (error) {
     console.log(`  ❌ Module loading failed: ${error.message}`);
@@ -127,7 +133,7 @@ try {
     const packageJson = require('./package.json');
     const nodeRedNodes = packageJson['node-red']?.nodes || {};
     
-    const expectedNodes = ['openhab4-controller', 'openhab4-events', 'openhab4-get', 'openhab4-in', 'openhab4-test'];
+    const expectedNodes = ['openhab4-controller', 'openhab4-events', 'openhab4-get', 'openhab4-in', 'openhab4-out', 'openhab4-test'];
     
     for (const nodeName of expectedNodes) {
         if (nodeRedNodes[nodeName]) {

@@ -30,19 +30,19 @@ Listens to state changes of a selected openHAB Item.
 *Configuration:*
 - Name: the name of the node instance (default empty, then takes over the item name)
 - Controller: the openHAB controller
-- Item: the name of the item to listen to. Overrides <kbd>msg.item</kbd>.
+- Item: the name of the item to listen to. Overrides <code>msg.item</code>.
 
 *Output messages (2 channels):*
 
 Channel 1:
-- <kbd>msg.item</kbd>: the name of the item
-- <kbd>msg.topic</kbd>: "StateEvent"
-- <kbd>msg.payload</kbd>: the new state of the selected item
+- <code>msg.item</code>: the name of the item
+- <code>msg.topic</code>: "StateEvent"
+- <code>msg.payload</code>: the new state of the selected item
 
 Channel 2:
-- <kbd>msg.item</kbd>: the name of the item
-- <kbd>msg.topic</kbd>: "RawEvent"
-- <kbd>msg.payload</kbd>:  raw (unprocessed) event for the selected item
+- <code>msg.item</code>: the name of the item
+- <code>msg.topic</code>: "RawEvent"
+- <code>msg.payload</code>:  raw (unprocessed) event for the selected item
 
 ### openhab4-monitor
 
@@ -55,16 +55,16 @@ Monitors the openhab2-controller node.
 *Messages injected in NodeRED flows (3 channels):*
 
 Channel 1:
-- <kbd>msg.topic</kbd> : "ConnectionStatus"
-- <kbd>msg.payload</kbd> : connection status ('ON' or 'OFF')
+- <code>msg.topic</code> : "ConnectionStatus"
+- <code>msg.payload</code> : connection status ('ON' or 'OFF')
 
 Channel 2:
-- <kbd>msg.topic</kbd> : "ConnectionError"
-- <kbd>msg.payload</kbd> : error message
+- <code>msg.topic</code> : "ConnectionError"
+- <code>msg.payload</code> : error message
 
 Channel 3:
-- <kbd>msg.topic</kbd> : "RawEvent"
-- <kbd>msg.payload</kbd> :  raw (unprocessed) event for all items
+- <code>msg.topic</code> : "RawEvent"
+- <code>msg.payload</code> :  raw (unprocessed) event for all items
 
 ### openhab4-out
 
@@ -75,9 +75,9 @@ Sends commands or state updates to a selected openHAB Item.
 - Controller: the openHAB controller
  
 Overriding the input message if set:
-- Item: the item to set. overrides <kbd>msg.item</kbd>.
-- Topic: <kbd>ItemCommand</kbd> or <kbd>ItemUpdate</kbd>. Overrides <kbd>msg.topic</kbd>.
-- Payload : The command or update value to send to the selected item. Overrides <kbd>msg.payload</kbd>.
+- Item: the item to set. overrides <code>msg.item</code>.
+- Topic: <code>ItemCommand</code> or <code>ItemUpdate</code>. Overrides <code>msg.topic</code>.
+- Payload : The command or update value to send to the selected item. Overrides <code>msg.payload</code>.
 
 *Output messages(1 channel):*
 
@@ -90,14 +90,14 @@ Gets an openHAB item (i.e. fetch on demand).
 *Configuration:*
 - Name: the name of the node instance (default empty, then takes over the item name) 
 - Controller: the openHAB controller
-- Item: the item to get. Overrides <kbd>msg.item</kbd>.
+- Item: the item to get. Overrides <code>msg.item</code>.
 
 *Output messages (1 channel):*
 
 Channel 1:
 The input message with addition of:
-- <kbd>msg.payload</kbd> : the item object (name, label, state, ...)
-- <kbd>msg.payload_in</kbd> : copy of incoming message payload.
+- <code>msg.payload</code> : the item object (name, label, state, ...)
+- <code>msg.payload_in</code> : copy of incoming message payload.
 
 ## Release notes
 
@@ -109,3 +109,13 @@ The input message with addition of:
 ### v0.2.91
 - openhab4-in working
 - loads of code optimizations
+
+### v0.2.93
+- openhab4-out added
+- Fixed JSON parsing error ("Unexpected end of JSON input") when openHAB returns empty responses for successful commands
+- Improved error handling for EventSource message parsing in controller and events nodes
+- Enhanced robustness against malformed JSON in event streams
+
+## Development Notes
+
+**Important**: When developing/testing, always restart Node-RED after uploading a new package version. Node-RED caches modules in memory and won't use updated code until restarted.
