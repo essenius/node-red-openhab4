@@ -1,0 +1,95 @@
+<!--
+ Copyright 2025 Rik Essenius
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License. You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software distributed under the License is
+ distributed on an "AS IS" BASIS WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and limitations under the License.
+-->
+
+<script type="text/x-red" data-template-name="openhab4-health">
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+    <div class="form-row">
+        <label for="node-input-controller"><i class="fa fa-globe"></i> Controller</label>
+        <input type="text" id="node-input-controller">
+    </div>
+</script>
+
+<script type="text/x-red" data-help-name="openhab4-health">
+    <p>Monitors the health and status of the openHAB4 controller connection.</p>
+    
+    <h3>Configuration</h3>
+    <dl class="message-properties">
+        <dt>Name <span class="property-type">string</span></dt>
+        <dd>Optional name for the node</dd>
+        <dt>Controller <span class="property-type">openhab4-controller</span></dt>
+        <dd>The openHAB4 controller to monitor</dd>
+    </dl>
+
+    <h3>Outputs</h3>
+    <ol class="node-ports">
+        <li>Connection Status
+            <dl class="message-properties">
+                <dt>payload <span class="property-type">string</span></dt>
+                <dd>Connection status: 'ON' (connected) or 'OFF' (disconnected)</dd>
+                <dt>event <span class="property-type">string</span></dt>
+                <dd>Event type: 'CommunicationStatus'</dd>
+            </dl>
+        </li>
+        <li>Connection Errors
+            <dl class="message-properties">
+                <dt>payload <span class="property-type">string</span></dt>
+                <dd>Error message when connection issues occur</dd>
+                <dt>event <span class="property-type">string</span></dt>
+                <dd>Event type: 'CommunicationError'</dd>
+            </dl>
+        </li>
+        <li>Raw Events
+            <dl class="message-properties">
+                <dt>payload <span class="property-type">object</span></dt>
+                <dd>Raw event data from the openHAB event bus (all items)</dd>
+                <dt>event <span class="property-type">string</span></dt>
+                <dd>Event type: 'RawEvent'</dd>
+            </dl>
+        </li>
+    </ol>
+
+    <h3>Details</h3>
+    <p>This node provides system-level monitoring of the openHAB connection:</p>
+    <ul>
+        <li><strong>Output 1:</strong> Sends messages when the connection status changes</li>
+        <li><strong>Output 2:</strong> Sends messages when connection errors occur</li>
+        <li><strong>Output 3:</strong> Forwards all raw events from the openHAB event bus</li>
+    </ul>
+    
+    <p>Use this node to monitor the overall health of your openHAB integration and 
+    to build flows that react to system-level events rather than specific item changes.</p>
+</script>
+
+<script src="openhab4/constants.js"></script>
+
+<script type="text/javascript">
+    RED.nodes.registerType('openhab4-health', {
+        category: 'home automation',
+        color: window.OPENHAB4.NODE_COLOR,
+        defaults: {
+            name: { value: "" },
+            controller: { value: "", type: "openhab4-controller", required: true }
+        },
+        inputs: 0,
+        outputs: 3,
+        outputLabels: ["status", "errors", "events"],
+        icon: "openhab4-logo-health.svg",
+        paletteLabel: "openhab4-health",
+        label: function() {
+            return window.OPENHAB4.generateNodeName('health', this.name, null);
+        }
+    });
+</script>

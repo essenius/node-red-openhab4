@@ -8,16 +8,20 @@ console.log('🧪 Testing Node-RED openHAB4 nodes...\n');
 const requiredFiles = [
     'lib/statusUtils.js',
     'lib/openhabConstants.js', 
+    'lib/consumerNodeBase.js',
     'lib/inLogic.js',
     'lib/getLogic.js',
     'lib/eventsLogic.js',
     'lib/controllerLogic.js',
+    'lib/healthLogic.js',
     'lib/outLogic.js',
     'lib/openhabConnection.js',
     'nodes/in.js',
     'nodes/in.html',
     'nodes/get.js',
     'nodes/get.html',
+    'nodes/health.js',
+    'nodes/health.html',
     'nodes/out.js',
     'nodes/out.html',
     'package.json'
@@ -58,6 +62,12 @@ try {
     const { setupOutNode } = require('./lib/outLogic');
     console.log('  ✅ outLogic.js loaded successfully');
     
+    const { setupHealthNode } = require('./lib/healthLogic');
+    console.log('  ✅ healthLogic.js loaded successfully');
+    
+    const { ConsumerNodeBase } = require('./lib/consumerNodeBase');
+    console.log('  ✅ consumerNodeBase.js loaded successfully');
+    
 } catch (error) {
     console.log(`  ❌ Module loading failed: ${error.message}`);
     allFilesExist = false;
@@ -97,7 +107,7 @@ try {
 // Test 4: Test controller validation
 console.log('\n🔍 Testing controller validation...');
 try {
-    const { validateController } = require('./lib/statusUtils');
+    const { validateController, validateControllerConfig } = require('./lib/statusUtils');
     
     // Mock node for testing
     const mockNode = {
@@ -123,6 +133,28 @@ try {
     
     console.log('  ✅ Controller validation working correctly');
     
+    // Test controller config validation
+    console.log('\n  Testing controller config validation:');
+    const mockConfigNode = {
+        error: (msg) => console.log(`     CONFIG ERROR: ${msg}`),
+        setStatusError: (text) => console.log(`     CONFIG STATUS ERROR: ${text}`),
+        warn: (msg) => console.log(`     CONFIG WARN: ${msg}`)
+    };
+    
+    // Test with missing host
+    console.log('  Testing config with missing host:');
+    const invalidConfig = { protocol: 'http', port: 8080 };
+    const configResult1 = validateControllerConfig(mockConfigNode, invalidConfig);
+    console.log(`     Result: ${configResult1} (should be false)`);
+    
+    // Test with valid config
+    console.log('  Testing config with valid host:');
+    const validConfig = { protocol: 'http', host: 'localhost', port: 8080 };
+    const configResult2 = validateControllerConfig(mockConfigNode, validConfig);
+    console.log(`     Result: ${configResult2} (should be true)`);
+    
+    console.log('  ✅ Controller config validation working correctly');
+    
 } catch (error) {
     console.log(`  ❌ Controller validation test failed: ${error.message}`);
 }
@@ -133,7 +165,7 @@ try {
     const packageJson = require('./package.json');
     const nodeRedNodes = packageJson['node-red']?.nodes || {};
     
-    const expectedNodes = ['openhab4-controller', 'openhab4-events', 'openhab4-get', 'openhab4-in', 'openhab4-out', 'openhab4-test'];
+    const expectedNodes = ['openhab4-controller', 'openhab4-events', 'openhab4-get', 'openhab4-health', 'openhab4-in', 'openhab4-out'];
     
     for (const nodeName of expectedNodes) {
         if (nodeRedNodes[nodeName]) {

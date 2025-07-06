@@ -44,15 +44,15 @@ Channel 2:
 - <code>msg.topic</code>: "RawEvent"
 - <code>msg.payload</code>:  raw (unprocessed) event for the selected item
 
-### openhab4-monitor
+### openhab4-health
 
-Monitors the openhab2-controller node.
+Monitors the health and status of the openHAB4 controller connection.
 
 *Configuration:*
 - Name: the node name (default empty)
 - Controller: the openHAB controller
 
-*Messages injected in NodeRED flows (3 channels):*
+*Output messages (3 channels):*
 
 Channel 1:
 - <code>msg.topic</code> : "ConnectionStatus"
@@ -115,6 +115,14 @@ The input message with addition of:
 - Fixed JSON parsing error ("Unexpected end of JSON input") when openHAB returns empty responses for successful commands
 - Improved error handling for EventSource message parsing in controller and events nodes
 - Enhanced robustness against malformed JSON in event streams
+
+### v0.2.96
+- openhab4-health added
+
+### v0.2.101
+- reduced duplication
+- eliminated clutter
+- fixed errors with node names, resulting in IDs being used in debug window.
 
 ## Development Notes
 

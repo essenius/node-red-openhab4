@@ -42,13 +42,13 @@
         },
         inputs: 0,
         outputs: 1,
+        outputLabels: ["events"],
         icon: "openhab4-logo-events.svg",
         paletteLabel: "openhab4-events",
         label: function () {
-            return this.name;
+            return window.OPENHAB4.generateNodeName('events', this.name, null);
         },
         oneditprepare: function () {
-            //openhabEditPrepare(this, true);
         }
     });
 </script>
