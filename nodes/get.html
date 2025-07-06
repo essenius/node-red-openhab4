@@ -1,5 +1,15 @@
-<script src="openhab4/constants.js"></script>
-<script src="openhab4/ui-utils.js"></script>
+<!--
+ Copyright 2025 Rik Essenius
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License. You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software distributed under the License is
+ distributed on an "AS IS" BASIS WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and limitations under the License.
+-->
 
 <script type="text/x-red" data-template-name="openhab4-get">
     <style type="text/css">
@@ -25,26 +35,57 @@
 </script>
 
 <script type="text/x-red" data-help-name="openhab4-get">
-    <p>Gets an openHAB item (i.e. fetch on demand).</p>
-    <p>
-	  <b>Configuration</b>
-      <ul>
-        <li><b>Name:</b> the name of the node instance (optional - auto-generated from item name if empty).</li>
-        <li><b>Controller:</b> the openHAB controller to use.</li>
-        <li><b>Item:</b> the item to get. Overrides <code>msg.item</code>.</li>
-   	  </ul>
-	</p>
+    <p>Retrieves the current state of an openHAB item on demand.</p>
+    
+    <h3>Configuration</h3>
+    <dl class="message-properties">
+        <dt>Name <span class="property-type">string</span></dt>
+        <dd>Optional name for the node (auto-generated from item name if empty)</dd>
+        <dt>Controller <span class="property-type">openhab4-controller</span></dt>
+        <dd>The openHAB4 controller to use</dd>
+        <dt>Item Name <span class="property-type">string</span></dt>
+        <dd>The openHAB item to retrieve. Overrides <code>msg.item</code></dd>
+    </dl>
 
-    <p>
-	  <b>Output channel (1)</b>
-	  The input message with addition of:
-      <ul>
-        <li><code>msg.payload</code>: the item's value object.</li>
-         <li><code>msg.payload_in</code>: incoming message payload.</li>
-         <li><code>msg.item</code>: the name of the item that was queried.</li>
-  	  </ul>
-    </p>
+    <h3>Inputs</h3>
+    <dl class="message-properties">
+        <dt>item <span class="property-type">string</span></dt>
+        <dd>The name of the item to retrieve (optional if configured in the node)</dd>
+        <dt>payload <span class="property-type">any</span></dt>
+        <dd>Any payload - will be preserved as <code>msg.payload_in</code> in the output</dd>
+    </dl>
+
+    <h3>Outputs</h3>
+    <ol class="node-ports">
+        <li>Item State
+            <dl class="message-properties">
+                <dt>payload <span class="property-type">object</span></dt>
+                <dd>The item's complete state object from openHAB</dd>
+                <dt>payload_in <span class="property-type">any</span></dt>
+                <dd>The original incoming message payload</dd>
+                <dt>item <span class="property-type">string</span></dt>
+                <dd>The name of the item that was queried</dd>
+            </dl>
+        </li>
+    </ol>
+
+    <h3>Details</h3>
+    <p>This node fetches the current state of an openHAB item when triggered:</p>
+    <ul>
+        <li><strong>On-demand retrieval:</strong> Only fetches item state when a message is received</li>
+        <li><strong>Complete state:</strong> Returns the full item object including state, metadata, and type information</li>
+        <li><strong>Payload preservation:</strong> The original input payload is preserved in <code>msg.payload_in</code></li>
+    </ul>
+    
+    <p>The item name can be specified either in the node configuration or in the <code>msg.item</code> property. 
+    The node configuration takes precedence if both are provided.</p>
+    
+    <p>Use this node when you need to fetch the current state of an item as part of a flow, 
+    rather than continuously monitoring for changes (use the events node for that).</p>
 </script>
+
+<script src="openhab4/constants.js"></script>
+<script src="openhab4/ui-utils.js"></script>
 
 <script type="text/javascript">
     RED.nodes.registerType('openhab4-get', {

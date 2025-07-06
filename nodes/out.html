@@ -1,5 +1,15 @@
-<script src="openhab4/constants.js"></script>
-<script src="openhab4/ui-utils.js"></script>
+<!--
+ Copyright 2025 Rik Essenius
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License. You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software distributed under the License is
+ distributed on an "AS IS" BASIS WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and limitations under the License.
+-->
 
 <script type="text/x-red" data-template-name="openhab4-out">
     <div class="form-row">
@@ -31,24 +41,60 @@
 
 <script type="text/x-red" data-help-name="openhab4-out">
     <p>Sends commands or state updates to an openHAB Item.</p>
-    <p>
-      <b>Configuration</b>
-      <ul>
-        <li><b>Name:</b> the name of the node instance (optional - auto-generated from item name if empty).</li>
-        <li><b>Controller:</b> the openHAB controller to use.</li>
-        <li><b>Item:</b> the item to set. Overrides <code>msg.item</code>.</li>
-        <li><b>Topic:</b> <code>ItemCommand</code> or <code>ItemUpdate</code>. Overrides <code>msg.topic</code>.</li>
-        <li><b>Payload:</b> The command or update value to send to the selected item. Overrides <code>msg.payload</code>.</li>
-   	  </ul>
-    </p>
-    <p>
-	  <b>Output channel (1)</b>
-      <ul>
-        <li>Channel 1: if successful, a copy of the input message.</li>
-      </ul>
-    </p>
+    
+    <h3>Configuration</h3>
+    <dl class="message-properties">
+        <dt>Name <span class="property-type">string</span></dt>
+        <dd>Optional name for the node (auto-generated from item name if empty)</dd>
+        <dt>Controller <span class="property-type">openhab4-controller</span></dt>
+        <dd>The openHAB4 controller to use</dd>
+        <dt>Item Name <span class="property-type">string</span></dt>
+        <dd>The openHAB item to send commands/updates to. Overrides <code>msg.item</code></dd>
+        <dt>Topic <span class="property-type">string</span></dt>
+        <dd>The type of operation: <code>ItemCommand</code> or <code>ItemUpdate</code>. Overrides <code>msg.topic</code></dd>
+        <dt>Payload <span class="property-type">string</span></dt>
+        <dd>The command or update value to send. Overrides <code>msg.payload</code></dd>
+    </dl>
 
+    <h3>Inputs</h3>
+    <dl class="message-properties">
+        <dt>payload <span class="property-type">string | object</span></dt>
+        <dd>The command or update value to send to the item</dd>
+        <dt>item <span class="property-type">string</span></dt>
+        <dd>The name of the item to send the command/update to (optional if configured)</dd>
+        <dt>topic <span class="property-type">string</span></dt>
+        <dd>The type of operation: <code>ItemCommand</code> or <code>ItemUpdate</code> (optional if configured)</dd>
+    </dl>
+
+    <h3>Outputs</h3>
+    <ol class="node-ports">
+        <li>Sent Message
+            <dl class="message-properties">
+                <dt>payload <span class="property-type">string | object</span></dt>
+                <dd>Copy of the original payload that was sent</dd>
+                <dt>item <span class="property-type">string</span></dt>
+                <dd>The name of the item that received the command/update</dd>
+                <dt>topic <span class="property-type">string</span></dt>
+                <dd>The type of operation that was performed</dd>
+            </dl>
+        </li>
+    </ol>
+
+    <h3>Details</h3>
+    <p>This node sends commands or state updates to openHAB items:</p>
+    <ul>
+        <li><strong>ItemCommand:</strong> Sends a command to an item (e.g., turn a switch ON/OFF)</li>
+        <li><strong>ItemUpdate:</strong> Updates the state of an item directly</li>
+    </ul>
+    
+    <p>Configuration values in the node take precedence over message properties. 
+    If no item is specified in either the configuration or message, an error will be generated.</p>
+    
+    <p>The node will output a copy of the input message if the command/update is sent successfully.</p>
 </script>
+
+<script src="openhab4/constants.js"></script>
+<script src="openhab4/ui-utils.js"></script>
 
 <script type="text/javascript">
     RED.nodes.registerType('openhab4-out',{

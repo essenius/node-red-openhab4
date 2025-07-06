@@ -19,34 +19,50 @@
 
 <script type="text/x-red" data-help-name="openhab4-in">
     <p>Listens to state changes of a selected openHAB Item.</p>
-	<p>
-	  <b>Configuration</b>
-      <ul>
-        <li><b>Name:</b> the name of the node instance (optional - auto-generated from item name if empty).</li>
-        <li><b>Controller:</b> the openHAB controller name.</li>
-        <li><b>Item:</b> the name of the item to listen to. Overrides <code>msg.item</code>.</li>
-   	  </ul>
-	</p>
+    
+    <h3>Configuration</h3>
+    <dl class="message-properties">
+        <dt>Name <span class="property-type">string</span></dt>
+        <dd>Optional name for the node (auto-generated from item name if empty)</dd>
+        <dt>Controller <span class="property-type">openhab4-controller</span></dt>
+        <dd>The openHAB4 controller to connect to</dd>
+        <dt>Item <span class="property-type">string</span></dt>
+        <dd>The name of the item to listen to. Overrides <code>msg.item</code></dd>
+    </dl>
 
-    <p>
-	  <b>Output channels (2)</b>
-      <ul>
-        <li>Channel 1:
-			<ul>
-        		<li><code>msg.item</code>: the name of the item.</li>
-        		<li><code>msg.event</code>: <kbd>StateEvent</kbd>.</li>
-        		<li><code>msg.payload</code>: the new state of the selected item.</li>
-  	 		</ul>
-		</li>
-        <li>Channel 2:
-			<ul>
-        		<li><code>msg.item</code>: the name of the item.</li>
-        		<li><code>msg.event</code>: <kbd>RawEvent</kbd>.</li>
-        		<li><code>msg.payload</code>: unprocessed event data for the item.</li>
-  	 		</ul>
-		</li>
-   	  </ul>
-    </p>
+    <h3>Outputs</h3>
+    <ol class="node-ports">
+        <li>State Events
+            <dl class="message-properties">
+                <dt>payload <span class="property-type">string</span></dt>
+                <dd>The new state of the selected item</dd>
+                <dt>item <span class="property-type">string</span></dt>
+                <dd>The name of the item</dd>
+                <dt>event <span class="property-type">string</span></dt>
+                <dd>Event type: 'StateEvent'</dd>
+            </dl>
+        </li>
+        <li>Raw Events
+            <dl class="message-properties">
+                <dt>payload <span class="property-type">object</span></dt>
+                <dd>Unprocessed event data for the item</dd>
+                <dt>item <span class="property-type">string</span></dt>
+                <dd>The name of the item</dd>
+                <dt>event <span class="property-type">string</span></dt>
+                <dd>Event type: 'RawEvent'</dd>
+            </dl>
+        </li>
+    </ol>
+
+    <h3>Details</h3>
+    <p>This node monitors a specific openHAB item for changes:</p>
+    <ul>
+        <li><strong>Output 1:</strong> Sends messages only when the item's state actually changes</li>
+        <li><strong>Output 2:</strong> Sends all raw events for the item (including commands, updates, etc.)</li>
+    </ul>
+    
+    <p>Use output 1 for most automation scenarios where you want to react to state changes. 
+    Use output 2 for debugging or when you need access to all event details.</p>
 </script>
 
 <script type="text/javascript">

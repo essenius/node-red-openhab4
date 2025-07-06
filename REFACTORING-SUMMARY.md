@@ -37,6 +37,13 @@ All consumer nodes have been successfully refactored to use the new `ConsumerNod
   - **Events Node**: `["events"]`
   - **Health Node**: `["status", "errors", "events"]` (previously added)
 
+### 🐛 **Bug Fixes**
+- ✅ **Fixed duplicate ConnectionStatus messages** in health node:
+  - Removed redundant `COMMUNICATION_STATUS` emission in `controllerLogic.js` `getStateOfItems()`
+  - Removed redundant `COMMUNICATION_STATUS` emission in `openhabConnection.js` `_handleFetchResult()`
+  - Now only the EventSource connection emits status changes (single message instead of 3)
+  - Health node properly tracks and deduplicates status messages to prevent spam
+
 ### 🧹 **Cleanup**
 - ✅ Removed obsolete `monitor.js` and `monitor.html` files
 - ✅ Cleaned up commented code in event node HTML
