@@ -4,7 +4,7 @@
 
 Nodes facilitating integration of [openHAB 4](http://www.openhab.org) with [Node-RED](http://nodered.org), allowing for the use of Node Red as a rules engine for OpenHAB.
 
-Inspired by https://github.com/pdmangel/node-red-contrib-openhab2. Largely rewritten and made to work with openHAB, 4 which has a different Rest API from openHAB 2.
+Inspired by https://github.com/pdmangel/node-red-contrib-openhab2. Largely rewritten and made to work with openHAB 4, which has a different Rest API from openHAB 2.
 
 This project is work in progress, and not yet available in npm.
 
@@ -12,13 +12,13 @@ This project is work in progress, and not yet available in npm.
 
 ### openhab4-controller
 
-Configuration node for communication with an openHAB controller.
+Configuration node for communication with an openHAB controller, which is used by all the other nodes.
 
 *Configuration:*
 - Name : name for the configuration node (mandatory as referred to by the other nodes)
-- Protocol : "http" or "https"
+- Protocol : <kbd>http<kbd> or <kbd>https</kbd>
 - Host : the host name or ip address (default localhost)
-- Port : the ip port (default 8080)
+- Port : the ip port (default <kbd>8080</kbd>)
 - Path : the additional base path (default empty)
 - Username : the user name to authenticate on openHAB (default empty)
 - Password : the password to authenticate (default empty)
@@ -30,18 +30,19 @@ Listens to state changes of a selected openHAB Item.
 *Configuration:*
 - Name: the name of the node instance (default empty, then takes over the item name)
 - Controller: the openHAB controller
-- Item: the name of the item to listen to. Overrides <code>msg.item</code>.
+- Filter Items: the filter applied to the dropdown. Empty means no filter.
+- Item Name: the name of the item to listen to. Overrides <code>msg.item</code>.
 
 *Output messages (2 channels):*
 
 Channel 1:
 - <code>msg.item</code>: the name of the item
-- <code>msg.topic</code>: "StateEvent"
+- <code>msg.topic</code>: <kbd>StateEvent</kbd>
 - <code>msg.payload</code>: the new state of the selected item
 
 Channel 2:
 - <code>msg.item</code>: the name of the item
-- <code>msg.topic</code>: "RawEvent"
+- <code>msg.topic</code>: <kbd>RawEvent</kbd>
 - <code>msg.payload</code>:  raw (unprocessed) event for the selected item
 
 ### openhab4-health
@@ -55,15 +56,15 @@ Monitors the health and status of the openHAB4 controller connection.
 *Output messages (3 channels):*
 
 Channel 1:
-- <code>msg.topic</code> : "ConnectionStatus"
-- <code>msg.payload</code> : connection status ('ON' or 'OFF')
+- <code>msg.topic</code> : <kbd>ConnectionStatus</kbd>
+- <code>msg.payload</code> : connection status (<kbd>ON</kbd> or <kbd>OFF</kbd>)
 
 Channel 2:
-- <code>msg.topic</code> : "ConnectionError"
+- <code>msg.topic</code> : <kbd>ConnectionError</kbd>
 - <code>msg.payload</code> : error message
 
 Channel 3:
-- <code>msg.topic</code> : "RawEvent"
+- <code>msg.topic</code> : <kbd>RawEvent</kbd>
 - <code>msg.payload</code> :  raw (unprocessed) event for all items
 
 ### openhab4-out
@@ -73,9 +74,8 @@ Sends commands or state updates to a selected openHAB Item.
 *Configuration:*
 - Name: name of the node instance (default empty, then takes over the item name)
 - Controller: the openHAB controller
- 
-Overriding the input message if set:
-- Item: the item to set. overrides <code>msg.item</code>.
+- Filter Items: the filter applied to the dropdown. Empty means no filter. 
+- Item Name: the item to set. overrides <code>msg.item</code>.
 - Topic: <code>ItemCommand</code> or <code>ItemUpdate</code>. Overrides <code>msg.topic</code>.
 - Payload : The command or update value to send to the selected item. Overrides <code>msg.payload</code>.
 
@@ -90,7 +90,9 @@ Gets an openHAB item (i.e. fetch on demand).
 *Configuration:*
 - Name: the name of the node instance (default empty, then takes over the item name) 
 - Controller: the openHAB controller
-- Item: the item to get. Overrides <code>msg.item</code>.
+- Filter Items: the filter applied to the dropdown. Empty means no filter.
+
+- Item Name: the item to get. Overrides <code>msg.item</code>.
 
 *Output messages (1 channel):*
 
@@ -124,7 +126,7 @@ The input message with addition of:
 - eliminated clutter
 - fixed errors with node names, resulting in IDs being used in debug window.
 
-### v0.2.118
+### v0.2.120
 - implemented item filter for get, in and out nodes
 - cleaned up documentation
   
