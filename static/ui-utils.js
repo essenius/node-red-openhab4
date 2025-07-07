@@ -22,8 +22,6 @@ function buildAdminStaticPath(path) {
    * @param allowEmpty  if true, adds a “[No item]” blank option
    */
   function openhabEditPrepare(node, allowEmpty) {
-    console.log('openhabEditPrepare called with node:', node);
-
     // Fix existing array data
     if (Array.isArray(node.itemname)) {
       node.itemname = node.itemname[0] || "";
@@ -31,7 +29,6 @@ function buildAdminStaticPath(path) {
 
     const $ctrlSel = $("#node-input-controller");
     const $itemSel = $("#node-input-itemname");
-    const $itemFilter = $("#node-input-item-filter");
 
     let allItemNames = [];
 

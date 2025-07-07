@@ -18,10 +18,17 @@
     </div>
     <div class="form-row">
         <label for="node-config-input-protocol"><i class="fa fa-unlock-alt"></i> Protocol</label>
-    	<select id="node-config-input-protocol" name="node-config-input-protocol" style="width: 250px;">
+    	<select id="node-config-input-protocol" name="node-config-input-protocol">
 			<option value="http">http</option>
 			<option value="https">https</option>
     	</select>
+    </div>
+    <div class="form-row" style="display: flex; align-items: center; flex-wrap: nowrap;">
+        <label for="node-config-input-allowSelfSigned" style="margin: 0; white-space: nowrap;"><i class="fa fa-certificate"></i> Certificates</label>
+        <div style="margin-left: 1em; display: flex; align-items: center; white-space: nowrap;">
+            <input type="checkbox" id="node-config-input-allowSelfSigned" style="margin-right: 0.5em;">
+            <span>Allow self signed</span>
+        </div>
     </div>
     <div class="form-row">
         <label for="node-config-input-host"><i class="fa fa-globe"></i> Host</label>
@@ -54,6 +61,8 @@
         <dd>Name for the configuration node (mandatory - referenced by other nodes)</dd>
         <dt>Protocol <span class="property-type">string</span></dt>
         <dd>Connection protocol: <code>http</code> or <code>https</code></dd>
+        <dt>Allow self-signed certificates <span class="property-type">boolean</span></dt>
+        <dd>Switch off certificate checking to support self-signed certificates for HTTPS connections (default: <code>false</code>)</dd>
         <dt>Host <span class="property-type">string</span></dt>
         <dd>The hostname or IP address of the openHAB server (default: <code>localhost</code>)</dd>
         <dt>Port <span class="property-type">number</span></dt>
@@ -73,7 +82,7 @@
     <p><strong>Connection URLs:</strong> The node constructs URLs in the format:</p>
     <code>{protocol}://{host}:{port}{/path}/rest/</code>
     
-    <p><strong>Authentication:</strong> If username and password are provided, 
+    <p><strong>Authentication:</strong> If username is provided, 
     HTTP Basic Authentication will be used for all requests to the openHAB server.</p>
     
     <p><strong>Event Stream:</strong> The controller also manages the Server-Sent Events (SSE) 
@@ -91,6 +100,7 @@
         defaults: {
             name: { value: "", required: true },
             protocol: { value: "http", required: true },
+            allowSelfSigned: { value: false },
             host: { value: "localhost", required: true },
             port: { value: 8080, required: false },
             path: { value: "", required: false },

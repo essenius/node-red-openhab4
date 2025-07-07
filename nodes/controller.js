@@ -13,7 +13,6 @@ const { fetchOpenHAB, getConnectionString } = require("../lib/connectionUtils");
 const { setupControllerNode } = require('../lib/controllerLogic');
 
 module.exports = function (RED) {
-    console.log("[controller.js] loading admin");
     const maybeFn = require("./admin");
     console.log("[controller.js] typeof admin:", typeof maybeFn);
     maybeFn(RED);
@@ -21,10 +20,11 @@ module.exports = function (RED) {
     // start a web service for enabling the node configuration ui to query for available openHAB items
 
     RED.httpAdmin.get("/openhab4/items", async (request, response) => {
+        // request.query also contains the credentials, so we can use it to fetch items
         const config = request.query;
         const url = getConnectionString(config) + "/rest/items";
 
-        const result = await fetchOpenHAB(url);
+        const result = await fetchOpenHAB(url, config);
 
         if (result.retry) {
             // should be status 503, but let's be flexible
@@ -42,7 +42,9 @@ module.exports = function (RED) {
         RED.nodes.createNode(this, config);
         const host = config.host || 'unknown';
         this.name = config.name || `openhab4-controller (${host})`;
-        setupControllerNode(this, config);
+        // somewhat ugly duplication from consumerNodeBase.js, but controller doesn't inherit from it.
+        const mergedConfig = { ...config, ...(this.credentials || {}) };
+        setupControllerNode(this, mergedConfig);
     }
     RED.nodes.registerType("openhab4-controller", createControllerNode, {
         credentials: {

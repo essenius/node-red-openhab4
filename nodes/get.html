@@ -11,21 +11,22 @@
  See the License for the specific language governing permissions and limitations under the License.
 -->
 
+
 <script type="text/x-red" data-template-name="openhab4-get">
-    <style type="text/css">
+    <!--<style type="text/css">
         .btn-group {
             width: 70%;
         }
         .dropdown-menu {
             width: 100% !important;
         }
-    </style>
+    </style>-->
     <div class="form-row">
         <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
         <input type="text" id="node-input-name" placeholder="Name">
     </div>
     <div class="form-row">
-        <label for="node-input-controller"><i class="fa fa-cog"></i> Controller</label>
+        <label for="node-input-controller"><i class="fa fa-cogs"></i> Controller</label>
         <input type="text" id="node-input-controller">
     </div>
     <div class="form-row">
@@ -39,6 +40,10 @@
 </script>
 
 <script type="text/x-red" data-help-name="openhab4-get">
+    <div style="color: #b58900; font-weight: bold; margin-bottom: 1em;">
+        <i class="fa fa-exclamation-triangle"></i>
+        <strong>Tip:</strong> If you have just imported a flow or reused a controller configuration node, open and save the controller config node to ensure credentials and item lists are available in this node.
+    </div>
     <p>Retrieves the current state of an openHAB item on demand.</p>
     
     <h3>Configuration</h3>
@@ -112,20 +117,6 @@
         },
         oneditprepare: function () {
             openhabEditPrepare(this, true);
-        },
-
-        oneditsave: function () {
-            // force string conversion on save
-            const rawValue = $('#node-input-itemname').val();
-            console.log('Raw value type:', typeof rawValue, 'value:', rawValue);
-
-            if (Array.isArray(rawValue)) {
-                this.itemname = rawValue.length > 0 ? String(rawValue[0]) : "";
-            } else {
-                this.itemname = String(rawValue || "");
-            }
-
-            console.log('Saved as string:', this.itemname, typeof this.itemname);
         }
     });
 </script>

@@ -23,28 +23,3 @@ module.exports = function(RED) {
 
   // any other admin‐side setup…  
 };
-/*
-
-const path = require("path");
-
-
-module.exports = function (RED) {
-  console.log("[admin.js] invoked");
-
-  const constantsPath = path.join(__dirname, "static", "constants.js");
-  console.log("[admin.js] constantsPath =", constantsPath);
-
-  RED.httpAdmin.get("/openhab4/constants.js", (req, res) => {
-    res.setHeader("Content-Type", "application/javascript");
-    res.sendFile(constantsPath, (err) => {
-      if (err) {
-        console.error("[admin.js] sendFile error:", err);
-        res.status(err.status || 500).send("Failed to load constants.js");
-      } else {
-        console.log("[admin.js] constants.js sent successfully");
-      }
-    }); 
-  });
-};
-
-*/
