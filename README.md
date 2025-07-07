@@ -16,7 +16,7 @@ Configuration node for communication with an openHAB controller, which is used b
 
 *Configuration:*
 - Name: name for the configuration node (mandatory as referred to by the other nodes)
-- Protocol: <kbd>http<kbd> or <kbd>https</kbd>
+- Protocol: <kbd>http</kbd> or <kbd>https</kbd>
 - Allow Self Signed Certificates: switch off certificate checking (default off)
 - Host: the host name or ip address (default localhost)
 - Port: the ip port (default <kbd>8080</kbd>)
@@ -131,7 +131,7 @@ The input message with addition of:
 - implemented item filter for get, in and out nodes
 - cleaned up documentation
   
-## v0.2.145
+### v0.2.145
 - support for https and basic authentication
 
 ## Development Notes
