@@ -25,8 +25,12 @@
         <input type="text" id="node-input-name" placeholder="Name">
     </div>
     <div class="form-row">
-        <label for="node-input-controller"><i class="fa fa-globe"></i> Controller</label>
+        <label for="node-input-controller"><i class="fa fa-cog"></i> Controller</label>
         <input type="text" id="node-input-controller">
+    </div>
+    <div class="form-row">
+        <label for="node-input-item-filter"><i class="fa fa-filter"></i> Filter Items</label>
+        <input type="text" id="node-input-item-filter" placeholder="Type to filter...">
     </div>
     <div class="form-row">
         <label for="node-input-itemname"><i class="fa fa-crosshairs"></i> Item Name</label>
@@ -43,6 +47,8 @@
         <dd>Optional name for the node (auto-generated from item name if empty)</dd>
         <dt>Controller <span class="property-type">openhab4-controller</span></dt>
         <dd>The openHAB4 controller to use</dd>
+        <dt>Filter Items <span class="property-type">string</span></dt>
+        <dd>Text to filter the list of items with. Leave empty to show all items.</dd>
         <dt>Item Name <span class="property-type">string</span></dt>
         <dd>The openHAB item to retrieve. Overrides <code>msg.item</code></dd>
     </dl>

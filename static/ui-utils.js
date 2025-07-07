@@ -24,13 +24,16 @@ function buildAdminStaticPath(path) {
   function openhabEditPrepare(node, allowEmpty) {
     console.log('openhabEditPrepare called with node:', node);
 
-        // Fix existing array data
+    // Fix existing array data
     if (Array.isArray(node.itemname)) {
       node.itemname = node.itemname[0] || "";
     }
 
     const $ctrlSel = $("#node-input-controller");
     const $itemSel = $("#node-input-itemname");
+    const $itemFilter = $("#node-input-item-filter");
+
+    let allItemNames = [];
 
     async function updateItems(controllerConfig, selected) {
       $itemSel.empty();
@@ -54,13 +57,17 @@ function buildAdminStaticPath(path) {
 
       try {
         const items = await $.getJSON("openhab4/items", params);
-        items.sort((a, b) => a.name.localeCompare(b.name));
 
-        if (allowEmpty) {
-          $itemSel.append($("<option>").val("").text("[No item]"));
-        } else {
-          $itemSel.append($("<option>").val("").text("Select item..."));
+        items.sort((a, b) => a.name.localeCompare(b.name));
+        allItemNames = items.map(item => item.name); // Store all names for filtering
+        let specialOption = allowEmpty
+          ? { value: "", text: "[No item]" }
+          : { value: "", text: "Select item..." };
+        if (document.getElementById('node-input-item-filter')) {
+          makeFilterableDropdown('node-input-item-filter', 'node-input-itemname', allItemNames, specialOption);
         }
+        // Always add the special option first
+        $itemSel.append($("<option>").val(specialOption.value).text(specialOption.text));
 
         items.forEach(item => {
           const option = $("<option>").val(item.name).text(item.name);
@@ -92,7 +99,44 @@ function buildAdminStaticPath(path) {
     });
   }
 
+  /**
+   * Makes a <select> element filterable by a text input.
+   * @param {string} filterInputId - The ID of the text input for filtering.
+   * @param {string} selectId - The ID of the select element to filter.
+   * @param {Array<string>} allOptions - The full list of options.
+   * @param {Object} [specialOption] - Optional. An object { value, text } for a special first option.
+   */
+  function makeFilterableDropdown(filterInputId, selectId, allOptions, specialOption) {
+    const filterInput = document.getElementById(filterInputId);
+    const select = document.getElementById(selectId);
+
+    function populateDropdown(options) {
+      select.innerHTML = '';
+      if (specialOption) {
+        const opt = document.createElement('option');
+        opt.value = specialOption.value;
+        opt.text = specialOption.text;
+        select.appendChild(opt);
+      }
+      options.forEach(item => {
+        const option = document.createElement('option');
+        option.value = item;
+        option.text = item;
+        select.appendChild(option);
+      });
+    }
+
+    filterInput.addEventListener('input', function() {
+      const filter = this.value.toLowerCase();
+      const filtered = allOptions.filter(item => item.toLowerCase().includes(filter));
+      populateDropdown(filtered);
+    });
+
+    // Initial population
+    populateDropdown(allOptions);
+  }
   window.openhabEditPrepare = openhabEditPrepare;
+  window.makeFilterableDropdown = makeFilterableDropdown;
 })(window);
 
 

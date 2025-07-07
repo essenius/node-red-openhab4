@@ -124,6 +124,10 @@ The input message with addition of:
 - eliminated clutter
 - fixed errors with node names, resulting in IDs being used in debug window.
 
+### v0.2.118
+- implemented item filter for get, in and out nodes
+- cleaned up documentation
+  
 ## Development Notes
 
 **Important**: When developing/testing, always restart Node-RED after uploading a new package version. Node-RED caches modules in memory and won't use updated code until restarted.
