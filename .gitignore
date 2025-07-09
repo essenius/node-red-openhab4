@@ -39,6 +39,7 @@ yarn.lock
 
 # Test coverage
 coverage/
+.nyc_output/
 
 # tars
 *.tgz

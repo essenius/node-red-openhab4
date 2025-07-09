@@ -134,6 +134,9 @@ The input message with addition of:
 ### v0.2.145
 - support for https and basic authentication
 
+### v0.2.147
+- added unit testing framework (mocha, chai@4, node-red-node-test-helper, sinon, proxyquire) and initial unit tests
+
 ## Development Notes
 
 **Important**: When developing/testing, always restart Node-RED after uploading a new package version. Node-RED caches modules in memory and won't use updated code until restarted.

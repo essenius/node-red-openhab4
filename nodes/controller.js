@@ -9,35 +9,38 @@
 // distributed on an "AS IS" BASIS WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and limitations under the License.
 
+"use strict";
+
 const { fetchOpenHAB, getConnectionString } = require("../lib/connectionUtils");
 const { setupControllerNode } = require('../lib/controllerLogic');
 
-module.exports = function (RED) {
-    const maybeFn = require("./admin");
-    console.log("[controller.js] typeof admin:", typeof maybeFn);
-    maybeFn(RED);
-
-    // start a web service for enabling the node configuration ui to query for available openHAB items
-
-    RED.httpAdmin.get("/openhab4/items", async (request, response) => {
+function createItemsHandler(fetchOpenHAB, getConnectionString) {
+    return async function (request, response) {
         // request.query also contains the credentials, so we can use it to fetch items
         const config = request.query;
         const url = getConnectionString(config) + "/rest/items";
-
         const result = await fetchOpenHAB(url, config);
 
         if (result.retry) {
             // should be status 503, but let's be flexible
             return response.status(result.status).send(`OpenHAB returned ${result.status} for '${url}'`);
         }
-
         if (result.error) {
             return response.status(500).send(`Fetch error: '${result.error.message}'`);
         }
-
         response.send(result.data);
-    });
+    };
+}
 
+function controllerModule(RED) {
+    const maybeFn = require("./admin");
+    console.log("[controller.js] typeof admin:", typeof maybeFn);
+    maybeFn(RED);
+
+    // start a web service for enabling the node configuration ui to retrieve the available openHAB items
+
+    RED.httpAdmin.get("/openhab4/items", createItemsHandler(fetchOpenHAB, getConnectionString));
+     
     function createControllerNode(config) {
         RED.nodes.createNode(this, config);
         const host = config.host || 'unknown';
@@ -46,10 +49,14 @@ module.exports = function (RED) {
         const mergedConfig = { ...config, ...(this.credentials || {}) };
         setupControllerNode(this, mergedConfig);
     }
+
     RED.nodes.registerType("openhab4-controller", createControllerNode, {
         credentials: {
             username: { type: "text" },
             password: { type: "password" }
         }
     });
-};
+}
+
+controllerModule.createItemsHandler = createItemsHandler;
+module.exports = controllerModule;
