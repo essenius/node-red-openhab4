@@ -10,9 +10,19 @@
 // See the License for the specific language governing permissions and limitations under the License.
 
 "use strict";
+
 const sinon = require("sinon");
 const { expect } = require("chai");
 const proxyquire = require("proxyquire");
+
+// make sure addStatusMethods is not called in the tests, as that overrides the spy() calls
+
+const controllerLogic = proxyquire("../lib/controllerLogic", {
+    "./statusUtils": { addStatusMethods: function () {} }
+});
+const controllerModule = proxyquire("../nodes/controller.js", {
+    "../lib/controllerLogic": controllerLogic
+});
 
 // Helper to create the handler with mocks
 function getHandler(fetchResult) {
@@ -49,6 +59,21 @@ function createMockRED(registerType = sinon.spy(), httpAdminGet = sinon.spy()) {
         httpAdminGet
     };
 }
+
+function createNodeThis() {
+    return {
+        credentials: {},
+        name: "",
+        log: sinon.spy(),
+        on: sinon.spy(),
+        warn: sinon.spy(),
+        emit: sinon.spy(),
+        status: sinon.spy(),
+        error: sinon.spy(),
+        setStatusError: sinon.spy()
+    };
+}
+
 
 describe("controller.js /openhab4/items handler", function () {
     it("should create the right URL and return items from mocked fetchOpenHAB", async function () {
@@ -100,7 +125,7 @@ describe("controller.js /openhab4/items handler", function () {
     });
 });
 
-describe("controllerModule", function () {
+describe("controller.js.controllerModule", function () {
     it("should register the node type and HTTP endpoint", function () {
         // Arrange: create spies for RED methods
         const { RED, registerType, httpAdminGet } = createMockRED();
@@ -123,40 +148,46 @@ describe("controllerModule", function () {
         )).to.be.true;
     });
 
-    it("should call createControllerNode when a node is instantiated", function () {
-
-        const controllerModule = require("../nodes/controller.js");
-
-        // Arrange: create a RED mock with spies
-        const { RED, registerType, httpAdminGet } = createMockRED();
-
-        // Act: register the node type
+    function testCreateControllerNode(nodeThis, config, expectedNamePart) {
+        const { RED, registerType } = createMockRED();
         controllerModule(RED);
-
-        // Find the function passed to registerType
         const call = registerType.getCalls().find(c => c.args[0] === "openhab4-controller");
         expect(call).to.exist;
         const createControllerNode = call.args[1];
-
-        // Prepare a config and a spy for RED.nodes.createNode
-        const config = { name: "TestController", host: "localhost" };
-        const nodeThis = {
-            credentials: {},
-            name: "",
-            log: sinon.spy(),
-            on: sinon.spy(),
-            warn: sinon.spy(),
-            emit: sinon.spy(),
-            status: sinon.spy(),
-            error: sinon.spy()
-        };
         RED.nodes.createNode = sinon.spy();
-
-        // Call createControllerNode with the test context and config
         createControllerNode.call(nodeThis, config);
-
-        // Assert: RED.nodes.createNode was called and nodeThis was set up
         expect(RED.nodes.createNode.calledOnce).to.be.true;
-        expect(nodeThis.name).to.include("TestController");
+        expect(nodeThis.name).to.include(expectedNamePart);
+        // the only handler set in createControllerNode is the close handler, so we can check that
+        if (nodeThis.on.callCount > 0) {
+            // if it was set, call the close handler to break out of waitForOpenHABReady
+            nodeThis.on.getCall(0).args[1](false, () => { });
+        }
+    }
+
+    it("should call createControllerNode when a node is instantiated", function () {
+        const nodeThis = createNodeThis();
+        testCreateControllerNode(nodeThis, { name: "TestController", host: "localhost" }, "TestController");
+
+    });
+
+    it("should use defaults when calling createControllerNode without values, and fail validation", function () {
+        const nodeThis = createNodeThis();
+        const controllerModule = proxyquire("../nodes/controller.js", {
+            "../lib/controllerLogic": proxyquire("../lib/controllerLogic", {
+                "./statusUtils": { addStatusMethods: function () { } }
+            })
+        });
+        testCreateControllerNode(nodeThis, {}, "openhab4-controller (unknown)");
+        expect(nodeThis.error.calledOnce).to.be.true;
+        expect(nodeThis.setStatusError.calledWith("config error")).to.be.true;
+    });
+
+    it("should be ok with not having credentials", function () {
+
+        const nodeThis = createNodeThis();
+        nodeThis.credentials = null;
+        testCreateControllerNode(nodeThis, { host: "localhost" }, "openhab4-controller (localhost)");
+        expect(nodeThis.error.calledOnce).to.be.false;
     });
 });
