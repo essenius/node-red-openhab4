@@ -16,23 +16,32 @@ const sinon = require("sinon");
 const proxyquire = require("proxyquire");
 
 describe("controllerLogic.setupControllerNode", function () {
-    let setupControllerNode, OpenhabConnectionStub, node, config;
+    let setupControllerNode, controlItemStub, startEventSourceStub, testIfLiveStub, OpenhabConnectionStub, node, config;
 
-    const controlItemStub = sinon.stub().callsFake(async (itemname, topic, payload) => {
-        if (topic === "error") {
-            throw new Error("Simulated error");
-        }
-        return "ok";
-    });
-
-    beforeEach(() => {
-        // Stub OpenhabConnection so no real connection is made
-        OpenhabConnectionStub = sinon.stub().returns({
-            getItems: sinon.stub().resolves([]),
-            startEventSource: sinon.stub(),
+    function setupOpenhabConnectionWithGetItems(getItemsStub) {
+        OpenhabConnectionStub.returns({
+            getItems: getItemsStub,
+            startEventSource: startEventSourceStub,
             controlItem: controlItemStub,
-            close: sinon.stub()
+            close: sinon.stub(),
+            testIfLive: testIfLiveStub
         });
+    }
+    beforeEach(() => {
+        controlItemStub = sinon.stub().callsFake(async (itemname, topic, payload) => {
+            if (topic === "error") {
+                throw new Error("Simulated error");
+            }
+            return "ok";
+        });
+
+        startEventSourceStub = sinon.stub();
+
+        testIfLiveStub = sinon.stub().resolves(true);
+
+        OpenhabConnectionStub = sinon.stub();
+        // Stub OpenhabConnection so no real connection is made
+        setupOpenhabConnectionWithGetItems(sinon.stub().resolves([{ name: "Item1", state: "ON" }]));
 
         // Proxyquire to inject the stub
         ({ setupControllerNode } = proxyquire("../lib/controllerLogic", {
@@ -42,6 +51,7 @@ describe("controllerLogic.setupControllerNode", function () {
 
         // Mock node object
         node = {
+            _closed: false,
             error: sinon.spy(),
             warn: sinon.spy(),
             log: sinon.spy(),
@@ -78,11 +88,6 @@ describe("controllerLogic.setupControllerNode", function () {
 
     it("should register a close handler that cleans up timers and connection", function () {
         setupControllerNode(node, config);
-        // Simulate close event
-        node._closed = false;
-        node.emit = sinon.spy();
-        node.log = sinon.spy();
-
         // call the close handler (the first call to node.on in setupControllerNode, and args[1] is the close handler)
         node.on.getCall(0).args[1](false, () => { });
 
@@ -138,36 +143,25 @@ describe("controllerLogic.setupControllerNode", function () {
         expect(errorMessage).to.include("openHAB did not become ready in time.");
     });
 
+    async function runEventSourceOnOpenCallback() {
+        // Manually trigger the onOpen callback
+        const startEventSourceArgs = startEventSourceStub.getCall(0).args[0];
+        if (startEventSourceArgs && typeof startEventSourceArgs.onOpen === "function") {
+            await startEventSourceArgs.onOpen();
+        }
+        // Wait for getStateOfItems to finish
+        await new Promise(resolve => setImmediate(resolve));
+    }
+
     it("should start EventSource and get state of items when openHAB is ready (happy path)", async function () {
-        const startEventSourceStub = sinon.stub();
-        const getItemsStub = sinon.stub().resolves([{ name: "Item1", state: "ON" }]);
-        const testIfLiveStub = sinon.stub().resolves(true);
-
-        OpenhabConnectionStub.returns({
-            getItems: getItemsStub,
-            startEventSource: startEventSourceStub,
-            controlItem: controlItemStub,
-            close: sinon.stub(),
-            testIfLive: testIfLiveStub
-        });
-
-        node._closed = false;
-        node.emit = sinon.spy();
-        node.log = sinon.spy();
 
         setupControllerNode(node, config, { maxAttempts: 1, interval: 0 });
 
         // Wait for async code to run
         await new Promise(resolve => setImmediate(resolve));
 
-        // Manually trigger the onOpen callback (to get the items)
-        const startEventSourceArgs = startEventSourceStub.getCall(0).args[0];
-        if (startEventSourceArgs && typeof startEventSourceArgs.onOpen === "function") {
-            await startEventSourceArgs.onOpen();
-        }
-
-        // Wait for getStateOfItems to finish
-        await new Promise(resolve => setImmediate(resolve));
+        // get the items via the onOpen callback
+        await runEventSourceOnOpenCallback();
 
         expect(startEventSourceStub.calledOnce, "EventSource should be started").to.be.true;
         const emitCalls = node.emit.getCalls();
@@ -191,53 +185,31 @@ describe("controllerLogic.setupControllerNode", function () {
         }, (error) => {
             expect(error).to.equal("Simulated error");
         });
-
     });
-
 
     it("should handle error in getItems appropriately", async function () {
         const setTimeoutStub = sinon.stub(global, "setTimeout").returns(42);
         const clearTimeoutStub = sinon.stub(global, "clearTimeout");
 
         try {
-            const startEventSourceStub = sinon.stub();
-            const getItemsStub = sinon.stub().rejects(new Error("Failed to fetch items"));
-            const testIfLiveStub = sinon.stub().resolves(true);
 
-            OpenhabConnectionStub.returns({
-                getItems: getItemsStub,
-                startEventSource: startEventSourceStub,
-                controlItem: sinon.stub().resolves("ok"),
-                close: sinon.stub(),
-                testIfLive: testIfLiveStub
-            });
-
-            node._closed = false;
-            node.emit = sinon.spy();
-            node.log = sinon.spy();
-            node.warn = sinon.spy();
-            node.error = sinon.spy();
+            //const startEventSourceStub = sinon.stub();
+            const errorGetItemsStub = sinon.stub().rejects(new Error("Failed to fetch items"));
+            setupOpenhabConnectionWithGetItems(errorGetItemsStub);
 
             setupControllerNode(node, config, { maxAttempts: 1, interval: 0 });
 
             // Wait for async code to run
             await new Promise(resolve => setImmediate(resolve));
 
-            // Manually trigger the onOpen callback
-            const startEventSourceArgs = startEventSourceStub.getCall(0).args[0];
-            if (startEventSourceArgs && typeof startEventSourceArgs.onOpen === "function") {
-                await startEventSourceArgs.onOpen();
-            }
-
-            // Wait for getStateOfItems to finish
-            await new Promise(resolve => setImmediate(resolve));
+            await  runEventSourceOnOpenCallback();
 
             /// call the close handler
             expect(node.on.calledOnce).to.be.true;
             expect(node.on.getCall(0).args[0]).to.equal("close");
             node.on.getCall(0).args[1](false, () => { });
 
-            expect(getItemsStub.calledOnce).to.be.true;
+            expect(errorGetItemsStub.calledOnce).to.be.true;
             expect(node.warn.calledWithMatch("Error getting item states")).to.be.true;
             expect(node.emit.calledWithMatch("CommunicationError")).to.be.true;
             expect(node.emit.calledWithMatch("CommunicationStatus")).to.be.true;
@@ -249,22 +221,19 @@ describe("controllerLogic.setupControllerNode", function () {
         }
     });
 
+
+    function simulateEventSourceMessage(message) {
+        const args = startEventSourceStub.getCall(0).args[0];
+        args.onMessage(message);
+    }
+
+    function resetNodeSpies() {
+        node.warn.resetHistory();
+        node.emit.resetHistory();
+        node.error.resetHistory();
+    }
+
     it("should emit the correct event and payload when startEventSource.onMessage is called", async function () {
-        const startEventSourceStub = sinon.stub();
-        const getItemsStub = sinon.stub().resolves([{ name: "Item1", state: "ON" }]);
-        const testIfLiveStub = sinon.stub().resolves(true);
-
-        OpenhabConnectionStub.returns({
-            getItems: getItemsStub,
-            startEventSource: startEventSourceStub,
-            controlItem: controlItemStub,
-            close: sinon.stub(),
-            testIfLive: testIfLiveStub
-        });
-
-        node._closed = false;
-        node.emit = sinon.spy();
-        node.log = sinon.spy();
 
         setupControllerNode(node, config, { maxAttempts: 1, interval: 0 });
 
@@ -273,9 +242,6 @@ describe("controllerLogic.setupControllerNode", function () {
 
         // Get the onMessage handler passed to startEventSource
 
-        const eventSourceCalls = startEventSourceStub.getCalls();
-
-        console.log("Event source calls:", eventSourceCalls.map(call => call.args));
         const startEventSourceArgs = startEventSourceStub.getCall(0).args[0];
         expect(startEventSourceArgs).to.have.property("onMessage").that.is.a("function", "onMessage should be a function");
 
@@ -287,7 +253,7 @@ describe("controllerLogic.setupControllerNode", function () {
                 payload: JSON.stringify({ value: 'ON' })
             })
         };
-        startEventSourceArgs.onMessage(message);
+        simulateEventSourceMessage(message);
 
         console.log("Event source calls:", node.emit.getCalls().map(call => call.args));
         // Assert: node.emit should be called with the correct arguments
@@ -298,9 +264,9 @@ describe("controllerLogic.setupControllerNode", function () {
         // check if empty message is handled correctly
         const emptyMessage = JSON.stringify({});
 
-        node.emit.resetHistory();
+        resetNodeSpies();
 
-        startEventSourceArgs.onMessage(emptyMessage);
+        simulateEventSourceMessage(emptyMessage);
         expect(node.warn.calledWithMatch("Received empty event data, ignoring"), "Ignored empty").to.be.true;
         expect(node.emit.callCount).to.equal(0, "No events should be emitted for empty message", "Emit callcount for empty message");
 
@@ -308,14 +274,12 @@ describe("controllerLogic.setupControllerNode", function () {
         const wrongMessage = {
             data: "This is not a valid JSON string"
         };
-        startEventSourceArgs.onMessage(wrongMessage);
+        simulateEventSourceMessage(wrongMessage);
 
         expect(node.error.calledWithMatch("Error parsing event data"), "Error on parse error").to.be.true;
         expect(node.emit.callCount).to.equal(0, "No events should be emitted for invalid message", "Emit callcount for invalid message");
 
-        node.warn.resetHistory();
-        node.emit.resetHistory();
-        node.error.resetHistory();
+        resetNodeSpies();
 
         // note the use of RawEvent. For state events, we need msg.payload.value, so then payload should always be (parsable as) an object
         const numericPayloadMessage = {
@@ -325,15 +289,14 @@ describe("controllerLogic.setupControllerNode", function () {
                 payload: 25
             })
         };
-        startEventSourceArgs.onMessage(numericPayloadMessage);
+        simulateEventSourceMessage(numericPayloadMessage);
 
         expect(node.emit.callCount).to.equal(2, "Two events should be emitted for numeric payload (RawEvent and Item1/RawEvent)");
         expect(node.emit.calledWith("Item1/RawEvent", sinon.match.has("payload", 25)), "Item/RawEvent with numeric payload").to.be.true;
         expect(node.warn.callCount).to.equal(0, "No warnings should be logged for numeric payload");
 
-        node.warn.resetHistory();
-        node.emit.resetHistory();
-        node.error.resetHistory();
+        resetNodeSpies();
+
         const numericPayloadInStringMessage = {
             data: JSON.stringify({
                 type: "RawEvent",
@@ -341,15 +304,14 @@ describe("controllerLogic.setupControllerNode", function () {
                 payload: "25"
             })
         };
-        startEventSourceArgs.onMessage(numericPayloadMessage);
+        startEventSourceArgs.onMessage(numericPayloadInStringMessage);
 
         expect(node.emit.callCount).to.equal(2, "Two events should be emitted for numeric payload in string");
         expect(node.emit.calledWith("Item1/RawEvent", sinon.match.has("payload", 25)), "Item/RawEvent with stringified numeric payload").to.be.true;
         expect(node.warn.callCount).to.equal(0, "No warnings should be logged for numeric payload");
 
-        node.warn.resetHistory();
-        node.emit.resetHistory();
-        node.error.resetHistory();
+        resetNodeSpies();
+
         const wrongPayloadInStringMessage = {
             data: JSON.stringify({
                 type: "RawEvent",
@@ -359,23 +321,19 @@ describe("controllerLogic.setupControllerNode", function () {
         };
         startEventSourceArgs.onMessage(wrongPayloadInStringMessage);
 
-        console.log("Error calls after message:", node.error.getCalls().map(call => call.args));
-        console.log("Warn calls after message:", node.warn.getCalls().map(call => call.args));
-        console.log("Emit calls after message:", node.emit.getCalls().map(call => call.args));
         expect(node.emit.callCount).to.equal(2, "Non-object payload should be passed on as is");
         expect(node.emit.calledWith("RawEvent", sinon.match.has("payload", "foo")), "RawEvent with string payload").to.be.true;
         expect(node.warn.calledWith("Could not parse string payload as JSON: foo"), "Warning about invalid string payload");
 
         // Simulate node being closed, which should prevent further processing
         node._closed = true;
-        node.warn.resetHistory();
-        node.emit.resetHistory();
-        node.error.resetHistory();
+
+        resetNodeSpies();
+
         startEventSourceArgs.onMessage(message);
         expect(node.emit.callCount).to.equal(0, "No events should be emitted after node is closed", "Emit callcount after close");
         expect(node.warn.callCount).to.equal(0, "No warnings should be logged after node is closed", "Warn callcount after close");
         expect(node.error.callCount).to.equal(0, "No errors should be logged after node is closed", "Error callcount after close");
-
 
         // call the close handler
         expect(node.on.getCall(0).args[0]).to.equal("close", "First on handler should be 'close'");
