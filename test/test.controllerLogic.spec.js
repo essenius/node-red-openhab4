@@ -202,7 +202,7 @@ describe("controllerLogic.setupControllerNode", function () {
             // Wait for async code to run
             await new Promise(resolve => setImmediate(resolve));
 
-            await  runEventSourceOnOpenCallback();
+            await runEventSourceOnOpenCallback();
 
             /// call the close handler
             expect(node.on.calledOnce).to.be.true;
@@ -222,121 +222,257 @@ describe("controllerLogic.setupControllerNode", function () {
     });
 
 
-    function simulateEventSourceMessage(message) {
-        const args = startEventSourceStub.getCall(0).args[0];
-        args.onMessage(message);
-    }
+    describe("Message handling tests", function () {
 
-    function resetNodeSpies() {
-        node.warn.resetHistory();
-        node.emit.resetHistory();
-        node.error.resetHistory();
-    }
+        function simulateEventSourceMessage(message) {
+            const args = startEventSourceStub.getCall(0).args[0];
+            args.onMessage(message);
+        }
 
-    it("should emit the correct event and payload when startEventSource.onMessage is called", async function () {
+        beforeEach(async function () {
+            setupControllerNode(node, config, { maxAttempts: 1, interval: 0 });
+            await new Promise(resolve => setImmediate(resolve));
+            this.startEventSourceArgs = startEventSourceStub.getCall(0).args[0];
+        });
 
-        setupControllerNode(node, config, { maxAttempts: 1, interval: 0 });
+        this.afterEach(function () {
+            // call the close handler
+            if (node.on.callCount > 0) {
+                expect(node.on.getCall(0).args[0]).to.equal("close", "First on handler should be 'close'");
+                node.on.getCall(0).args[1](false, () => { });
+            }
+        });
 
-        // Wait for async code to run
-        await new Promise(resolve => setImmediate(resolve));
+        it("should emit correct events for a valid ItemStateEvent", function () {
+            const message = {
+                data: JSON.stringify({
+                    type: "ItemStateEvent",
+                    topic: "openhab/items/Item1/StateEvent",
+                    payload: JSON.stringify({ value: 'ON' })
+                })
+            };
+            simulateEventSourceMessage(message);
+            expect(node.emit.calledWith("Item1/RawEvent", sinon.match.has("type", "ItemStateEvent"))).to.be.true;
+            expect(node.emit.calledWith("RawEvent", sinon.match.has("topic", "openhab/items/Item1/StateEvent"))).to.be.true;
+            expect(node.emit.calledWith("Item1/StateEvent", { type: 'ItemStateEvent', state: 'ON' })).to.be.true;
+        });
 
-        // Get the onMessage handler passed to startEventSource
+        it("should warn and not emit for empty message", function () {
+            simulateEventSourceMessage(JSON.stringify({}));
+            expect(node.warn.calledWithMatch("Received empty event data, ignoring")).to.be.true;
+            expect(node.emit.callCount).to.equal(0);
+        });
 
-        const startEventSourceArgs = startEventSourceStub.getCall(0).args[0];
-        expect(startEventSourceArgs).to.have.property("onMessage").that.is.a("function", "onMessage should be a function");
+        it("should error and not emit for invalid JSON", function () {
+            simulateEventSourceMessage({ data: "This is not a valid JSON string" });
+            expect(node.error.calledWithMatch("Error parsing event data")).to.be.true;
+            expect(node.emit.callCount).to.equal(0);
+        });
 
-        // Simulate a valid incoming message
-        const message = {
-            data: JSON.stringify({
-                type: "ItemStateEvent",
-                topic: "openhab/items/Item1/StateEvent",
-                payload: JSON.stringify({ value: 'ON' })
-            })
-        };
-        simulateEventSourceMessage(message);
+        [
+            {
+                desc: "numeric payloads",
+                payload: 25,
+                expectedPayload: 25,
+            },
+            {
+                desc: "numeric payloads in string",
+                payload: "25",
+                expectedPayload: 25,
+            }, 
+            {
+                desc: "non-object payloads",
+                payload: "foo",
+                expectedPayload: "foo",
+                expectedWarning: "Could not parse string payload as JSON: foo"
+            }
+        ].forEach(({ desc, payload, expectedPayload, expectedWarning }) => {
+            it(`should emit RawEvents for ${desc}`, function () {
+                const message = {
+                    data: JSON.stringify({
+                        type: "RawEvent",
+                        topic: "openhab/items/Item1/StateEvent",
+                        payload: payload
+                })
+            };
+                simulateEventSourceMessage(message);
+                expect(node.emit.callCount).to.equal(2, `Two events should be emitted for ${desc} (RawEvent and Item1/RawEvent)`);
+                expect(node.emit.calledWith("Item1/RawEvent", sinon.match.has("payload", expectedPayload)), `Item1/RawEvent for ${desc}`).to.be.true;
+                expect(node.emit.calledWith("RawEvent", sinon.match.has("payload", expectedPayload)), `RawEvent for ${desc}`).to.be.true;
 
-        console.log("Event source calls:", node.emit.getCalls().map(call => call.args));
-        // Assert: node.emit should be called with the correct arguments
-        expect(node.emit.calledWith("Item1/RawEvent", sinon.match.has("type", "ItemStateEvent")), "Item/RawEvent").to.be.true;
-        expect(node.emit.calledWith("RawEvent", sinon.match.has("topic", "openhab/items/Item1/StateEvent")), "RawEvent").to.be.true;
-        expect(node.emit.calledWith("Item1/StateEvent", { type: 'ItemStateEvent', state: 'ON' }), "StateEvent").to.be.true;
+                if (expectedWarning) { 
+                    expect(node.warn.calledWithMatch(expectedWarning), `Warning logged for ${desc}`).to.be.true;
+                }  else { 
+                    expect(node.warn.callCount).to.equal(0, `No warning logged for ${desc}`); 
+                }
+                expect(node.error.callCount).to.equal(0, `No error should be logged for ${desc}`);
+            });
+        });
 
-        // check if empty message is handled correctly
-        const emptyMessage = JSON.stringify({});
+        it("should emit RawEvents for numeric payloads", function () {
+            // note the use of RawEvent. For state events, we need msg.payload.value, so then payload should always be (parsable as) an object
+            const numericPayloadMessage = {
+                data: JSON.stringify({
+                    type: "RawEvent",
+                    topic: "openhab/items/Item1/StateEvent",
+                    payload: 25
+                })
+            };
+            simulateEventSourceMessage(numericPayloadMessage);
+            expect(node.emit.callCount).to.equal(2, "Two events should be emitted for numeric payload (RawEvent and Item1/RawEvent)");
+            expect(node.emit.calledWith("Item1/RawEvent", sinon.match.has("payload", 25))).to.be.true;
+            expect(node.warn.callCount).to.equal(0, "No warnings should be logged for numeric payload");
+        });
 
-        resetNodeSpies();
+        it("should emit RawEvents for numeric payload in string", function () {
+            const numericPayloadInStringMessage = {
+                data: JSON.stringify({
+                    type: "RawEvent",
+                    topic: "openhab/items/Item1/StateEvent",
+                    payload: "25"
+                })
+            };
+            simulateEventSourceMessage(numericPayloadInStringMessage);
+            expect(node.emit.callCount).to.equal(2, "Two events should be emitted for numeric payload in string");
+            expect(node.emit.calledWith("Item1/RawEvent", sinon.match.has("payload", 25))).to.be.true;
+            expect(node.warn.callCount).to.equal(0, "No warnings should be logged for numeric payload");
+        });
 
-        simulateEventSourceMessage(emptyMessage);
-        expect(node.warn.calledWithMatch("Received empty event data, ignoring"), "Ignored empty").to.be.true;
-        expect(node.emit.callCount).to.equal(0, "No events should be emitted for empty message", "Emit callcount for empty message");
+        it("should warn and emit RawEvents for non-object payloads", function () {
+            const wrongPayloadInStringMessage = {
+                data: JSON.stringify({
+                    type: "RawEvent",
+                    topic: "openhab/items/Item1/StateEvent",
+                    payload: "foo"
+                })
+            };
+            simulateEventSourceMessage(wrongPayloadInStringMessage);
+            expect(node.emit.callCount).to.equal(2, "Non-object payload should be passed on as is");
+            expect(node.emit.calledWith("RawEvent", sinon.match.has("payload", "foo"))).to.be.true;
+            expect(node.warn.calledWith("Could not parse string payload as JSON: foo")).to.be.true;
+        });
 
-        // check if invalid message is handled correctly
-        const wrongMessage = {
-            data: "This is not a valid JSON string"
-        };
-        simulateEventSourceMessage(wrongMessage);
+        it("should not emit events after node is closed", function () {
+            // Simulate node being closed
+            node._closed = true;
+            simulateEventSourceMessage({
+                data: JSON.stringify({
+                    type: "ItemStateEvent",
+                    topic: "openhab/items/Item1/StateEvent",
+                    payload: JSON.stringify({ value: 'ON' })
+                })
+            });
+            expect(node.emit.callCount).to.equal(0, "No events should be emitted after node is closed");
+            expect(node.warn.callCount).to.equal(0, "No warnings should be logged after node is closed");
+            expect(node.error.callCount).to.equal(0, "No errors should be logged after node is closed");
+        });
 
-        expect(node.error.calledWithMatch("Error parsing event data"), "Error on parse error").to.be.true;
-        expect(node.emit.callCount).to.equal(0, "No events should be emitted for invalid message", "Emit callcount for invalid message");
+        /*
+        it("should emit the correct event and payload when startEventSource.onMessage is called", async function () {
 
-        resetNodeSpies();
+            setupControllerNode(node, config, { maxAttempts: 1, interval: 0 });
 
-        // note the use of RawEvent. For state events, we need msg.payload.value, so then payload should always be (parsable as) an object
-        const numericPayloadMessage = {
-            data: JSON.stringify({
-                type: "RawEvent",
-                topic: "openhab/items/Item1/StateEvent",
-                payload: 25
-            })
-        };
-        simulateEventSourceMessage(numericPayloadMessage);
+            // Wait for async code to run
+            await new Promise(resolve => setImmediate(resolve));
 
-        expect(node.emit.callCount).to.equal(2, "Two events should be emitted for numeric payload (RawEvent and Item1/RawEvent)");
-        expect(node.emit.calledWith("Item1/RawEvent", sinon.match.has("payload", 25)), "Item/RawEvent with numeric payload").to.be.true;
-        expect(node.warn.callCount).to.equal(0, "No warnings should be logged for numeric payload");
+            // Get the onMessage handler passed to startEventSource
 
-        resetNodeSpies();
+            const startEventSourceArgs = startEventSourceStub.getCall(0).args[0];
+            expect(startEventSourceArgs).to.have.property("onMessage").that.is.a("function", "onMessage should be a function");
 
-        const numericPayloadInStringMessage = {
-            data: JSON.stringify({
-                type: "RawEvent",
-                topic: "openhab/items/Item1/StateEvent",
-                payload: "25"
-            })
-        };
-        startEventSourceArgs.onMessage(numericPayloadInStringMessage);
+            // Simulate a valid incoming message
+            const message = {
+                data: JSON.stringify({
+                    type: "ItemStateEvent",
+                    topic: "openhab/items/Item1/StateEvent",
+                    payload: JSON.stringify({ value: 'ON' })
+                })
+            };
+            simulateEventSourceMessage(message);
 
-        expect(node.emit.callCount).to.equal(2, "Two events should be emitted for numeric payload in string");
-        expect(node.emit.calledWith("Item1/RawEvent", sinon.match.has("payload", 25)), "Item/RawEvent with stringified numeric payload").to.be.true;
-        expect(node.warn.callCount).to.equal(0, "No warnings should be logged for numeric payload");
+            console.log("Event source calls:", node.emit.getCalls().map(call => call.args));
+            // Assert: node.emit should be called with the correct arguments
+            expect(node.emit.calledWith("Item1/RawEvent", sinon.match.has("type", "ItemStateEvent")), "Item/RawEvent").to.be.true;
+            expect(node.emit.calledWith("RawEvent", sinon.match.has("topic", "openhab/items/Item1/StateEvent")), "RawEvent").to.be.true;
+            expect(node.emit.calledWith("Item1/StateEvent", { type: 'ItemStateEvent', state: 'ON' }), "StateEvent").to.be.true;
 
-        resetNodeSpies();
+            // check if empty message is handled correctly
+            const emptyMessage = JSON.stringify({});
 
-        const wrongPayloadInStringMessage = {
-            data: JSON.stringify({
-                type: "RawEvent",
-                topic: "openhab/items/Item1/StateEvent",
-                payload: "foo"
-            })
-        };
-        startEventSourceArgs.onMessage(wrongPayloadInStringMessage);
+            resetNodeSpies();
 
-        expect(node.emit.callCount).to.equal(2, "Non-object payload should be passed on as is");
-        expect(node.emit.calledWith("RawEvent", sinon.match.has("payload", "foo")), "RawEvent with string payload").to.be.true;
-        expect(node.warn.calledWith("Could not parse string payload as JSON: foo"), "Warning about invalid string payload");
+            simulateEventSourceMessage(emptyMessage);
+            expect(node.warn.calledWithMatch("Received empty event data, ignoring"), "Ignored empty").to.be.true;
+            expect(node.emit.callCount).to.equal(0, "No events should be emitted for empty message", "Emit callcount for empty message");
 
-        // Simulate node being closed, which should prevent further processing
-        node._closed = true;
+            // check if invalid message is handled correctly
+            const wrongMessage = {
+                data: "This is not a valid JSON string"
+            };
+            simulateEventSourceMessage(wrongMessage);
 
-        resetNodeSpies();
+            expect(node.error.calledWithMatch("Error parsing event data"), "Error on parse error").to.be.true;
+            expect(node.emit.callCount).to.equal(0, "No events should be emitted for invalid message", "Emit callcount for invalid message");
 
-        startEventSourceArgs.onMessage(message);
-        expect(node.emit.callCount).to.equal(0, "No events should be emitted after node is closed", "Emit callcount after close");
-        expect(node.warn.callCount).to.equal(0, "No warnings should be logged after node is closed", "Warn callcount after close");
-        expect(node.error.callCount).to.equal(0, "No errors should be logged after node is closed", "Error callcount after close");
+            resetNodeSpies();
 
-        // call the close handler
-        expect(node.on.getCall(0).args[0]).to.equal("close", "First on handler should be 'close'");
-        node.on.getCall(0).args[1](false, () => { });
+            // note the use of RawEvent. For state events, we need msg.payload.value, so then payload should always be (parsable as) an object
+            const numericPayloadMessage = {
+                data: JSON.stringify({
+                    type: "RawEvent",
+                    topic: "openhab/items/Item1/StateEvent",
+                    payload: 25
+                })
+            };
+            simulateEventSourceMessage(numericPayloadMessage);
+
+            expect(node.emit.callCount).to.equal(2, "Two events should be emitted for numeric payload (RawEvent and Item1/RawEvent)");
+            expect(node.emit.calledWith("Item1/RawEvent", sinon.match.has("payload", 25)), "Item/RawEvent with numeric payload").to.be.true;
+            expect(node.warn.callCount).to.equal(0, "No warnings should be logged for numeric payload");
+
+            resetNodeSpies();
+
+            const numericPayloadInStringMessage = {
+                data: JSON.stringify({
+                    type: "RawEvent",
+                    topic: "openhab/items/Item1/StateEvent",
+                    payload: "25"
+                })
+            };
+            startEventSourceArgs.onMessage(numericPayloadInStringMessage);
+
+            expect(node.emit.callCount).to.equal(2, "Two events should be emitted for numeric payload in string");
+            expect(node.emit.calledWith("Item1/RawEvent", sinon.match.has("payload", 25)), "Item/RawEvent with stringified numeric payload").to.be.true;
+            expect(node.warn.callCount).to.equal(0, "No warnings should be logged for numeric payload");
+
+            resetNodeSpies();
+
+            const wrongPayloadInStringMessage = {
+                data: JSON.stringify({
+                    type: "RawEvent",
+                    topic: "openhab/items/Item1/StateEvent",
+                    payload: "foo"
+                })
+            };
+            startEventSourceArgs.onMessage(wrongPayloadInStringMessage);
+
+            expect(node.emit.callCount).to.equal(2, "Non-object payload should be passed on as is");
+            expect(node.emit.calledWith("RawEvent", sinon.match.has("payload", "foo")), "RawEvent with string payload").to.be.true;
+            expect(node.warn.calledWith("Could not parse string payload as JSON: foo"), "Warning about invalid string payload");
+
+            // Simulate node being closed, which should prevent further processing
+            node._closed = true;
+
+            resetNodeSpies();
+
+            startEventSourceArgs.onMessage(message);
+            expect(node.emit.callCount).to.equal(0, "No events should be emitted after node is closed", "Emit callcount after close");
+            expect(node.warn.callCount).to.equal(0, "No warnings should be logged after node is closed", "Warn callcount after close");
+            expect(node.error.callCount).to.equal(0, "No errors should be logged after node is closed", "Error callcount after close");
+
+            // call the close handler
+            expect(node.on.getCall(0).args[0]).to.equal("close", "First on handler should be 'close'");
+            node.on.getCall(0).args[1](false, () => { });
+        }); */
     });
 });
