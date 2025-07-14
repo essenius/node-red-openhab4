@@ -29,4 +29,3 @@ window.OPENHAB4 = window.OPENHAB4 || {};
   };
 })(window.OPENHAB4);
 
-console.log("[openhab4 constants] loaded", window.OPENHAB4);

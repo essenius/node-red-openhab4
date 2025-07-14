@@ -66,13 +66,6 @@ describe("controllerLogic.setupControllerNode", function () {
         };
     });
 
-    it("should set error and status if host is missing", function () {
-        const badConfig = {};
-        setupControllerNode(node, badConfig);
-        expect(node.error.calledOnce).to.be.true;
-        expect(node.setStatusError.calledWith("config error")).to.be.true;
-    });
-
     it("should log connection info and create OpenhabConnection", function () {
         setupControllerNode(node, config);
         expect(node.log.calledWithMatch("OpenHAB Controller connecting to: http://localhost:8080")).to.be.true;
@@ -124,7 +117,8 @@ describe("controllerLogic.setupControllerNode", function () {
         // Replace log with a function that resolves a promise when called with the expected message
         let errorPromise = new Promise(resolve => {
             node.error = function (msg) {
-                if (msg && msg.includes("openHAB did not become ready in time.")) {
+                console.log("Message:", msg);
+                if (msg && msg.includes("Waiting for openHAB: Timeout")) {
                     resolve(msg);
                 }
             };
@@ -139,7 +133,7 @@ describe("controllerLogic.setupControllerNode", function () {
             new Promise((_, reject) => setTimeout(() => reject(new Error("Error not called in time")), 100))
         ]);
 
-        expect(errorMessage).to.include("openHAB did not become ready in time.");
+        expect(errorMessage).to.include("Waiting for openHAB: Timeout", "Error message should indicate timeout");
     });
 
     async function runEventSourceOnOpenCallback() {
@@ -172,18 +166,14 @@ describe("controllerLogic.setupControllerNode", function () {
         expect(stateEventCall.args[1]).to.deep.include({ type: "ItemStateEvent", state: "ON" });
 
         // call the control function to simulate a control command
-        await node.control("Item1", "command", "OFF", (result) => {
-            expect(result).to.equal("ok");
-        }, (error) => {
-            expect.fail("Control command should not fail: " + error);
-        });
+        let result = await node.control("Item1", "command", "OFF");
+        expect(result).to.equal("ok", "Result of control command should be 'ok'");
 
-        // call the control function to simulate a control command
-        await node.control("Item1", "error", "OFF", (result) => {
-            console.log("Control command succeeded:", result);
-        }, (error) => {
-            expect(error).to.equal("Simulated error");
-        });
+        // now a command that should give an error
+
+        result = await node.control("Item1", "error", "OFF");
+        expect(result).to.be.instanceOf(Error, "Result of control command with error should be an Error instance");
+        expect(result.message).to.equal("Simulated error", "Error message should match simulated error");
     });
 
     it("should handle error in getItems appropriately", async function () {
@@ -206,10 +196,10 @@ describe("controllerLogic.setupControllerNode", function () {
             expect(node.on.getCall(0).args[0]).to.equal("close");
             node.on.getCall(0).args[1](false, () => { });
 
-            expect(errorGetItemsStub.calledOnce).to.be.true;
-            expect(node.warn.calledWithMatch("Error getting item states")).to.be.true;
-            expect(node.emit.calledWithMatch("CommunicationError")).to.be.true;
-            expect(node.emit.calledWithMatch("CommunicationStatus")).to.be.true;
+            expect(errorGetItemsStub.calledOnce, "GetItems called").to.be.true;
+            expect(node.error.calledWithMatch("Failed to fetch items"), "node error").to.be.true;
+            expect(node.emit.calledWithMatch("CommunicationError"), "CommunicationError emitted").to.be.true;
+            expect(node.emit.calledWithMatch("CommunicationStatus"), "CommunicationStatus emitted").to.be.true;
             expect(setTimeoutStub.calledOnce).to.be.true; // retry should be scheduled
             expect(clearTimeoutStub.calledOnce).to.be.true; // retry timer should be cleared (in close handler)
         } finally {
@@ -228,6 +218,7 @@ describe("controllerLogic.setupControllerNode", function () {
         beforeEach(async function () {
             setupControllerNode(node, config, { maxAttempts: 1, interval: 0 });
             await new Promise(resolve => setImmediate(resolve));
+            node.emit.resetHistory(); // remove the communication events
             this.startEventSourceArgs = startEventSourceStub.getCall(0).args[0];
         });
 
@@ -253,16 +244,20 @@ describe("controllerLogic.setupControllerNode", function () {
             expect(node.emit.calledWith("Item1/StateEvent", { type: 'ItemStateEvent', state: 'ON' })).to.be.true;
         });
 
-        it("should warn and not emit for empty message", function () {
+        it("should not emit empty message", function () {
             simulateEventSourceMessage(JSON.stringify({}));
-            expect(node.warn.calledWithMatch("Received empty event data, ignoring")).to.be.true;
+            console.log(node.emit.getCalls().map(call => call.args));
             expect(node.emit.callCount).to.equal(0);
         });
 
-        it("should error and not emit for invalid JSON", function () {
+        it("should raise an error and emit an error for invalid JSON", function () {
             simulateEventSourceMessage({ data: "This is not a valid JSON string" });
-            expect(node.error.calledWithMatch("Error parsing event data")).to.be.true;
-            expect(node.emit.callCount).to.equal(0);
+            expect(node.error.calledWithMatch("Parsing event: Unexpected token"), "error called with right message").to.be.true;
+
+            expect(node.emit.calledWithMatch(
+                "CommunicationError",
+                sinon.match((val) => val.startsWith("Parsing event: Unexpected token"))
+            ), "CommunicationError emitted").to.be.true;
         });
 
         [

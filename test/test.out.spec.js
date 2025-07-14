@@ -21,9 +21,9 @@ const controllerNode = function (RED) {
   function ControllerNode(config) {
     RED.nodes.createNode(this, config);
     // Spy/stub for the control method
-    this.control = sinon.spy((itemname, topic, payload, okCb, errCb) => {
+    this.control = sinon.spy((itemname, topic, payload) => {
       console.log("Mock control called with:", itemname, topic, payload);
-      okCb("OK");
+      return "OK";
     });
   }
   RED.nodes.registerType("openhab4-controller", ControllerNode);
@@ -42,7 +42,7 @@ describe("out", function () {
     helper.unload();
   });
 
-    // Skeleton flow for reuse
+  // Skeleton flow for reuse
   function getFlow() {
     return [
       {
@@ -63,9 +63,15 @@ describe("out", function () {
   it("should send a command to the controller with correct arguments", function (done) {
     const flow = getFlow();
 
-    helper.load([controllerNode, outNode], flow, function () {
-      const out = helper.getNode("out1");
+    helper.load([controllerNode, outNode], flow, function (err) {
+      //flow.forEach(nodeDef => {
+      //  const node = helper.getNode(nodeDef.id);
+      //  console.log(`Node ID: ${nodeDef.id}, Type: ${nodeDef.type}, Instance:`, node);
+      //});
+
       const controller = helper.getNode("controller1");
+
+      const out = helper.getNode("out1");
 
       // Send a message to the out node
       out.receive({
@@ -76,17 +82,21 @@ describe("out", function () {
 
       // Assert that controller.control was called with the correct arguments
       setTimeout(() => {
-        expect(controller.control.calledOnce).to.be.true;
-        const call = controller.control.getCall(0);
-        expect(call.args[0]).to.equal("ub_Warning");
-        expect(call.args[1]).to.equal("itemCommand");
-        expect(call.args[2]).to.equal("test1");
-        done();
+        try {
+          expect(controller.control.calledOnce, "control called once").to.be.true;
+          const call = controller.control.getCall(0);
+          expect(call.args[0]).to.equal("ub_Warning", "Item name should match");
+          expect(call.args[1]).to.equal("itemCommand", "Topic should match");
+          expect(call.args[2]).to.equal("test1", "Payload should match");
+          done();
+        } catch (err) {
+          done(err);
+        }
       }, 10); // Give the node a tick to process
     });
   });
 
-    it("should use the configured payload instead of the incoming message payload", function (done) {
+  it("should use the configured payload instead of the incoming message payload", function (done) {
     const flow = getFlow();
     // Set the payload property in the out node config
     flow[1].payload = "configured-payload";
@@ -94,7 +104,6 @@ describe("out", function () {
     helper.load([controllerNode, outNode], flow, function () {
       const out = helper.getNode("out1");
       const controller = helper.getNode("controller1");
-
       out.receive({
         item: "ub_Warning",
         topic: "itemCommand",
@@ -102,10 +111,14 @@ describe("out", function () {
       });
 
       setTimeout(() => {
-        expect(controller.control.calledOnce).to.be.true;
-        const call = controller.control.getCall(0);
-        expect(call.args[2]).to.equal("configured-payload"); // Should use the config value
-        done();
+        try {
+          expect(controller.control.calledOnce).to.be.true;
+          const call = controller.control.getCall(0);
+          expect(call.args[2]).to.equal("configured-payload"); // Should use the config value
+          done();
+        } catch (err) {
+          done(err);
+        }
       }, 10);
     });
   });

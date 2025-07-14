@@ -43,7 +43,7 @@ describe("connectionUtils Load", function () {
 
 });
 
-describe("fetchOpenHAB", function () {
+describe("connectionUtils.fetchOpenHAB", function () {
 
     // Import the fetchOpenHAB function from connectionUtils.js, using proxyquire to stub out node-fetch
     // This allows us to control the behavior of fetch without making actual HTTP requests.
@@ -67,10 +67,11 @@ describe("fetchOpenHAB", function () {
         }
     });
 
-    function createFakeResponse({ ok = true, status = 200, text = "" } = {}) {
+    function createFakeResponse({ ok = true, status = 200, text = "", statusText = "" } = {}) {
         return {
             ok,
             status,
+            statusText,
             text: async () => text
         };
     }
@@ -113,7 +114,7 @@ describe("fetchOpenHAB", function () {
         const result = await fetchOpenHAB("http://test", {}, {});
         expect(result.authRequired).to.be.true;
         expect(result.status).to.equal(401);
-        expect(result.error.message).to.equal("Authentication required but no credentials provided.");
+        expect(result.error.message).to.equal("No credentials provided.");
     });
 
     it("should handle HTTP 401 as authRequired and report wrong credentials", async function () {
@@ -123,7 +124,7 @@ describe("fetchOpenHAB", function () {
         const result = await fetchOpenHAB("http://test", { username: "foo" }, {});
         expect(result.authFailed).to.be.true;
         expect(result.status).to.equal(401);
-        expect(result.error.message).to.equal("Authentication failed. Please check your credentials.");
+        expect(result.error.message).to.equal("Wrong credentials provided.");
     });
 
     it("should return error on fetch failure", async function () {
@@ -134,11 +135,11 @@ describe("fetchOpenHAB", function () {
     });
 
     it("should return the error code on any other error", async function () {
-        const fakeResponse = createFakeResponse({ ok: false, status: 500 });
+        const fakeResponse = createFakeResponse({ ok: false, status: 500, statusText: "Internal Server Error" });
         fetchStub.resolves(fakeResponse);
         const result = await fetchOpenHAB("http://test", {}, {});
         expect(result.error).to.be.an("error");
-        expect(result.error.message).to.include("HTTP 500");
+        expect(result.error.message).to.include("HTTP error 500: Internal Server Error");
     });
 
     it("should throw an error if JSON is invalid", async function () {
@@ -147,12 +148,11 @@ describe("fetchOpenHAB", function () {
 
         const result = await fetchOpenHAB("http://test", {}, {}, "json");
         expect(result.error).to.be.an("error");
-        expect(result.error.message).to.include("Invalid JSON response");
+        expect(result.error.message).to.include("Unexpected token");
     });
 });
 
-
-describe("getConnectionString", function () {
+describe("connectionUtils.getConnectionString", function () {
 
     const { getConnectionString } = require("../lib/connectionUtils");
 
@@ -193,17 +193,16 @@ describe("getConnectionString", function () {
         expect(url).to.equal("https://user%40domain.com:p%40ss%20word@openhab.local:8443/api");
     });
 
-    it("should omit port and path if not specified, default to http, and not include username if includeCredentials was not set", function () {
+    it("does require protocol, port and host, but does not require path, and does not include username if includeCredentials was not set", function () {
         const config = {
-            host: "localhost",
             username: "user"
         };
         const url = getConnectionString(config);
-        expect(url).to.equal("http://localhost");
+        expect(url).to.equal("undefined://undefined:undefined");
     });
 });
 
-describe("isPhantomError", function () {
+describe("connectionUtils.isPhantomError", function () {
 
     const { isPhantomError } = require("../lib/connectionUtils");
 
@@ -234,7 +233,7 @@ describe("isPhantomError", function () {
     });
 });
 
-describe("isSpecified", function () {
+describe("connectionUtils.isSpecified", function () {
 
     const { isSpecified } = require("../lib/connectionUtils");
 
@@ -268,5 +267,56 @@ describe("isSpecified", function () {
         expect(isSpecified([])).to.be.true;
         expect(isSpecified(true)).to.be.true;
         expect(isSpecified(false)).to.be.true;
+    });
+});
+
+describe("connectionUtils.setDefaultsTest", function () {
+
+    const { setDefaults } = require("../lib/connectionUtils");
+
+    it("should provide all defaults", function () {
+        const config = {};
+        setDefaults(config);
+        expect(config.protocol).to.equal("http", "Protocol OK");
+        expect(config.host).to.equal("localhost", "Host OK");
+        expect(config.port).to.equal(8080, "Port OK");
+        expect(config.path).to.equal("", "Path empty");
+        expect(config.username).to.equal("", "username empty");
+        expect(config.password).to.equal("", "password empty");
+    });
+
+    it("should default https to 8443 and trim values correctly", function () {
+        const config = {
+            protocol: "   https  ",
+            host: " 192.168.1.1  ",
+            port: NaN,
+            path: " /  ",
+            username: "    abc",
+            password: "  def  "
+        }
+        setDefaults(config);
+        expect(config.protocol).to.equal("https", "Protocol trimmed");
+        expect(config.host).to.equal("192.168.1.1", "Host trimmed");
+        expect(config.port).to.equal(8443, "Port OK");
+        expect(config.path).to.equal("", "Path empty");
+        expect(config.username).to.equal("abc", "username trimmed");
+        expect(config.password).to.equal("  def  ", "password preserves leading/trailing spaces");
+    });
+
+    it("should not override port if specified", function () {
+        const config = {
+            protocol: "http",
+            host: "a",
+            port: 8443,
+            path: "/root/",
+            username: "    "
+        };
+        setDefaults(config);
+        expect(config.protocol).to.equal("http", "Protocol OK");
+        expect(config.host).to.equal("a", "Host OK");
+        expect(config.port).to.equal(8443, "Port OK");
+        expect(config.path).to.equal("root", "Path ok");
+        expect(config.username).to.equal("", "username ok");
+
     });
 });

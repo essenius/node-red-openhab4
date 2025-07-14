@@ -11,14 +11,15 @@
 
 "use strict";
 
-const { fetchOpenHAB, getConnectionString } = require("../lib/connectionUtils");
+const { fetchOpenHAB, getConnectionString, setDefaults } = require("../lib/connectionUtils");
 const { setupControllerNode } = require('../lib/controllerLogic');
+const { ENDPOINTS } = require("../lib/openhabConstants");
 
 function createItemsHandler(fetchOpenHAB, getConnectionString) {
     return async function (request, response) {
         // request.query also contains the credentials, so we can use it to fetch items
-        const config = request.query;
-        const url = getConnectionString(config) + "/rest/items";
+        const config = setDefaults(request.query);
+        const url = getConnectionString(config) + ENDPOINTS.ITEMS;
         const result = await fetchOpenHAB(url, config);
 
         if (result.retry) {
@@ -34,7 +35,6 @@ function createItemsHandler(fetchOpenHAB, getConnectionString) {
 
 function controllerModule(RED) {
     const maybeFn = require("./admin");
-    console.log("[controller.js] typeof admin:", typeof maybeFn);
     maybeFn(RED);
 
     // start a web service for enabling the node configuration ui to retrieve the available openHAB items
@@ -43,10 +43,9 @@ function controllerModule(RED) {
      
     function createControllerNode(config) {
         RED.nodes.createNode(this, config);
-        const host = config.host || 'unknown';
-        this.name = config.name || `openhab4-controller (${host})`;
         // somewhat ugly duplication from consumerNodeBase.js, but controller doesn't inherit from it.
-        const mergedConfig = { ...config, ...(this.credentials || {}) };
+        const mergedConfig = setDefaults({ ...config, ...(this.credentials || {}) });
+        this.name = config.name || `openhab4 (${config.host})`;
         setupControllerNode(this, mergedConfig);
     }
 
