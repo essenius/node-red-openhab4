@@ -13,7 +13,7 @@
 
 const { fetchOpenHAB, getConnectionString, setDefaults } = require("../lib/connectionUtils");
 const { setupControllerNode } = require('../lib/controllerLogic');
-const { ENDPOINTS } = require("../lib/openhabConstants");
+const { ENDPOINTS } = require("../lib/constants");
 
 function createItemsHandler() {
     return async function (request, response) {

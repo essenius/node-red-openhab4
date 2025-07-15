@@ -24,7 +24,7 @@ const controllerNode = function (RED) {
   function ControllerNode(config) {
     RED.nodes.createNode(this, config);
     // Spy/stub for the control method
-    this.control = sinon.spy((item, topic, payload, consumerNode) => {
+    this.control = sinon.spy((item, _topic, _payload, _consumerNode) => {
       if (item === "TestItem") {
         return "MockValue";
       }

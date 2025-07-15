@@ -1,3 +1,5 @@
+/* replaced by unit tests
+
 // Simple test to validate our modernized nodes work correctly
 const fs = require('fs');
 const path = require('path');
@@ -45,7 +47,7 @@ try {
     const { addStatusMethods } = require('./lib/statusUtils');
     console.log('  ✅ statusUtils.js loaded successfully');
     
-    const constants = require('./lib/openhabConstants');
+    const constants = require('./lib/constants');
     console.log('  ✅ openhabConstants.js loaded successfully');
     console.log(`     - STATE available: ${Object.keys(constants.STATE).length} states`);
     console.log(`     - STATE_MAPPING available: ${Object.keys(constants.STATE_MAPPING).length} mappings`);
@@ -199,3 +201,4 @@ console.log('   - Centralized constants and configuration');
 console.log('   - Consistent message structure across all nodes');
 console.log('   - Improved error handling and state management');
 console.log('   - Centralized controller validation with user-friendly error messages');
+*/

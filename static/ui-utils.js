@@ -11,11 +11,7 @@
 
 console.log('ui-utils.js loaded successfully');
 
-function buildAdminStaticPath(path) {
-  return "openhab4/" + path;
-}
-
-(function (global) {
+(function (_global) {
   /**
    * Populate a native <select> dropdown with OpenHAB items.
    * @param node    the current node instance
@@ -84,6 +80,8 @@ function buildAdminStaticPath(path) {
     }
 
     // initial load
+
+    
     const controllerNode = RED.nodes.node(node.controller);
     if (controllerNode) {
       updateItems(controllerNode, node.itemname);

@@ -1,7 +1,7 @@
 {
   "name": "@essenius/node-red-openhab4",
   "type": "commonjs",
-  "version": "0.2.192",
+  "version": "0.2.193",
   "description": "OpenHAB 4 integration nodes for Node-RED",
   "main": "nodes/controller.js",
   "engines": {
@@ -25,7 +25,13 @@
     "node-fetch": "^2.6.7"
   },
   "devDependencies": {
+    "@eslint/css": "^0.10.0",
+    "@eslint/js": "^9.31.0",
+    "@eslint/json": "^0.13.0",
+    "@eslint/markdown": "^7.0.0",
     "chai": "^4.5.0",
+    "eslint": "^9.31.0",
+    "globals": "^16.3.0",
     "mocha": "^11.7.1",
     "node-red": "^4.0.9",
     "node-red-node-test-helper": "^0.3.4",

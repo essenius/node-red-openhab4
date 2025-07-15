@@ -21,7 +21,7 @@ const controllerNode = function (RED) {
   function ControllerNode(config) {
     RED.nodes.createNode(this, config);
     // Spy/stub for the control method
-    this.control = sinon.spy((itemname, topic, payload) => {
+    this.control = sinon.spy((_itemname, _topic, _payload) => {
       return "OK";
     });
   }
@@ -62,7 +62,7 @@ describe("out", function () {
   it("should send a command to the controller with correct arguments", function (done) {
     const flow = getFlow();
 
-    helper.load([controllerNode, outNode], flow, function (err) {
+    helper.load([controllerNode, outNode], flow, function (_err) {
       //flow.forEach(nodeDef => {
       //  const node = helper.getNode(nodeDef.id);
       //  console.log(`Node ID: ${nodeDef.id}, Type: ${nodeDef.type}, Instance:`, node);

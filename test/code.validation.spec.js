@@ -19,6 +19,7 @@ describe('Code validation', function () {
 
     const requiredFiles = [
         'lib/connectionUtils.js',
+        'lib/constants.js',
         'lib/consumerNodeBase.js',
         'lib/controllerLogic.js',
         'lib/eventsLogic.js',
@@ -26,7 +27,6 @@ describe('Code validation', function () {
         'lib/healthLogic.js',
         'lib/inLogic.js',
         'lib/openhabConnection.js',
-        'lib/openhabConstants.js',
         'lib/outLogic.js',
         'lib/statusUtils.js',
         'nodes/events.js',
@@ -56,6 +56,7 @@ describe('Code validation', function () {
     describe('Module imports', function () {
         const modulesToTest = [
             '../lib/connectionUtils',
+            '../lib/constants',
             '../lib/consumerNodeBase',
             '../lib/controllerLogic',
             '../lib/eventsLogic',
@@ -63,7 +64,6 @@ describe('Code validation', function () {
             '../lib/healthLogic',
             '../lib/inLogic',
             '../lib/openhabConnection',
-            '../lib/openhabConstants',
             '../lib/outLogic',
             '../lib/statusUtils'
         ];

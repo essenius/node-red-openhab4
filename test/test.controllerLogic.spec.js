@@ -28,7 +28,7 @@ describe("controllerLogic.setupControllerNode", function () {
         });
     }
     beforeEach(() => {
-        controlItemStub = sinon.stub().callsFake(async (itemname, topic, payload) => {
+        controlItemStub = sinon.stub().callsFake(async (_itemname, topic, _payload) => {
             if (topic === "error") {
                 throw new Error("Simulated error");
             }

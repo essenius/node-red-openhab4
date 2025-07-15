@@ -11,7 +11,6 @@
 
 const helper = require("node-red-node-test-helper");
 const inNode = require("../nodes/in.js");
-const sinon = require("sinon");
 const { expect } = require("chai");
 
 const controllerNode = function (RED) {
