@@ -22,7 +22,6 @@ const controllerNode = function (RED) {
     RED.nodes.createNode(this, config);
     // Spy/stub for the control method
     this.control = sinon.spy((itemname, topic, payload) => {
-      console.log("Mock control called with:", itemname, topic, payload);
       return "OK";
     });
   }
@@ -39,7 +38,7 @@ describe("out", function () {
   });
 
   afterEach(function () {
-    helper.unload();
+    return helper.unload();
   });
 
   // Skeleton flow for reuse

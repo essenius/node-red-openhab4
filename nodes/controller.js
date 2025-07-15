@@ -15,19 +15,14 @@ const { fetchOpenHAB, getConnectionString, setDefaults } = require("../lib/conne
 const { setupControllerNode } = require('../lib/controllerLogic');
 const { ENDPOINTS } = require("../lib/openhabConstants");
 
-function createItemsHandler(fetchOpenHAB, getConnectionString) {
+function createItemsHandler() {
     return async function (request, response) {
         // request.query also contains the credentials, so we can use it to fetch items
         const config = setDefaults(request.query);
         const url = getConnectionString(config) + ENDPOINTS.ITEMS;
         const result = await fetchOpenHAB(url, config);
-
-        if (result.retry) {
-            // should be status 503, but let's be flexible
-            return response.status(result.status).send(`OpenHAB returned ${result.status} for '${url}'`);
-        }
-        if (result.error) {
-            return response.status(500).send(`Fetch error: '${result.error.message}'`);
+        if (!result.data) {
+            return response.status(result.status).send(result.message);
         }
         response.send(result.data);
     };
@@ -39,7 +34,7 @@ function controllerModule(RED) {
 
     // start a web service for enabling the node configuration ui to retrieve the available openHAB items
 
-    RED.httpAdmin.get("/openhab4/items", createItemsHandler(fetchOpenHAB, getConnectionString));
+    RED.httpAdmin.get("/openhab4/items", createItemsHandler());
      
     function createControllerNode(config) {
         RED.nodes.createNode(this, config);

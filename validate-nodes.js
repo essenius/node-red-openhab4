@@ -42,13 +42,13 @@ for (const file of requiredFiles) {
 // Test 2: Try to load and validate the modules
 console.log('\n📦 Testing module imports...');
 try {
-    const { addStatusMethods, STATUS_STATES } = require('./lib/statusUtils');
+    const { addStatusMethods } = require('./lib/statusUtils');
     console.log('  ✅ statusUtils.js loaded successfully');
     
     const constants = require('./lib/openhabConstants');
     console.log('  ✅ openhabConstants.js loaded successfully');
-    console.log(`     - STATUS_STATES available: ${Object.keys(constants.STATUS_STATES).length} states`);
-    console.log(`     - STATUS_MAPPING available: ${Object.keys(constants.STATUS_MAPPING).length} mappings`);
+    console.log(`     - STATE available: ${Object.keys(constants.STATE).length} states`);
+    console.log(`     - STATE_MAPPING available: ${Object.keys(constants.STATE_MAPPING).length} mappings`);
     
     const { setupInNode } = require('./lib/inLogic');
     console.log('  ✅ inLogic.js loaded successfully');

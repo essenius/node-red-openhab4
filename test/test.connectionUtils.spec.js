@@ -67,19 +67,27 @@ describe("connectionUtils.fetchOpenHAB", function () {
         }
     });
 
-    function createFakeResponse({ ok = true, status = 200, text = "", statusText = "" } = {}) {
+    function createFakeResponse({ ok = true, status = 200, text = "", statusText = "", contentType = "application/json" } = {}) {
         return {
             ok,
             status,
             statusText,
-            text: async () => text
+            text: async () => text,
+            headers: {
+                get: (header) => {
+                    if (header.toLowerCase() === "content-type") {
+                        return contentType;
+                    }
+                    return undefined;
+                }
+            }
         };
     }
     it("should return JSON data on success", async function () {
         const fakeResponse = createFakeResponse({ text: JSON.stringify({ foo: "bar" }) });
         fetchStub.resolves(fakeResponse);
 
-        const result = await fetchOpenHAB("http://test", {}, {}, "json");
+        const result = await fetchOpenHAB("http://test", {}, {});
         expect(result.data).to.deep.equal({ foo: "bar" });
     });
 
@@ -87,16 +95,17 @@ describe("connectionUtils.fetchOpenHAB", function () {
         const fakeResponse = createFakeResponse({ text: "" });
         fetchStub.resolves(fakeResponse);
 
-        const result = await fetchOpenHAB("http://test", {}, {}, "json");
+        const result = await fetchOpenHAB("http://test", {}, {});
         expect(result.data).to.be.null;
     });
-    it("should return text data on success when responseType is text", async function () {
+    /*it("should return JSON data on success when responseType is text", async function () {
         const fakeResponse = createFakeResponse({ text: "plain text" })
         fetchStub.resolves(fakeResponse);
 
         const result = await fetchOpenHAB("http://test", {}, {}, "text");
+        console.log("result:", result);
         expect(result.data).to.equal("plain text");
-    });
+    }); */
 
     it("should handle HTTP 503 as retry", async function () {
         const fakeResponse = createFakeResponse({ ok: false, status: 503 });
@@ -105,6 +114,26 @@ describe("connectionUtils.fetchOpenHAB", function () {
         const result = await fetchOpenHAB("http://test", {}, {});
         expect(result.retry).to.be.true;
         expect(result.status).to.equal(503);
+    });
+
+    it("should not handle HTTP 404 with body as retry", async function () {
+        const fakeResponse = createFakeResponse({ status: 404, statusText: "Not Found", text: '{"error":{"message":"Item q does not exist!","http-code":404}}' });
+        fetchStub.resolves(fakeResponse);
+        const result = await fetchOpenHAB("http://test", {}, {});
+        expect(!result.retry).to.be.true;
+        expect(result.status).to.equal(404);
+        expect(result.error).to.be.an("error");
+        expect(result.message).to.include("Item q does not exist!");
+    });
+
+    it("should handle HTTP 404 without body as retry", async function () {
+        const fakeResponse = createFakeResponse({ status: 404, statusText: "Not Found" });
+        fetchStub.resolves(fakeResponse);
+        const result = await fetchOpenHAB("http://test", {}, {});
+        expect(result.retry).to.be.true;
+        expect(result.status).to.equal(404);
+        expect(result.error).to.be.an("error");
+        expect(result.message).to.include("Not Found");
     });
 
     it("should handle HTTP 401 as authRequired and report missing credentials", async function () {
@@ -135,20 +164,51 @@ describe("connectionUtils.fetchOpenHAB", function () {
     });
 
     it("should return the error code on any other error", async function () {
-        const fakeResponse = createFakeResponse({ ok: false, status: 500, statusText: "Internal Server Error" });
+        const fakeResponse = createFakeResponse({ ok: false, status: null, statusText: "Internal Server Error" });
         fetchStub.resolves(fakeResponse);
         const result = await fetchOpenHAB("http://test", {}, {});
         expect(result.error).to.be.an("error");
-        expect(result.error.message).to.include("HTTP error 500: Internal Server Error");
+        expect(result.error.message).to.include("Internal Server Error");
     });
+
+    it("should return a default message if there were no details", async function () {
+        const fakeResponse = createFakeResponse({ ok: false, status: null, statusText: null });
+        fetchStub.resolves(fakeResponse);
+        const result = await fetchOpenHAB("http://test", {}, {});
+        expect(result.error).to.be.an("error");
+        expect(result.error.message).to.include("HTTP Error 500");
+    });
+
 
     it("should throw an error if JSON is invalid", async function () {
         const fakeResponse = createFakeResponse({ text: "<>" });
         fetchStub.resolves(fakeResponse);
-
-        const result = await fetchOpenHAB("http://test", {}, {}, "json");
+        const result = await fetchOpenHAB("http://test", {}, {});
         expect(result.error).to.be.an("error");
-        expect(result.error.message).to.include("Unexpected token");
+        expect(result.message, "Message has unexpected token in it").to.include("Unexpected token");
+    });
+
+
+    it("should accept text responses", async function () {
+        const fakeResponse = createFakeResponse({ text: "<>", contentType: "text/plain" });
+        fetchStub.resolves(fakeResponse);
+        const result = await fetchOpenHAB("http://test", {}, {});
+        expect(result.data).to.equal("<>");
+    });
+
+    it("should accept text responses", async function () {
+        const fakeResponse = createFakeResponse({ status: 400, contentType: "application/xml" });
+        fetchStub.resolves(fakeResponse);
+        const result = await fetchOpenHAB("http://test", {}, {});
+        expect(result.error, "Is an error").to.be.an("error");
+        expect(result.message, "message correct").to.include("Unsupported content type: application/xml");
+    });
+
+    it("should return error on fetch failure and show default message", async function () {
+        fetchStub.rejects(new Error());
+        const result = await fetchOpenHAB("http://test", {}, {});
+        expect(result.error).to.be.an("error");
+        expect(result.message).to.equal("Fetch failed");
     });
 });
 

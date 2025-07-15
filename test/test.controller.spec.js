@@ -94,9 +94,9 @@ describe("controller.js /openhab4/items handler", function () {
         expect(response.send.calledWith(["item1", "item2"])).to.be.true;
     });
 
-    it("should propagate status 503 and error message when fetchOpenHAB returns retry", async function () {
+    it("should propagate status and error message when fetchOpenHAB does not return data", async function () {
         // Arrange: create mocks
-        const { handler } = getHandler({ retry: true, status: 503 });
+        const { handler } = getHandler({ retry: true, status: 503, message : "Service Unavailable" });
         const request = { query: { some: "config" } };
         const response = createMockResponse();
 
@@ -104,26 +104,11 @@ describe("controller.js /openhab4/items handler", function () {
         await handler(request, response);
 
         // Assert
-        expect(response.status.calledOnceWith(503)).to.be.true;
+        expect(response.status.calledOnceWith(503), "Response.status must be 503").to.be.true;
         const message = response.send.firstCall.args[0];
-        expect(message).to.include("OpenHAB returned 503");
-    });
-
-    it("should return status 500 and error message when authentication fails in fetchOpenHAB", async function () {
-        // Arrange: create mocks
-        const { handler } = getHandler({ retry: false, status: 401, error: new Error("Authentication failed") });
-        const request = { query: { some: "config" } };
-        const response = createMockResponse();
-
-        // Act
-        await handler(request, response);
-
-        // Assert
-        expect(response.status.calledOnceWith(500)).to.be.true;
-        const message = response.send.firstCall.args[0];
-        expect(message).to.include("Authentication failed");
-    });
-});
+        expect(message).to.include("Service Unavailable");
+    }); 
+}); 
 
 describe("controller.js.controllerModule", function () {
     it("should register the node type and HTTP endpoint", function () {

@@ -117,7 +117,6 @@ describe("controllerLogic.setupControllerNode", function () {
         // Replace log with a function that resolves a promise when called with the expected message
         let errorPromise = new Promise(resolve => {
             node.error = function (msg) {
-                console.log("Message:", msg);
                 if (msg && msg.includes("Waiting for openHAB: Timeout")) {
                     resolve(msg);
                 }
@@ -159,7 +158,6 @@ describe("controllerLogic.setupControllerNode", function () {
         expect(startEventSourceStub.calledOnce, "EventSource should be started").to.be.true;
         const emitCalls = node.emit.getCalls();
 
-        console.log("Emit calls:", emitCalls.map(call => call.args));
         const stateEventCall = emitCalls.find(call => call.args[0] === "Item1/StateEvent");
 
         expect(stateEventCall, "Should emit state event for Item1").to.exist;
@@ -246,17 +244,16 @@ describe("controllerLogic.setupControllerNode", function () {
 
         it("should not emit empty message", function () {
             simulateEventSourceMessage(JSON.stringify({}));
-            console.log(node.emit.getCalls().map(call => call.args));
             expect(node.emit.callCount).to.equal(0);
         });
 
         it("should raise an error and emit an error for invalid JSON", function () {
             simulateEventSourceMessage({ data: "This is not a valid JSON string" });
-            expect(node.error.calledWithMatch("Parsing event: Unexpected token"), "error called with right message").to.be.true;
+            expect(node.error.calledWithMatch("Unexpected token 'T'"), "Unexpected token in error").to.be.true;
 
             expect(node.emit.calledWithMatch(
                 "CommunicationError",
-                sinon.match((val) => val.startsWith("Parsing event: Unexpected token"))
+                sinon.match((val) => val.startsWith("Unexpected token"))
             ), "CommunicationError emitted").to.be.true;
         });
 
