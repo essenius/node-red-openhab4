@@ -15,13 +15,9 @@ const { setupInNode } = require('../lib/inLogic');
 
 module.exports = function (RED) {
     function createInNode(config) {
-        console.log("Creating In Node with config:", config);
         RED.nodes.createNode(this, config);
-        console.log("Created In Node");
         const controller = RED.nodes.getNode(config.controller);
-        console.log("Got controller");
         setupInNode(this, config, controller, { generateId: RED.util.generateId });
-        console.log("In Node setup complete");
     }
 
     RED.nodes.registerType("openhab4-in", createInNode);

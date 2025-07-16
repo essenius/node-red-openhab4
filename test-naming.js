@@ -1,3 +1,4 @@
+/*
 // Test the naming logic for the in node
 console.log('🧪 Testing node naming logic...\n');
 
@@ -22,3 +23,4 @@ configs.forEach((config, index) => {
     console.log(`  Resulting name: "${name}"`);
     console.log('');
 });
+*/

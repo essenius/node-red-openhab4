@@ -10,7 +10,7 @@
 // See the License for the specific language governing permissions and limitations under the License.
 
 const helper = require("node-red-node-test-helper");
-const inNode = require("../nodes/events.js");
+const eventsNode = require("../nodes/events.js");
 const { expect } = require("chai");
 
 const controllerNode = function (RED) {
@@ -32,25 +32,21 @@ describe("openhab4-events node", function () {
             { id: "helper1", type: "helper" }
         ];
 
-        helper.load([controllerNode, inNode], flow, function () {
-            flow.forEach(nodeDef => {
-                const node = helper.getNode(nodeDef.id);
-                console.log(`Node ${nodeDef.id} created:`, node);
-            });
+        helper.load([controllerNode, eventsNode], flow, function () {
             const controller = helper.getNode("controller1");
             const helperNode = helper.getNode("helper1");
 
             helperNode.on("input", function (msg) {
-                console.log("Received message:", msg);
                 try {
-                    expect(msg.payload).to.deep.include({ type: "RawEvent", state: "OFF" });
+                    expect(msg.payload).to.equal("OFF");
+                    expect(msg.type).to.equal("ItemStateEvent");
                     done();
                 } catch (err) {
                     done(err); 
                 }
             });
 
-            controller.emit("RawEvent", { type: "RawEvent", state: "OFF" });
+            controller.emit("RawEvent", { type: "ItemStateEvent", payload: "OFF" });
 
         });
 

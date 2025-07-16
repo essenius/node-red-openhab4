@@ -56,7 +56,7 @@ function getFlow() {
   ];
 }
 
-describe("get", function () {
+describe("openhab4-get node", function () {
   before(function (done) {
     helper.startServer(done);
   });
@@ -73,10 +73,6 @@ describe("get", function () {
     const flow = getFlow();
 
     helper.load([controllerNode, getNode], flow, function (err) {
-//      flow.forEach(nodeDef => {
-//        const node = helper.getNode(nodeDef.id);
-//        console.log(`Node ID: ${nodeDef.id}, Type: ${nodeDef.type}, Instance:`, node);
-//      });
       if (err) return done(err);
 
       const get = helper.getNode("get1");

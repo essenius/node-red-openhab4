@@ -196,8 +196,8 @@ describe("controllerLogic.setupControllerNode", function () {
 
             expect(errorGetItemsStub.calledOnce, "GetItems called").to.be.true;
             expect(node.error.calledWithMatch("Failed to fetch items"), "node error").to.be.true;
-            expect(node.emit.calledWithMatch("CommunicationError"), "CommunicationError emitted").to.be.true;
-            expect(node.emit.calledWithMatch("CommunicationStatus"), "CommunicationStatus emitted").to.be.true;
+            expect(node.emit.calledWithMatch("ConnectionError"), "ConnectionError emitted").to.be.true;
+            expect(node.emit.calledWithMatch("ConnectionStatus"), "ConnectionStatus emitted").to.be.true;
             expect(setTimeoutStub.calledOnce).to.be.true; // retry should be scheduled
             expect(clearTimeoutStub.calledOnce).to.be.true; // retry timer should be cleared (in close handler)
         } finally {
@@ -252,9 +252,9 @@ describe("controllerLogic.setupControllerNode", function () {
             expect(node.error.calledWithMatch("Unexpected token 'T'"), "Unexpected token in error").to.be.true;
 
             expect(node.emit.calledWithMatch(
-                "CommunicationError",
+                "ConnectionError",
                 sinon.match((val) => val.startsWith("Unexpected token"))
-            ), "CommunicationError emitted").to.be.true;
+            ), "ConnectionError emitted").to.be.true;
         });
 
         [

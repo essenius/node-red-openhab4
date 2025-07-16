@@ -1,3 +1,5 @@
+/*
+
 // Simple test script to debug the out node JSON issue
 const { OpenhabConnection } = require('./lib/openhabConnection');
 
@@ -57,3 +59,4 @@ async function testOutNode() {
 }
 
 testOutNode().catch(console.error);
+*/

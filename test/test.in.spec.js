@@ -20,7 +20,7 @@ const controllerNode = function (RED) {
     RED.nodes.registerType("openhab4-controller", ControllerNode);
 };
 
-describe("in node", function () {
+describe("openhab4-in node", function () {
     before(function (done) { helper.startServer(done); });
     after(function (done) { helper.stopServer(done); });
     afterEach(function () { return helper.unload(); });
@@ -33,15 +33,10 @@ describe("in node", function () {
         ];
 
         helper.load([controllerNode, inNode], flow, function () {
-            flow.forEach(nodeDef => {
-                const node = helper.getNode(nodeDef.id);
-                console.log(`Node ${nodeDef.id} created:`, node);
-            });
             const controller = helper.getNode("controller1");
             const helperNode = helper.getNode("helper1");
 
             helperNode.on("input", function (msg) {
-                console.log("Received message:", msg);
                 try {
                     expect(msg.payload).to.equal("OFF");
                     done();

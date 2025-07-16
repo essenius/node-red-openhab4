@@ -28,7 +28,7 @@ const controllerNode = function (RED) {
   RED.nodes.registerType("openhab4-controller", ControllerNode);
 };
 
-describe("out", function () {
+describe("openhab4-out node", function () {
   before(function (done) {
     helper.startServer(done);
   });
@@ -63,13 +63,7 @@ describe("out", function () {
     const flow = getFlow();
 
     helper.load([controllerNode, outNode], flow, function (_err) {
-      //flow.forEach(nodeDef => {
-      //  const node = helper.getNode(nodeDef.id);
-      //  console.log(`Node ID: ${nodeDef.id}, Type: ${nodeDef.type}, Instance:`, node);
-      //});
-
       const controller = helper.getNode("controller1");
-
       const out = helper.getNode("out1");
 
       // Send a message to the out node

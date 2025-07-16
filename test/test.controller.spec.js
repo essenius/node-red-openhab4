@@ -75,7 +75,7 @@ function createNodeThis() {
 }
 
 
-describe("controller.js /openhab4/items handler", function () {
+describe("openhab4-controller /openhab4/items handler", function () {
     it("should create the right URL and return items from mocked fetchOpenHAB", async function () {
         // Arrange: create mocks
         const { handler, mockFetchOpenHAB, mockGetConnectionString } = getHandler({ data: ["item1", "item2"] });
@@ -110,7 +110,7 @@ describe("controller.js /openhab4/items handler", function () {
     }); 
 }); 
 
-describe("controller.js.controllerModule", function () {
+describe("openhab4-controller controllerModule", function () {
     it("should register the node type and HTTP endpoint", function () {
         // Arrange: create spies for RED methods
         const { RED, registerType, httpAdminGet } = createMockRED();
@@ -155,18 +155,6 @@ describe("controller.js.controllerModule", function () {
         testCreateControllerNode(nodeThis, { name: "TestController", host: "localhost" }, "TestController");
 
     });
-
-    /*it("should use defaults when calling createControllerNode without values, and pass validation", function () {
-        const nodeThis = createNodeThis();
-        const controllerModule = proxyquire("../nodes/controller.js", {
-            "../lib/controllerLogic": proxyquire("../lib/controllerLogic", {
-                "./statusUtils": { addStatusMethods: function () { } }
-            })
-        });
-        testCreateControllerNode(nodeThis, {}, "openhab4 (localhost)");
-        expect(nodeThis.error.calledOnce, "error called once").to.be.true;
-        expect(nodeThis.setStatusError.calledWith("config error"), "Set status config error").to.be.true;
-    });*/
 
     it("should be ok with not having credentials", function () {
 
