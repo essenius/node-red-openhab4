@@ -46,7 +46,6 @@ describe("controllerLogic.setupControllerNode", function () {
 
         ({ setupControllerNode } = proxyquire("../lib/controllerLogic", {
             "./openhabConnection": { OpenhabConnection: OpenhabConnectionStub },
-            "./statusUtils": { addStatusMethods: sinon.stub() }
         }));
 
         node = {

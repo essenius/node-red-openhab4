@@ -97,11 +97,9 @@ describe("openHABConnection with mocked fetch", function () {
         error.cause = cause;
         fetchStub.rejects(error);
         try {
-            const response = await connection.controlItem("TestItem");
-            console.log(`Unexpected response: ${JSON.stringify(response)}`);
+            await connection.controlItem("TestItem");
             expect.fail("Expected error to be thrown");
         } catch (error) {
-            console.log(`Caught error: ${JSON.stringify(error)}`);
             expect(error.message).to.equal("ECONNREFUSED");
             expect(error.status).to.equal(-4078);
         }
@@ -123,7 +121,6 @@ describe("openHABConnection with mocked fetch", function () {
             await connection.controlItem("TestItem");
             expect.fail("Expected error to be thrown");
         } catch (error) {
-            console.log(`Caught error: ${JSON.stringify(error)}`);
 
             expect(fetchStub.calledOnce).to.be.true;
             expect(error.status).to.equal(404);
@@ -144,8 +141,6 @@ describe("openHABConnection with mocked fetch", function () {
             await connection.controlItem("TestItem");
             expect.fail("Expected error to be thrown");
         } catch (error) {
-            console.log(`Caught error: ${JSON.stringify(error)}`);
-
             expect(fetchStub.calledOnce).to.be.true;
             expect(error.status).to.equal(404);
             expect(error.message).to.include("Not Found");
@@ -165,7 +160,6 @@ describe("openHABConnection with mocked fetch", function () {
         const fakeResponse = returnObject;
         fetchStub.resolves(fakeResponse);
         const response = await connection.controlItem("ub_warning");
-        console.log(`Response: ${JSON.stringify(response)}`);
         expect(fetchStub.calledOnce).to.be.true;
         expect(response.name).to.equal("ub_warning");
         expect(response.state).to.equal("123");

@@ -15,14 +15,7 @@ const sinon = require("sinon");
 const { expect } = require("chai");
 const proxyquire = require("proxyquire");
 
-// make sure addStatusMethods is not called in the tests, as that overrides the spy() calls
-
-const controllerLogic = proxyquire("../lib/controllerLogic", {
-    "./statusUtils": { addStatusMethods: function () { } }
-});
-const controllerModule = proxyquire("../nodes/controller.js", {
-    "../lib/controllerLogic": controllerLogic
-});
+const controllerModule = require("../nodes/controller.js");
 
 // Helper to create the handler with mocks
 function getHandler(fetchResult) {

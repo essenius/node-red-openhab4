@@ -78,7 +78,6 @@ describe("openhab4-get node", function () {
       const get = helper.getNode("get1");
       const helperNode = helper.getNode("helper1");
       const controller = helper.getNode("controller1");
-
       helperNode.on("input", function (msg) {
         try {
           expect(controller.control.calledOnce, "control called once").to.be.true;

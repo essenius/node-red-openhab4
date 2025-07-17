@@ -28,7 +28,6 @@ describe('Code validation', function () {
         'lib/inLogic.js',
         'lib/openhabConnection.js',
         'lib/outLogic.js',
-        'lib/statusUtils.js',
         'nodes/events.js',
         'nodes/events.html',
         'nodes/get.js',
@@ -65,7 +64,6 @@ describe('Code validation', function () {
             '../lib/inLogic',
             '../lib/openhabConnection',
             '../lib/outLogic',
-            '../lib/statusUtils'
         ];
 
         modulesToTest.forEach(modulePath => {
