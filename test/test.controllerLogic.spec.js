@@ -166,11 +166,13 @@ describe("controllerLogic.setupControllerNode", function () {
         let result = await node.control("Item1", "command", "OFF");
         expect(result).to.equal("ok", "Result of control command should be 'ok'");
 
-        // now a command that should give an error
-
-        result = await node.control("Item1", "error", "OFF");
-        expect(result).to.be.instanceOf(Error, "Result of control command with error should be an Error instance");
-        expect(result.message).to.equal("Simulated error", "Error message should match simulated error");
+        // now a command that should raise an error
+        try {
+            result = await node.control("Item1", "error", "OFF");
+            expect.fail("Expected control command to throw an error");
+        } catch (error) {
+            expect(error.message).to.equal("Simulated error", "Error message should match simulated error");
+        }
     });
 
     it("should handle error in getItems appropriately", async function () {
