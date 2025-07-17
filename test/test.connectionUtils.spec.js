@@ -286,43 +286,6 @@ describe("connectionUtils.isPhantomError", function () {
     });
 });
 
-/* describe("connectionUtils.isSpecified", function () {
-
-    const { isSpecified } = require("../lib/connectionUtils");
-
-    it("should return false for undefined", function () {
-        expect(isSpecified(undefined)).to.be.false;
-    });
-
-    it("should return false for null", function () {
-        expect(isSpecified(null)).to.be.false;
-    });
-
-    it("should return false for empty string", function () {
-        expect(isSpecified("")).to.be.false;
-        expect(isSpecified("   ")).to.be.false;
-    });
-
-    it("should return true for non-empty string", function () {
-        expect(isSpecified("abc")).to.be.true;
-        expect(isSpecified("  abc  ")).to.be.true;
-    });
-
-    it("should return true for a number but false for NaN", function () {
-        expect(isSpecified(0)).to.be.true;
-        expect(isSpecified(42)).to.be.true;
-        expect(isSpecified(-1)).to.be.true;
-        expect(isSpecified(NaN)).to.be.false;
-    });
-
-    it("should return true for objects and booleans", function () {
-        expect(isSpecified({})).to.be.true;
-        expect(isSpecified([])).to.be.true;
-        expect(isSpecified(true)).to.be.true;
-        expect(isSpecified(false)).to.be.true;
-    });
-});
- */
 describe("connectionUtils.setDefaultsTest", function () {
 
     const { setDefaults } = require("../lib/connectionUtils");

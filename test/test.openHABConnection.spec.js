@@ -61,8 +61,7 @@ describe("openHABConnection with mocked fetch", function () {
         global.fetch = fetchStub;
         mockNode = {
             emit: sinon.spy(),
-            setStatusWarning: sinon.spy(),
-            setStatusError: sinon.spy(),
+            setStatus: sinon.spy(),
             send: sinon.spy(),
             warn: sinon.spy()
         };

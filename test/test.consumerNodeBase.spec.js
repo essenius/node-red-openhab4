@@ -15,7 +15,7 @@ const path = require('path');
 const { expect } = require('chai');
 const sinon = require('sinon');
 const EventEmitter = require('events');
-const { EVENT_TYPES } = require('../lib/constants');
+const { EVENT_TYPES, STATE } = require('../lib/constants');
 
 describe('consumerNodeBase', function () {
     it('fails when child class does not implement getNodeType', function () {
@@ -45,7 +45,7 @@ describe('consumerNodeBase', function () {
                 warn: sinon.stub(),
                 error: sinon.stub(),
                 log: sinon.stub(),
-                setStatusError: sinon.stub()
+                setStatus: sinon.stub()
             };
             controller = new EventEmitter();
 
@@ -57,26 +57,27 @@ describe('consumerNodeBase', function () {
             node.setupControllerEvents();
 
             // Spy on the status methods of the ConsumerNodeBase instance
-            const errorSpy = sinon.spy(node, 'setStatusError');
-            const readySpy = sinon.spy(node, 'setStatusReady');
-            const waitingSpy = sinon.spy(node, 'setStatusWaiting');
+            const statusSpy = sinon.spy(node, 'setStatus');
+
 
             // Emit the event
             controller.emit(EVENT_TYPES.CONNECTION_ERROR, "test error");
-            expect(errorSpy.calledOnceWithExactly("test error")).to.be.true;
+            expect(statusSpy.lastCall.args).to.deep.equal([STATE.ERROR, "test error"]);
+
             controller.emit(EVENT_TYPES.CONNECTION_STATUS, "ON");
-            expect(readySpy.calledOnce).to.be.true;
+            expect(statusSpy.lastCall.args).to.deep.equal([STATE.READY, "ready"]);
+
             controller.emit(EVENT_TYPES.CONNECTION_STATUS, "OFF");
-            expect(waitingSpy.calledOnceWithExactly("Disconnected from openHAB")).to.be.true;
+            expect(statusSpy.lastCall.args).to.deep.equal([STATE.WAITING, "Disconnected from openHAB"]);
         });
 
         it('should set status to init', function () {
-            node.setStatusInit("testing");
+            node.setStatus(STATE.INIT, "testing");
             expect(mockNode.status.calledOnceWithExactly({ fill: "grey", shape: "ring", text: "testing" }, "correct status parameters"));
         });
 
         it('should set status to warning', function () {
-            node.setStatusWarning();
+            node.setStatus(STATE.WARNING, "warning");
             expect(mockNode.status.calledOnceWithExactly({ fill: "yellow", shape: "dot", text: "warning" }, "correct status parameters"));
         });
 
@@ -95,8 +96,41 @@ describe('consumerNodeBase', function () {
             node = new TestNode(mockNode, {}, undefined, {});
             node.setupNode();
             expect(mockNode.error.calledOnceWithExactly("No controller configured. Please select an openHAB controller in the node configuration.")).to.be.true;
-            expect(mockNode.setStatusError.calledOnceWithExactly({ error: "No controller configured" }), "Status message OK");
+            expect(mockNode.setStatus.calledOnceWithExactly({ state: STATE.ERROR, text: "No controller configured" }), "Status message OK");
 
+        });
+
+        [
+            {
+                input: 0,
+                expected: { fill: "green", shape: "ring", text: "0" },
+            },
+            {
+                input: false,
+                expected: { fill: "green", shape: "ring", text: "false" },
+            },
+            {
+                input: "ON",
+                expected: { fill: "green", shape: "dot", text: "ON" },
+            },
+            {
+                input: "",
+                expected: { fill: "green", shape: "ring", text: "" },
+            },
+            {
+                input: null,
+                expected: { fill: "yellow", shape: "dot", text: "unknown" },
+            },
+            {
+                input: "very long text that exceeds the maximum length",
+                expected: { fill: "green", shape: "dot", text: "very long text that exceeds..." },
+            }
+        ].forEach(({ input, expected }) => {
+            it(`should handle refreshNodeStatus correctly for input: ${JSON.stringify(input)}`, function () {
+                node.refreshNodeStatus(input);
+                expect(mockNode.status.calledOnce, "called once").to.be.true;
+                expect(mockNode.status.firstCall.args[0]).to.deep.equal(expected, "Content correct");
+            });
         });
 
     });

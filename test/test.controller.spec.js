@@ -63,7 +63,7 @@ function createNodeThis() {
         emit: sinon.spy(),
         status: sinon.spy(),
         error: sinon.spy(),
-        setStatusError: sinon.spy()
+        setStatus: sinon.spy()
     };
 }
 
@@ -137,7 +137,7 @@ describe("openhab4-controller controllerModule", function () {
             createControllerNode.call(nodeThis, config);
             expect(RED.nodes.createNode.calledOnce, `Created node for test '${expectedNamePart}'`).to.be.true;
             expect(nodeThis.name, `name ${expectedNamePart} included`).to.include(expectedNamePart);
-        } catch (err) {
+        } catch (_err) {
             // ensure we don't leave the node in a bad state
         }
         // the only handler set in createControllerNode is the close handler, so we can check that

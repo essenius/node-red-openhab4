@@ -53,7 +53,7 @@ describe("controllerLogic.setupControllerNode", function () {
             error: sinon.spy(),
             warn: sinon.spy(),
             log: sinon.spy(),
-            setStatusError: sinon.spy(),
+            setStatus: sinon.spy(),
             emit: sinon.spy(),
             on: sinon.stub(),
         };

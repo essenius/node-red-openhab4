@@ -29,7 +29,7 @@ function createItemsHandler() {
     };
 }
 
-/* Controller module for OpenHAB, which sets up the controller node and handles the items request */
+/** Controller module for OpenHAB, which sets up the controller node and handles the items request */
 function controllerModule(RED) {
     const maybeFn = require("./admin");
     maybeFn(RED);
