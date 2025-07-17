@@ -26,7 +26,7 @@ const controllerNode = function (RED) {
     // Spy/stub for the control method
     this.control = sinon.spy((item, _topic, _payload, _consumerNode) => {
       if (item === "TestItem") {
-        return "MockValue";
+        return '{ state: "MockValue" }';
       }
       return null;
     });
@@ -83,7 +83,7 @@ describe("openhab4-get node", function () {
         try {
           expect(controller.control.calledOnce, "control called once").to.be.true;
           expect(controller.control.firstCall.args[0]).to.equal("TestItem");
-          expect(msg.payload).to.equal("MockValue");
+          expect(msg.payload).to.equal('{ state: "MockValue" }');
           done();
         } catch (error) {
           done(error);

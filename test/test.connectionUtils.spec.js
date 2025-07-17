@@ -43,18 +43,18 @@ describe("connectionUtils Load", function () {
 
 });
 
-describe("connectionUtils.fetchOpenHAB", function () {
+describe("connectionUtils.httpRequest", function () {
 
-    // Import the fetchOpenHAB function from connectionUtils.js, using proxyquire to stub out node-fetch
+    // Import the httpRequest function from connectionUtils.js, using proxyquire to stub out node-fetch
     // This allows us to control the behavior of fetch without making actual HTTP requests.
 
-    let fetchStub, fetchOpenHAB, originalFetch;
+    let fetchStub, httpRequest, originalFetch;
 
     beforeEach(() => {
         originalFetch = global.fetch;
         fetchStub = sinon.stub();
         global.fetch = fetchStub;
-        ({ fetchOpenHAB } = proxyquire("../lib/connectionUtils", {
+        ({ httpRequest } = proxyquire("../lib/connectionUtils", {
             "node-fetch": fetchStub
         }));
     });
@@ -87,7 +87,7 @@ describe("connectionUtils.fetchOpenHAB", function () {
         const fakeResponse = createFakeResponse({ text: JSON.stringify({ foo: "bar" }) });
         fetchStub.resolves(fakeResponse);
 
-        const result = await fetchOpenHAB("http://test", {}, {});
+        const result = await httpRequest("http://test", {}, {});
         expect(result.data).to.deep.equal({ foo: "bar" });
     });
 
@@ -95,7 +95,7 @@ describe("connectionUtils.fetchOpenHAB", function () {
         const fakeResponse = createFakeResponse({ text: "" });
         fetchStub.resolves(fakeResponse);
 
-        const result = await fetchOpenHAB("http://test", {}, {});
+        const result = await httpRequest("http://test", {}, {});
         expect(result.data).to.be.null;
     });
 
@@ -103,7 +103,7 @@ describe("connectionUtils.fetchOpenHAB", function () {
         const fakeResponse = createFakeResponse({ ok: false, status: 503 });
         fetchStub.resolves(fakeResponse);
 
-        const result = await fetchOpenHAB("http://test", {}, {});
+        const result = await httpRequest("http://test", {}, {});
         expect(result.retry).to.be.true;
         expect(result.status).to.equal(503);
     });
@@ -111,7 +111,7 @@ describe("connectionUtils.fetchOpenHAB", function () {
     it("should not handle HTTP 404 with body as retry", async function () {
         const fakeResponse = createFakeResponse({ status: 404, statusText: "Not Found", text: '{"error":{"message":"Item q does not exist!","http-code":404}}' });
         fetchStub.resolves(fakeResponse);
-        const result = await fetchOpenHAB("http://test", {}, {});
+        const result = await httpRequest("http://test", {}, {});
         expect(result).to.be.an("error");
         expect(!result.retry).to.be.true;
         expect(result.status).to.equal(404);
@@ -121,7 +121,7 @@ describe("connectionUtils.fetchOpenHAB", function () {
     it("should handle HTTP 404 without body as retry", async function () {
         const fakeResponse = createFakeResponse({ status: 404, statusText: "Not Found" });
         fetchStub.resolves(fakeResponse);
-        const result = await fetchOpenHAB("http://test", {}, {});
+        const result = await httpRequest("http://test", {}, {});
         expect(result).to.be.an("error");
         expect(result.retry).to.be.true;
         expect(result.status).to.equal(404);
@@ -132,7 +132,7 @@ describe("connectionUtils.fetchOpenHAB", function () {
         const fakeResponse = createFakeResponse({ ok: false, status: 401 });
         fetchStub.resolves(fakeResponse);
 
-        const result = await fetchOpenHAB("http://test", {}, {});
+        const result = await httpRequest("http://test", {}, {});
         expect(result.authRequired).to.be.true;
         expect(result.status).to.equal(401);
         expect(result.message).to.equal("No credentials provided.");
@@ -142,7 +142,7 @@ describe("connectionUtils.fetchOpenHAB", function () {
         const fakeResponse = createFakeResponse({ ok: false, status: 401 });
         fetchStub.resolves(fakeResponse);
 
-        const result = await fetchOpenHAB("http://test", { username: "foo" }, {});
+        const result = await httpRequest("http://test", { username: "foo" }, {});
         expect(result.authFailed).to.be.true;
         expect(result.status).to.equal(401);
         expect(result.message).to.equal("Wrong credentials provided.");
@@ -150,7 +150,7 @@ describe("connectionUtils.fetchOpenHAB", function () {
 
     it("should return error on fetch failure", async function () {
         fetchStub.rejects(new Error("network fail"));
-        const result = await fetchOpenHAB("http://test", {}, {});
+        const result = await httpRequest("http://test", {}, {});
         expect(result).to.be.an("error");
         expect(result.message).to.equal("network fail");
     });
@@ -158,7 +158,7 @@ describe("connectionUtils.fetchOpenHAB", function () {
     it("should return the error code on any other error", async function () {
         const fakeResponse = createFakeResponse({ ok: false, status: null, statusText: "Internal Server Error" });
         fetchStub.resolves(fakeResponse);
-        const result = await fetchOpenHAB("http://test", {}, {});
+        const result = await httpRequest("http://test", {}, {});
         expect(result).to.be.an("error");
         expect(result.message).to.include("Internal Server Error");
     });
@@ -166,7 +166,7 @@ describe("connectionUtils.fetchOpenHAB", function () {
     it("should return a default message if there were no details", async function () {
         const fakeResponse = createFakeResponse({ ok: false, status: null, statusText: null });
         fetchStub.resolves(fakeResponse);
-        const result = await fetchOpenHAB("http://test", {}, {});
+        const result = await httpRequest("http://test", {}, {});
         expect(result).to.be.an("error");
         expect(result.message).to.include("HTTP Error 500");
     });
@@ -175,7 +175,7 @@ describe("connectionUtils.fetchOpenHAB", function () {
     it("should throw an error if JSON is invalid", async function () {
         const fakeResponse = createFakeResponse({ text: "<>" });
         fetchStub.resolves(fakeResponse);
-        const result = await fetchOpenHAB("http://test", {}, {});
+        const result = await httpRequest("http://test", {}, {});
         expect(result).to.be.an("error");
         expect(result.message, "Message has unexpected token in it").to.include("Unexpected token");
     });
@@ -184,21 +184,21 @@ describe("connectionUtils.fetchOpenHAB", function () {
     it("should accept text responses", async function () {
         const fakeResponse = createFakeResponse({ text: "<>", contentType: "text/plain" });
         fetchStub.resolves(fakeResponse);
-        const result = await fetchOpenHAB("http://test", {}, {});
+        const result = await httpRequest("http://test", {}, {});
         expect(result.data).to.equal("<>");
     });
 
     it("should reject xml", async function () {
         const fakeResponse = createFakeResponse({ status: 400, contentType: "application/xml", text: "<xml>error</xml>" });
         fetchStub.resolves(fakeResponse);
-        const result = await fetchOpenHAB("http://test", {}, {});
+        const result = await httpRequest("http://test", {}, {});
         expect(result, "Is an error").to.be.an("error");
         expect(result.message, "message correct").to.include("Unsupported content type: application/xml");
     });
 
     it("should return error on fetch failure and show default message", async function () {
         fetchStub.rejects(new Error());
-        const result = await fetchOpenHAB("http://test", {}, {});
+        const result = await httpRequest("http://test", {}, {});
         console.log(`Result: ${JSON.stringify(result)}`);
         expect(result).to.be.an("error");
         expect(result.message).to.equal("Fetch failed");

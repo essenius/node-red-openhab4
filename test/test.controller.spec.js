@@ -26,17 +26,17 @@ const controllerModule = proxyquire("../nodes/controller.js", {
 
 // Helper to create the handler with mocks
 function getHandler(fetchResult) {
-    const mockFetchOpenHAB = sinon.stub().resolves(fetchResult);
+    const mockHttpRequest = sinon.stub().resolves(fetchResult);
     const mockGetConnectionString = sinon.stub().returns("http://mocked");
     const controller = proxyquire("../nodes/controller.js", {
         "../lib/connectionUtils": {
-            fetchOpenHAB: mockFetchOpenHAB,
+            httpRequest: mockHttpRequest,
             getConnectionString: mockGetConnectionString
         }
     });
     return {
-        handler: controller.createItemsHandler(mockFetchOpenHAB, mockGetConnectionString),
-        mockFetchOpenHAB,
+        handler: controller.createItemsHandler(mockHttpRequest, mockGetConnectionString),
+        mockHttpRequest,
         mockGetConnectionString
     };
 }
@@ -76,9 +76,9 @@ function createNodeThis() {
 
 
 describe("openhab4-controller /openhab4/items handler", function () {
-    it("should create the right URL and return items from mocked fetchOpenHAB", async function () {
+    it("should create the right URL and return items from mocked httpRequest", async function () {
         // Arrange: create mocks
-        const { handler, mockFetchOpenHAB, mockGetConnectionString } = getHandler({ data: ["item1", "item2"] });
+        const { handler, mockHttpRequest, mockGetConnectionString } = getHandler({ data: ["item1", "item2"] });
         const request = { query: { some: "config" } };
         const response = createMockResponse();
 
@@ -87,14 +87,14 @@ describe("openhab4-controller /openhab4/items handler", function () {
 
         // Assert
         expect(mockGetConnectionString.calledOnce).to.be.true;
-        expect(mockFetchOpenHAB.calledOnce).to.be.true;
-        const urlArg = mockFetchOpenHAB.getCall(0).args[0];
+        expect(mockHttpRequest.calledOnce).to.be.true;
+        const urlArg = mockHttpRequest.getCall(0).args[0];
         expect(urlArg).to.equal("http://mocked/rest/items");
         expect(response.status.notCalled).to.be.true; // No error, so status should not be called
         expect(response.send.calledWith(["item1", "item2"])).to.be.true;
     });
 
-    it("should propagate status and error message when fetchOpenHAB does not return data", async function () {
+    it("should propagate status and error message when httpRequest does not return data", async function () {
         // Arrange: create mocks
         const { handler } = getHandler({ retry: true, status: 503, message : "Service Unavailable" });
         const request = { query: { some: "config" } };

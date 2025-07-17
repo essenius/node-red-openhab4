@@ -49,7 +49,7 @@ describe("openHABConnection real", function () {
 
 describe("openHABConnection with mocked fetch", function () {
 
-    // Import the fetchOpenHAB function from connectionUtils.js, using proxyquire to stub out node-fetch
+    // Import the httpRequest function from connectionUtils.js, using proxyquire to stub out node-fetch
     // This allows us to control the behavior of fetch without making actual HTTP requests.
 
     let fetchStub, originalFetch, mockNode, connection;
@@ -150,6 +150,25 @@ describe("openHABConnection with mocked fetch", function () {
             expect(error.status).to.equal(404);
             expect(error.message).to.include("Not Found");
         }
+    });
+
+    it("should return value if all goes well", async function () {
+        let returnObject = {
+            text: async () => '{"link":"http://localhost:8080/rest/items/ub_warning","state":"123","stateDescription":{"pattern":"%s","readOnly":false,"options":[]},"editable":false,"type":"String","name":"ub_warning","label":"Warning","tags":[],"groupNames":["Indoor"]}',
+            headers: {
+                get: (name) => name.toLowerCase() === "content-type" ? "application/json" : undefined
+            },
+            status: 200,
+            statusText: "OK"
+        };
+
+        const fakeResponse = returnObject;
+        fetchStub.resolves(fakeResponse);
+        const response = await connection.controlItem("ub_warning");
+        console.log(`Response: ${JSON.stringify(response)}`);
+        expect(fetchStub.calledOnce).to.be.true;
+        expect(response.name).to.equal("ub_warning");
+        expect(response.state).to.equal("123");
     });
 
 });

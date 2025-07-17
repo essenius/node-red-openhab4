@@ -11,7 +11,7 @@
 
 "use strict";
 
-const { fetchOpenHAB, getConnectionString, setDefaults } = require("../lib/connectionUtils");
+const { httpRequest, getConnectionString, setDefaults } = require("../lib/connectionUtils");
 const { setupControllerNode } = require('../lib/controllerLogic');
 const { ENDPOINTS } = require("../lib/constants");
 
@@ -20,7 +20,7 @@ function createItemsHandler() {
         // request.query also contains the credentials, so we can use it to fetch items
         const config = setDefaults(request.query);
         const url = getConnectionString(config) + ENDPOINTS.ITEMS;
-        const result = await fetchOpenHAB(url, config);
+        const result = await httpRequest(url, config);
         if (!result.data) {
             return response.status(result.status).send(result.message);
         }
