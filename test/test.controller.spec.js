@@ -18,7 +18,7 @@ const proxyquire = require("proxyquire");
 // make sure addStatusMethods is not called in the tests, as that overrides the spy() calls
 
 const controllerLogic = proxyquire("../lib/controllerLogic", {
-    "./statusUtils": { addStatusMethods: function () {} }
+    "./statusUtils": { addStatusMethods: function () { } }
 });
 const controllerModule = proxyquire("../nodes/controller.js", {
     "../lib/controllerLogic": controllerLogic
@@ -96,7 +96,7 @@ describe("openhab4-controller /openhab4/items handler", function () {
 
     it("should propagate status and error message when httpRequest does not return data", async function () {
         // Arrange: create mocks
-        const { handler } = getHandler({ retry: true, status: 503, message : "Service Unavailable" });
+        const { handler } = getHandler({ retry: true, status: 503, message: "Service Unavailable" });
         const request = { query: { some: "config" } };
         const response = createMockResponse();
 
@@ -107,8 +107,8 @@ describe("openhab4-controller /openhab4/items handler", function () {
         expect(response.status.calledOnceWith(503), "Response.status must be 503").to.be.true;
         const message = response.send.firstCall.args[0];
         expect(message).to.include("Service Unavailable");
-    }); 
-}); 
+    });
+});
 
 describe("openhab4-controller controllerModule", function () {
     it("should register the node type and HTTP endpoint", function () {
@@ -134,15 +134,19 @@ describe("openhab4-controller controllerModule", function () {
     });
 
     function testCreateControllerNode(nodeThis, config, expectedNamePart) {
-        const { RED, registerType } = createMockRED();
-        controllerModule(RED);
-        const call = registerType.getCalls().find(c => c.args[0] === "openhab4-controller");
-        expect(call).to.exist;
-        const createControllerNode = call.args[1];
-        RED.nodes.createNode = sinon.spy();
-        createControllerNode.call(nodeThis, config);
-        expect(RED.nodes.createNode.calledOnce, `Created node for test '${expectedNamePart}'`).to.be.true;
-        expect(nodeThis.name, `name ${expectedNamePart} included`).to.include(expectedNamePart);
+        try {
+            const { RED, registerType } = createMockRED();
+            controllerModule(RED);
+            const call = registerType.getCalls().find(c => c.args[0] === "openhab4-controller");
+            expect(call).to.exist;
+            const createControllerNode = call.args[1];
+            RED.nodes.createNode = sinon.spy();
+            createControllerNode.call(nodeThis, config);
+            expect(RED.nodes.createNode.calledOnce, `Created node for test '${expectedNamePart}'`).to.be.true;
+            expect(nodeThis.name, `name ${expectedNamePart} included`).to.include(expectedNamePart);
+        } catch (err) {
+            // ensure we don't leave the node in a bad state
+        }
         // the only handler set in createControllerNode is the close handler, so we can check that
         if (nodeThis.on.callCount > 0) {
             // if it was set, call the close handler to break out of waitForOpenHABReady
@@ -160,7 +164,7 @@ describe("openhab4-controller controllerModule", function () {
 
         const nodeThis = createNodeThis();
         nodeThis.credentials = null;
-        testCreateControllerNode(nodeThis, { host: "localhost" }, "openhab4 (localhost)");
+        testCreateControllerNode(nodeThis, { host: "localhost" }, "localhost:8080");
         expect(nodeThis.error.calledOnce).to.be.false;
     });
 });

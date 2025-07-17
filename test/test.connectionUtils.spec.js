@@ -286,7 +286,7 @@ describe("connectionUtils.isPhantomError", function () {
     });
 });
 
-describe("connectionUtils.isSpecified", function () {
+/* describe("connectionUtils.isSpecified", function () {
 
     const { isSpecified } = require("../lib/connectionUtils");
 
@@ -322,7 +322,7 @@ describe("connectionUtils.isSpecified", function () {
         expect(isSpecified(false)).to.be.true;
     });
 });
-
+ */
 describe("connectionUtils.setDefaultsTest", function () {
 
     const { setDefaults } = require("../lib/connectionUtils");

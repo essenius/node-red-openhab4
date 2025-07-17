@@ -16,13 +16,8 @@ const { setupHealthNode } = require("../lib/healthLogic");
 module.exports = function(RED) {
 	function createHealthNode(config) {
 		RED.nodes.createNode(this, config);
-		
 		const controller = RED.nodes.getNode(config.controller);
-		const utils = {
-			generateId: RED.util.generateId
-		};
-
-		setupHealthNode(this, config, controller, utils);
+		setupHealthNode(this, config, controller, { generateId: RED.util.generateId });
 	}
 	
 	RED.nodes.registerType("openhab4-health", createHealthNode);

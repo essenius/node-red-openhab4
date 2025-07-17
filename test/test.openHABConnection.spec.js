@@ -15,7 +15,7 @@ const { expect } = require("chai");
 const sinon = require("sinon");
 const proxyquire = require("proxyquire");
 
-describe("openHABConnection real", function () {
+/* describe("openHABConnection real", function () {
 
     // This test uses the real OpenhabConnection class, not a mock. Therefore it can fail.
     // It is used to test the connection to a real openHAB instance.
@@ -45,7 +45,7 @@ describe("openHABConnection real", function () {
         console.log(`result: ${result}`);
         expect(result).to.equal("MockValue");
     });
-});
+}); */
 
 describe("openHABConnection with mocked fetch", function () {
 

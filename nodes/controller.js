@@ -15,6 +15,7 @@ const { httpRequest, getConnectionString, setDefaults } = require("../lib/connec
 const { setupControllerNode } = require('../lib/controllerLogic');
 const { ENDPOINTS } = require("../lib/constants");
 
+/** Handler for the httpAdmin request to get all OpenHAB items. This is used to populate the dropdowns in the controller and other nodes */ 
 function createItemsHandler() {
     return async function (request, response) {
         // request.query also contains the credentials, so we can use it to fetch items
@@ -28,6 +29,7 @@ function createItemsHandler() {
     };
 }
 
+/* Controller module for OpenHAB, which sets up the controller node and handles the items request */
 function controllerModule(RED) {
     const maybeFn = require("./admin");
     maybeFn(RED);
@@ -38,9 +40,8 @@ function controllerModule(RED) {
      
     function createControllerNode(config) {
         RED.nodes.createNode(this, config);
-        // somewhat ugly duplication from consumerNodeBase.js, but controller doesn't inherit from it.
         const mergedConfig = setDefaults({ ...config, ...(this.credentials || {}) });
-        this.name = config.name || `openhab4 (${config.host})`;
+        this.name = config.name || `${config.host}:${config.port}`;
         setupControllerNode(this, mergedConfig);
     }
 
