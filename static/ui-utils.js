@@ -81,7 +81,6 @@ console.log('ui-utils.js loaded successfully');
 
     // initial load
 
-    
     const controllerNode = RED.nodes.node(node.controller);
     if (controllerNode) {
       updateItems(controllerNode, node.itemname);

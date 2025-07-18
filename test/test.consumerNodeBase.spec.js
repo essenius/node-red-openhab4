@@ -126,8 +126,8 @@ describe('consumerNodeBase', function () {
                 expected: { fill: "green", shape: "dot", text: "very long text that exceeds..." },
             }
         ].forEach(({ input, expected }) => {
-            it(`should handle refreshNodeStatus correctly for input: ${JSON.stringify(input)}`, function () {
-                node.refreshNodeStatus(input);
+            it(`should handle setItemStatus correctly for input: ${JSON.stringify(input)}`, function () {
+                node.setItemStatus(input);
                 expect(mockNode.status.calledOnce, "called once").to.be.true;
                 expect(mockNode.status.firstCall.args[0]).to.deep.equal(expected, "Content correct");
             });

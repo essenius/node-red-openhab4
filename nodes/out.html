@@ -107,27 +107,26 @@
 <script src="openhab4/ui-utils.js"></script>
 
 <script type="text/javascript">
-    RED.nodes.registerType('openhab4-out',{
+    RED.nodes.registerType('openhab4-out', {
         category: 'home automation',
         color: window.OPENHAB4.NODE_COLOR,
         defaults: {
-            name:      {value:""},
-		    controller:  {value:"", type:"openhab4-controller", required:true},
-		    itemname:  {value:"", required:false},
-		    topic: {value:"", required:false},
-		    payload:  {value:"", required:false}
-		},
+            name: { value: "" },
+            controller: { value: "", type: "openhab4-controller", required: true },
+            itemname: { value: "", required: false },
+            topic: { value: "ItemUpdate", required: false },
+            payload: { value: "", required: false }
+        },
         inputs: 1,
         outputs: 1,
         outputLabels: ["sent message"],
         icon: "openhab4-logo-out.svg",
         paletteLabel: "openhab4-out",
-        label: function() {
+        label: function () {
             return window.OPENHAB4.generateNodeName('out', this.name, this.itemname);
         },
-        oneditprepare: function() {
-        	openhabEditPrepare(this, true);
+        oneditprepare: function () {
+            openhabEditPrepare(this, true);
         }
     });
 </script>
-
