@@ -19,7 +19,12 @@ const controllerModule = require("../nodes/controller.js");
 
 // Helper to create the handler with mocks
 function getHandler(fetchResult) {
-    const mockHttpRequest = sinon.stub().resolves(fetchResult);
+    let mockHttpRequest
+    if (fetchResult.data) {
+        mockHttpRequest = sinon.stub().resolves(fetchResult);
+    } else {
+        mockHttpRequest = sinon.stub().rejects(fetchResult);
+    }
     const mockGetConnectionString = sinon.stub().returns("http://mocked");
     const controller = proxyquire("../nodes/controller.js", {
         "../lib/connectionUtils": {
@@ -67,7 +72,6 @@ function createNodeThis() {
     };
 }
 
-
 describe("openhab4-controller /openhab4/items handler", function () {
     it("should create the right URL and return items from mocked httpRequest", async function () {
         // Arrange: create mocks
@@ -95,7 +99,6 @@ describe("openhab4-controller /openhab4/items handler", function () {
 
         // Act
         await handler(request, response);
-
         // Assert
         expect(response.status.calledOnceWith(503), "Response.status must be 503").to.be.true;
         const message = response.send.firstCall.args[0];

@@ -15,17 +15,23 @@ const { httpRequest, getConnectionString, setDefaults } = require("../lib/connec
 const { setupControllerNode } = require('../lib/controllerLogic');
 const { ENDPOINTS } = require("../lib/constants");
 
-/** Handler for the httpAdmin request to get all OpenHAB items. This is used to populate the dropdowns in the controller and other nodes */ 
+/** Handler for the httpAdmin request to get all OpenHAB items. This is used to populate the dropdowns in the controller and other nodes */
 function createItemsHandler() {
     return async function (request, response) {
         // request.query also contains the credentials, so we can use it to fetch items
         const config = setDefaults(request.query);
         const url = getConnectionString(config) + ENDPOINTS.ITEMS;
-        const result = await httpRequest(url, config);
-        if (!result.data) {
-            return response.status(result.status).send(result.message);
+        try {
+            const result = await httpRequest(url, config);
+            if (result.data) {
+                response.send(result.data); // implicitly returns 200 OK
+                return;
+            }
+            response.sendStatus(204); // No content. This is not expected, but we handle it nonetheless
+        } catch (error) {
+            // if we get an error, we return the error message and status code
+            return response.status(error.status).send(error.message);
         }
-        response.send(result.data);
     };
 }
 
@@ -37,7 +43,7 @@ function controllerModule(RED) {
     // start a web service for enabling the node configuration ui to retrieve the available openHAB items
 
     RED.httpAdmin.get("/openhab4/items", createItemsHandler());
-     
+
     function createControllerNode(config) {
         RED.nodes.createNode(this, config);
         const mergedConfig = setDefaults({ ...config, ...(this.credentials || {}) });

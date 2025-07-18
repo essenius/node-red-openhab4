@@ -83,125 +83,133 @@ describe("connectionUtils.httpRequest", function () {
             }
         };
     }
-    it("should return JSON data on success", async function () {
-        const fakeResponse = createFakeResponse({ text: JSON.stringify({ foo: "bar" }) });
-        fetchStub.resolves(fakeResponse);
 
-        const result = await httpRequest("http://test", {}, {});
-        expect(result.data).to.deep.equal({ foo: "bar" });
+    [
+        {
+            testId: "valid JSON data",
+            fakeResponse: { text: JSON.stringify({ foo: "bar" }) },
+            data: { foo: "bar" }
+        },
+        {
+            testId: "empty responses",
+            fakeResponse: { text: "" },
+            data: null
+        },
+        {
+            testId: "text/plain content type",
+            fakeResponse: { text: "Hello, World!", contentType: "text/plain" },
+            data: "Hello, World!"
+        },
+
+    ].forEach(({ testId, fakeResponse, data }) => {
+        it(`should handle ${testId} as expected`, async function () {
+            fetchStub.resolves(createFakeResponse(fakeResponse));
+            const result = await httpRequest("http://test", {}, {});
+            if (data === null) {
+                expect(result.data).to.be.null;
+            } else {
+                expect(result.data).to.deep.equal(data);
+            }
+        });
     });
 
-    it("should allow empty responses", async function () {
-        const fakeResponse = createFakeResponse({ text: "" });
-        fetchStub.resolves(fakeResponse);
-
-        const result = await httpRequest("http://test", {}, {});
-        expect(result.data).to.be.null;
-    });
-
-    it("should handle HTTP 503 as retry", async function () {
-        const fakeResponse = createFakeResponse({ ok: false, status: 503 });
-        fetchStub.resolves(fakeResponse);
-
-        const result = await httpRequest("http://test", {}, {});
-        expect(result.retry).to.be.true;
-        expect(result.status).to.equal(503);
-    });
-
-    it("should not handle HTTP 404 with body as retry", async function () {
-        const fakeResponse = createFakeResponse({ status: 404, statusText: "Not Found", text: '{"error":{"message":"Item q does not exist!","http-code":404}}' });
-        fetchStub.resolves(fakeResponse);
-        const result = await httpRequest("http://test", {}, {});
-        expect(result).to.be.an("error");
-        expect(!result.retry).to.be.true;
-        expect(result.status).to.equal(404);
-        expect(result.message).to.include("Item q does not exist!");
-    });
-
-    it("should handle HTTP 404 without body as retry", async function () {
-        const fakeResponse = createFakeResponse({ status: 404, statusText: "Not Found" });
-        fetchStub.resolves(fakeResponse);
-        const result = await httpRequest("http://test", {}, {});
-        expect(result).to.be.an("error");
-        expect(result.retry).to.be.true;
-        expect(result.status).to.equal(404);
-        expect(result.message).to.include("Not Found");
-    });
-
-    it("should handle HTTP 401 as authRequired and report missing credentials", async function () {
-        const fakeResponse = createFakeResponse({ ok: false, status: 401 });
-        fetchStub.resolves(fakeResponse);
-
-        const result = await httpRequest("http://test", {}, {});
-        expect(result.authRequired).to.be.true;
-        expect(result.status).to.equal(401);
-        expect(result.message).to.equal("No credentials provided.");
+    [
+        {
+            testId: "503 - retry",
+            fakeResponse: { status: 503 },
+            retry: true,
+            status: 503,
+        },
+        {
+            testId: "404 with body - no retry",
+            fakeResponse: { status: 404, statusText: "Not Found", text: '{"error":{"message":"Item q does not exist!","http-code":404}}' },
+            retry: false,
+            status: 404,
+            message: "Item q does not exist!"
+        },
+        {
+            testId: "404 without body - retry",
+            fakeResponse: { status: 404, statusText: "Not Found" },
+            retry: true,
+            status: 404,
+            message: "Not Found"
+        },
+        {
+            testId: "401 without credentials - authRequired",
+            fakeResponse: { status: 401 },
+            authRequired: true,
+            status: 401,
+            message: "No credentials provided."
+        },
+        {
+            testId: "No status, statusText",
+            fakeResponse: { status: null, statusText: "Internal Server Error" },
+            message: "Internal Server Error"
+        },
+        {
+            testId: "No status, no statusText",
+            fakeResponse: { status: null, statusText: null },
+            message: "HTTP Error 500"
+        },
+        {
+            testId: "Invalid JSON",
+            fakeResponse: { text: "<>" },
+            message: "Unexpected token '<', \"<>\" is not valid JSON"
+        },
+        {
+            testId: "XML",
+            fakeResponse: { status: 400, contentType: "application/xml", text: "<xml>error</xml>" },
+            message: "Unsupported content type: application/xml"
+        }
+    ].forEach(({ testId, fakeResponse, authRequired, authFailed, retry, status, message }) => {
+        it(`should throw an error for ${testId} as expected`, async function () {
+            fetchStub.resolves(createFakeResponse(fakeResponse));
+            try {
+                await httpRequest("http://test", {}, {});
+                expect.fail("Expected error to be thrown");
+            } catch (error) {
+                if (retry !== undefined) expect(!!error.retry, "retry test").to.equal(retry);
+                if (authRequired !== undefined) expect(!!error.authRequired, "authRequired test").to.equal(authRequired);
+                if (authFailed !== undefined) expect(!!error.authFailed, "autFailed test").to.equal(authFailed);
+                if (status !== undefined) expect(error.status, "status test").to.equal(status);
+                if (message !== undefined) expect(error.message, "message test").to.equal(message);
+            }
+        });
     });
 
     it("should handle HTTP 401 as authRequired and report wrong credentials", async function () {
         const fakeResponse = createFakeResponse({ ok: false, status: 401 });
         fetchStub.resolves(fakeResponse);
 
-        const result = await httpRequest("http://test", { username: "foo" }, {});
-        expect(result.authFailed).to.be.true;
-        expect(result.status).to.equal(401);
-        expect(result.message).to.equal("Wrong credentials provided.");
+        try {
+            await httpRequest("http://test", { username: "foo" }, {});
+            expect.fail("Expected error to be thrown");
+        } catch (error) {
+            expect(error.authFailed).to.be.true;
+            expect(error.status).to.equal(401);
+            expect(error.message).to.equal("Wrong credentials provided.");
+        }
     });
 
     it("should return error on fetch failure", async function () {
         fetchStub.rejects(new Error("network fail"));
-        const result = await httpRequest("http://test", {}, {});
-        expect(result).to.be.an("error");
-        expect(result.message).to.equal("network fail");
-    });
-
-    it("should return the error code on any other error", async function () {
-        const fakeResponse = createFakeResponse({ ok: false, status: null, statusText: "Internal Server Error" });
-        fetchStub.resolves(fakeResponse);
-        const result = await httpRequest("http://test", {}, {});
-        expect(result).to.be.an("error");
-        expect(result.message).to.include("Internal Server Error");
-    });
-
-    it("should return a default message if there were no details", async function () {
-        const fakeResponse = createFakeResponse({ ok: false, status: null, statusText: null });
-        fetchStub.resolves(fakeResponse);
-        const result = await httpRequest("http://test", {}, {});
-        expect(result).to.be.an("error");
-        expect(result.message).to.include("HTTP Error 500");
-    });
-
-
-    it("should throw an error if JSON is invalid", async function () {
-        const fakeResponse = createFakeResponse({ text: "<>" });
-        fetchStub.resolves(fakeResponse);
-        const result = await httpRequest("http://test", {}, {});
-        expect(result).to.be.an("error");
-        expect(result.message, "Message has unexpected token in it").to.include("Unexpected token");
-    });
-
-
-    it("should accept text responses", async function () {
-        const fakeResponse = createFakeResponse({ text: "<>", contentType: "text/plain" });
-        fetchStub.resolves(fakeResponse);
-        const result = await httpRequest("http://test", {}, {});
-        expect(result.data).to.equal("<>");
-    });
-
-    it("should reject xml", async function () {
-        const fakeResponse = createFakeResponse({ status: 400, contentType: "application/xml", text: "<xml>error</xml>" });
-        fetchStub.resolves(fakeResponse);
-        const result = await httpRequest("http://test", {}, {});
-        expect(result, "Is an error").to.be.an("error");
-        expect(result.message, "message correct").to.include("Unsupported content type: application/xml");
+        try {
+            await httpRequest("http://test", {}, {});
+            expect.fail("Expected error to be thrown");
+        } catch (result) {
+            expect(result).to.be.an("error");
+            expect(result.message).to.equal("network fail");
+        }
     });
 
     it("should return error on fetch failure and show default message", async function () {
         fetchStub.rejects(new Error());
-        const result = await httpRequest("http://test", {}, {});
-        console.log(`Result: ${JSON.stringify(result)}`);
-        expect(result).to.be.an("error");
-        expect(result.message).to.equal("Fetch failed");
+        try {
+            await httpRequest("http://test", {}, {});
+            expect.fail("Expected error to be thrown");
+        } catch (error) {
+            expect(error.message).to.equal("Fetch failed");
+        }
     });
 });
 
@@ -220,28 +228,24 @@ describe("connectionUtils.getConnectionString", function () {
         expect(url).to.equal("http://localhost:8080/rest");
     });
 
-    it("should build a URL with credentials when includeCredentials is true, and pass empty password", function () {
-        const config = {
+    function setConfig(username, password) {
+        return {
             protocol: "https",
             host: "openhab.local",
-            port: 8443,
+            port: 8443, 
             path: "api",
-            username: "user",
-            password: ""
+            username: username,
+            password: password
         };
+    }
+    it("should build a URL with credentials when includeCredentials is true, and pass empty password", function () {
+        const config = setConfig("user", "");
         const url = getConnectionString(config, { includeCredentials: true });
         expect(url).to.equal("https://user:@openhab.local:8443/api");
     });
 
     it("should encode credentials in the URL and pass non-empty password", function () {
-        const config = {
-            protocol: "https",
-            host: "openhab.local",
-            port: 8443,
-            path: "api",
-            username: "user@domain.com",
-            password: "p@ss word"
-        };
+        const config = setConfig("user@domain.com", "p@ss word");
         const url = getConnectionString(config, { includeCredentials: true });
         expect(url).to.equal("https://user%40domain.com:p%40ss%20word@openhab.local:8443/api");
     });
