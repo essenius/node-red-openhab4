@@ -166,3 +166,56 @@ describe("openHABConnection with mocked fetch", function () {
 
 });
 
+describe("openHABConnection StartEventSource", function () {
+    class MockEventSource {
+        constructor(url, options) {
+            this.url = url;
+            this.options = options;
+            this.onopen = null;
+            this.onerror = null;
+            this.onmessage = null;
+            this.close = sinon.spy();
+        }
+    }
+
+    const { OpenhabConnection } = require('../lib/openhabConnection');
+    const sinon = require('sinon');
+
+    it("should start EventSource and handle open, error, and message events", function () {
+        const node = { log: sinon.spy(), error: sinon.spy(), warn: sinon.spy(), emit: sinon.spy(), status: sinon.spy() };
+        const config = { protocol: "http", host: "localhost", port: 8080, path: "", username: "", password: "" };
+        const connection = new OpenhabConnection(config, node, MockEventSource);
+
+        const openSpy = sinon.spy();
+        const errorSpy = sinon.spy();
+        const messageSpy = sinon.spy();
+        connection.startEventSource({ onOpen: openSpy, onError: errorSpy, onMessage: messageSpy });
+
+        expect(connection.eventSource, "instance of MockEventSource").to.be.an.instanceof(MockEventSource);
+        expect(connection.eventSource.url, "URL ok").to.include("http://localhost:8080/rest/events");
+        expect(connection.eventSource.onopen, "onopen set").to.be.a('function');
+        expect(connection.eventSource.onerror, "onerror set").to.be.a('function');
+        expect(connection.eventSource.onmessage, "onmessage set").to.be.a('function');
+
+        // Simulate open
+
+        connection.eventSource.onopen();
+        expect(openSpy.calledOnce).to.be.true;
+
+        // Simulate phantom error which should be ignored
+        const error = {"type":{}};
+        connection.eventSource.onerror(error);
+        expect(connection.eventSource.close.notCalled).to.be.true;
+        expect(connection.eventSource, "eventSource not null").to.not.be.null;
+
+        // Simulate message
+        const message = { data: "test" };
+        connection.eventSource.onmessage(message);
+        expect(messageSpy.calledWith({ data: "test" })).to.be.true;
+
+        connection.eventSource.onerror({ status: 500, statusText: "Internal Server Error" });
+        expect(errorSpy.calledWith(500, "Internal Server Error"), "Right message").to.be.true;
+        expect(connection.retryTimer, "retryTimer not set").to.be.null;
+    });
+
+});

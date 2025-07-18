@@ -66,7 +66,6 @@ describe("getLogic handleInput", function () {
         const msg = { item: "testItem", payload: "test" };
 
         await getNode.handleInput(msg);
-        console.log("Node status:", node.status.getCalls());
         expect(node.status.getCall(0).args[0], "waiting status called").to.deep.equal({ fill: 'blue', shape: 'ring', text: 'requesting...' });
         expect(controller.handleControllerError.calledWith(sinon.match.instanceOf(Error), 'Get'), "Controller error called").to.be.true;
         expect(node.status.getCall(1).args[0], "error status called").to.deep.equal({ fill: 'red', shape: 'ring', text: 'Call failed' });
