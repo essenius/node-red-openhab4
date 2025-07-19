@@ -217,7 +217,7 @@ describe("controllerLogic.setupControllerNode", function () {
         beforeEach(async function () {
             setupControllerNode(node, config, { maxAttempts: 1, interval: 0 });
             await new Promise(resolve => setImmediate(resolve));
-            node.emit.resetHistory(); // remove the communication events
+            node.emit.resetHistory(); 
             this.startEventSourceArgs = startEventSourceStub.getCall(0).args[0];
         });
 

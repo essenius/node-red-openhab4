@@ -14,6 +14,7 @@
 const { expect } = require("chai");
 const sinon = require("sinon");
 const proxyquire = require("proxyquire");
+const { EVENT_TYPES, RETRY_CONFIG } = require("../lib/constants");
 
 /* describe("openHABConnection real", function () {
 
@@ -89,66 +90,103 @@ describe("openHABConnection with mocked fetch", function () {
             global.fetch = originalFetch;
         }
     });
+    describe("controlItem tests", function () {
+        it("should throw an error on fetch failure", async function () {
+            const cause = JSON.parse('{"errno":-4078,"code":"ECONNREFUSED","syscall":"connect","address":"localhost","port":8081}');
+            const error = new Error("fetch failed");
+            error.cause = cause;
+            fetchStub.rejects(error);
+            try {
+                await connection.controlItem("TestItem");
+                expect.fail("Expected error to be thrown");
+            } catch (error) {
+                expect(error.message).to.equal("ECONNREFUSED");
+                expect(error.status).to.equal(-4078);
+            }
+        });
 
-    it("should throw an error on fetch failure", async function () {
-        const cause = JSON.parse('{"errno":-4078,"code":"ECONNREFUSED","syscall":"connect","address":"localhost","port":8081}');
-        const error = new Error("fetch failed");
-        error.cause = cause;
-        fetchStub.rejects(error);
-        try {
-            await connection.controlItem("TestItem");
-            expect.fail("Expected error to be thrown");
-        } catch (error) {
-            expect(error.message).to.equal("ECONNREFUSED");
-            expect(error.status).to.equal(-4078);
-        }
-    });
+        it("should return error details on fetch with missing item", async function () {
+            let returnObject = {
+                text: async () => JSON.stringify({ error: { message: "Item TestItem does not exist!", "http-code": 404 } }),
+                headers: {
+                    get: (name) => name.toLowerCase() === "content-type" ? "application/json" : undefined
+                },
+                status: 404,
+                statusText: "Not Found"
+            };
 
-    it("should return error details on fetch with missing item", async function () {
-        let returnObject = {
-            text: async () => JSON.stringify({ error: { message: "Item TestItem does not exist!", "http-code": 404 } }),
-            headers: {
-                get: (name) => name.toLowerCase() === "content-type" ? "application/json" : undefined
-            },
-            status: 404,
-            statusText: "Not Found"
-        };
+            const fakeResponse = returnObject;
+            fetchStub.resolves(fakeResponse);
+            try {
+                await connection.controlItem("TestItem");
+                expect.fail("Expected error to be thrown");
+            } catch (error) {
 
-        const fakeResponse = returnObject;
-        fetchStub.resolves(fakeResponse);
-        try {
-            await connection.controlItem("TestItem");
-            expect.fail("Expected error to be thrown");
-        } catch (error) {
+                expect(fetchStub.calledOnce).to.be.true;
+                expect(error.status).to.equal(404);
+                expect(error.message).to.include("Item TestItem does not exist!");
+            }
+        });
 
+        it("should return error details from http if no body", async function () {
+            let returnObject = {
+                text: async () => "",
+                status: 404,
+                statusText: "Not Found"
+            };
+
+            const fakeResponse = returnObject;
+            fetchStub.resolves(fakeResponse);
+            try {
+                await connection.controlItem("TestItem");
+                expect.fail("Expected error to be thrown");
+            } catch (error) {
+                expect(fetchStub.calledOnce).to.be.true;
+                expect(error.status).to.equal(404);
+                expect(error.message).to.include("Not Found");
+            }
+        });
+
+        it("should return value if all goes well", async function () {
+            let returnObject = {
+                text: async () => '{"link":"http://localhost:8080/rest/items/ub_warning","state":"123","stateDescription":{"pattern":"%s","readOnly":false,"options":[]},"editable":false,"type":"String","name":"ub_warning","label":"Warning","tags":[],"groupNames":["Indoor"]}',
+                headers: {
+                    get: (name) => name.toLowerCase() === "content-type" ? "application/json" : undefined
+                },
+                status: 200,
+                statusText: "OK"
+            };
+
+            const fakeResponse = returnObject;
+            fetchStub.resolves(fakeResponse);
+            const response = await connection.controlItem("ub_warning");
             expect(fetchStub.calledOnce).to.be.true;
-            expect(error.status).to.equal(404);
-            expect(error.message).to.include("Item TestItem does not exist!");
-        }
+            expect(response.name).to.equal("ub_warning");
+            expect(response.state).to.equal("123");
+        });
     });
 
-    it("should return error details from http if no body", async function () {
-        let returnObject = {
-            text: async () => "",
-            status: 404,
-            statusText: "Not Found"
-        };
+        it("should handle getItems() successfully", async function () {
+            let returnObject = {
+                text: async () => JSON.stringify(["item1", "item2"]),
+                headers: {
+                    get: (name) => name.toLowerCase() === "content-type" ? "application/json" : undefined
+                },
+                status: 200,
+                statusText: "OK"
+            };
 
-        const fakeResponse = returnObject;
-        fetchStub.resolves(fakeResponse);
-        try {
-            await connection.controlItem("TestItem");
-            expect.fail("Expected error to be thrown");
-        } catch (error) {
+            const fakeResponse = returnObject;
+            fetchStub.resolves(fakeResponse);
+            const items = await connection.getItems();
             expect(fetchStub.calledOnce).to.be.true;
-            expect(error.status).to.equal(404);
-            expect(error.message).to.include("Not Found");
-        }
-    });
+            expect(items).to.deep.equal(["item1", "item2"]);
+            expect(fetchStub.getCall(0).args[0]).to.equal("http://localhost:8081/rest/items");
+        });
 
-    it("should return value if all goes well", async function () {
+    it("should handle testIfLive() successfully", async function () {
         let returnObject = {
-            text: async () => '{"link":"http://localhost:8080/rest/items/ub_warning","state":"123","stateDescription":{"pattern":"%s","readOnly":false,"options":[]},"editable":false,"type":"String","name":"ub_warning","label":"Warning","tags":[],"groupNames":["Indoor"]}',
+            text: async () => JSON.stringify({ status: "OK" }),
             headers: {
                 get: (name) => name.toLowerCase() === "content-type" ? "application/json" : undefined
             },
@@ -158,10 +196,10 @@ describe("openHABConnection with mocked fetch", function () {
 
         const fakeResponse = returnObject;
         fetchStub.resolves(fakeResponse);
-        const response = await connection.controlItem("ub_warning");
+        const isLive = await connection.testIfLive();
         expect(fetchStub.calledOnce).to.be.true;
-        expect(response.name).to.equal("ub_warning");
-        expect(response.state).to.equal("123");
+        expect(isLive).to.be.true;
+        expect(fetchStub.getCall(0).args[0]).to.equal("http://localhost:8081/rest");
     });
 
 });
@@ -181,16 +219,24 @@ describe("openHABConnection StartEventSource", function () {
     const { OpenhabConnection } = require('../lib/openhabConnection');
     const sinon = require('sinon');
 
+    let retryFn;
+    const fakeSetTimeout = sinon.stub().callsFake((fn, _delay) => {
+        retryFn = fn; // Save the function for manual invocation
+        return fn;    // Return the function as the "timer handle"
+    });
+    const fakeClearTimeout = sinon.spy();
+
     it("should start EventSource and handle open, error, and message events", function () {
-        const node = { log: sinon.spy(), error: sinon.spy(), warn: sinon.spy(), emit: sinon.spy(), status: sinon.spy() };
-        const config = { protocol: "http", host: "localhost", port: 8080, path: "", username: "", password: "" };
-        const connection = new OpenhabConnection(config, node, MockEventSource);
+        //const node = { log: sinon.spy(), error: sinon.spy(), warn: sinon.spy(), emit: sinon.spy(), status: sinon.spy() };
+        const config = { protocol: "http", host: "localhost", port: 8080, path: "", username: "", password: "", allowSelfSigned: true };
+        const connection = new OpenhabConnection(config, MockEventSource, fakeSetTimeout, fakeClearTimeout);
 
         const openSpy = sinon.spy();
-        const errorSpy = sinon.spy();
         const messageSpy = sinon.spy();
-        connection.startEventSource({ onOpen: openSpy, onError: errorSpy, onMessage: messageSpy });
-
+        const errorSpy = sinon.spy();
+        const warningSpy = sinon.spy();
+        connection.startEventSource({ onOpen: openSpy, onMessage: messageSpy, onError: errorSpy, onWarning: warningSpy });
+        expect(connection.eventSource.options.https).to.deep.equal({ rejectUnauthorized: false }, "https options set for self-signed certs");
         expect(connection.eventSource, "instance of MockEventSource").to.be.an.instanceof(MockEventSource);
         expect(connection.eventSource.url, "URL ok").to.include("http://localhost:8080/rest/events");
         expect(connection.eventSource.onopen, "onopen set").to.be.a('function');
@@ -198,24 +244,77 @@ describe("openHABConnection StartEventSource", function () {
         expect(connection.eventSource.onmessage, "onmessage set").to.be.a('function');
 
         // Simulate open
-
         connection.eventSource.onopen();
         expect(openSpy.calledOnce).to.be.true;
 
         // Simulate phantom error which should be ignored
-        const error = {"type":{}};
+        const error = { "type": {} };
         connection.eventSource.onerror(error);
         expect(connection.eventSource.close.notCalled).to.be.true;
         expect(connection.eventSource, "eventSource not null").to.not.be.null;
+        expect(warningSpy.notCalled, "onWarning not called").to.be.true;
+        expect(errorSpy.notCalled, "onError not called").to.be.true;
 
         // Simulate message
         const message = { data: "test" };
         connection.eventSource.onmessage(message);
         expect(messageSpy.calledWith({ data: "test" })).to.be.true;
+        expect(errorSpy.notCalled, "Node error not called").to.be.true;
+        expect(warningSpy.notCalled, "Node warning not called").to.be.true;
 
         connection.eventSource.onerror({ status: 500, statusText: "Internal Server Error" });
         expect(errorSpy.calledWith(500, "Internal Server Error"), "Right message").to.be.true;
+        expect(fakeSetTimeout.notCalled, "setTimeout not called").to.be.true;
         expect(connection.retryTimer, "retryTimer not set").to.be.null;
+    });
+
+    it("should start EventSource and handle open, error, and message events", function () {
+        const config = { protocol: "http", host: "localhost", port: 8080, path: "", username: "", password: "" };
+        const connection = new OpenhabConnection(config, MockEventSource, fakeSetTimeout, fakeClearTimeout);
+
+        const errorSpy = sinon.spy();
+        const warningSpy = sinon.spy();
+        connection.startEventSource({ onError: errorSpy, onWarning: warningSpy, topics: "first-topic" });
+
+        expect(connection.eventSource.url, "URL ok").to.include("http://localhost:8080/rest/events?topics=first-topic");
+        expect(connection.eventSource.options.https).to.be.undefined;
+
+        connection.eventSource.onopen();
+
+        const message = { data: "test" };
+        connection.eventSource.onmessage(message);
+
+        // simulate non-ignorable repeat error
+        connection.eventSource.onerror({ status: 503, statusText: "Service Unavailable" });
+        expect(warningSpy.calledWith("Retry attempt 1 in 30 s"), "onWarning called").to.be.true;
+        expect(errorSpy.notCalled, "onError not called").to.be.true;
+        expect(fakeSetTimeout.calledOnce, "setTimeout called").to.be.true;
+
+        expect(connection.retryTimer, "retryTimer set").to.not.be.null;
+        expect(connection.eventSource, "EventSource null").to.be.null;
+
+        // Simulate retry by calling the function provided to setTimeout()
+        retryFn();
+
+        connection.eventSource.onerror({ status: 503, statusText: "Service Unavailable" });
+        expect(warningSpy.calledWith("Retry attempt 2 in 30 s"), "onWarning called").to.be.true;
+        expect(errorSpy.notCalled, "onError not called").to.be.true;
+
+        expect(connection.retryTimer, "retryTimer set").to.not.be.null;
+        expect(connection.eventSource, "EventSource null").to.be.null;
+
+
+        // start the EventSource again to get it back in good shape.
+        fakeClearTimeout.resetHistory();
+        connection.startEventSource({ topics: "second-topic" });
+        expect(fakeClearTimeout.calledOnce, "clearTimeout called (when calling close()").to.be.true;
+        expect(connection.eventSource, "EventSource not null").to.not.be.null;
+
+        // start the EventSource again with different options. This should clear the existing one first.
+        connection.startEventSource({ topics: "third-topic" });
+        expect(connection.eventSource.url, "URL ok").to.include("http://localhost:8080/rest/events?topics=third-topic");
+        expect(!connection.retryTimer, "retryTimer reset").to.be.true;
+        expect(connection.eventSource, "EventSource re-initialized after close()").to.not.be.null;
     });
 
 });
