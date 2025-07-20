@@ -15,7 +15,7 @@ const { expect } = require("chai");
 const sinon = require("sinon");
 const proxyquire = require("proxyquire");
 
-/* describe("openHABConnection real", function () {
+describe("openHABConnection real", function () {
 
     // This test uses the real OpenhabConnection class, not a mock. Therefore it can fail.
     // It is used to test the connection to a real openHAB instance, hence commented out for normal testing.
@@ -23,48 +23,35 @@ const proxyquire = require("proxyquire");
     const { OpenhabConnection } = require("../lib/openhabConnection");
 
     it("should provide the right result with a Get", async function () {
-        this.timeout(10000); // 10 seconds
-        // create a mock node object having an emit method
-        const mockNode = {
-            emit: sinon.spy(),
-            setStatusWarning: sinon.spy(),
-            setStatusError: sinon.spy(),
-            send: sinon.spy(),
-            warn: sinon.spy()
-        };
+        this.timeout(5000); // 5 seconds
+
         let connection = new OpenhabConnection({
             protocol: "http",
-            host: "localhost",
+            host: "192.168.23.66",
             port: 8080,
             path: "",
             username: "",
             password: ""
-        }, mockNode);
-        const item = "TestItem";
+        });
+        const item = "ub_warning";
         let result = await connection.controlItem(item);
-        console.log(`result: ${result}`);
-        expect(result).to.equal("MockValue");
+        console.log("result:", result);
+        expect(result).to.deep.include({name: item});
     });
-}); */
+}); 
 
 describe("openHABConnection with mocked fetch", function () {
 
     // Import the httpRequest function from connectionUtils.js, using proxyquire to stub out node-fetch
     // This allows us to control the behavior of fetch without making actual HTTP requests.
 
-    let fetchStub, originalFetch, mockNode, connection;
+    let fetchStub, originalFetch, connection;
 
 
     beforeEach(() => {
         originalFetch = global.fetch;
         fetchStub = sinon.stub();
         global.fetch = fetchStub;
-        mockNode = {
-            emit: sinon.spy(),
-            setStatus: sinon.spy(),
-            send: sinon.spy(),
-            warn: sinon.spy()
-        };
 
         const { OpenhabConnection } = proxyquire("../lib/openhabConnection", {
             "./connectionUtils": proxyquire("../lib/connectionUtils", {
@@ -79,7 +66,7 @@ describe("openHABConnection with mocked fetch", function () {
             path: "",
             username: "",
             password: ""
-        }, mockNode);
+        });
     });
 
     afterEach(() => {
