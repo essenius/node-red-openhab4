@@ -36,7 +36,6 @@ describe("eventsLogic", function () {
         var message = {topic: "openhab/items/ub_warning/state",  payload: { type: "String", value: "testValue" }, type: "ItemStateEvent" }
         eventsNode._processIncomingEvent(message);
         var sendArgs = node.send.getCall(0).args[0]; // The array passed to node.send
-        console.log("sendargs:", sendArgs);
         expect(sendArgs, "Right message sent").to.deep.include(message); 
         
         eventsNode.cleanup();

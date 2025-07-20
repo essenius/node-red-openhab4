@@ -29,8 +29,10 @@ function createItemsHandler() {
             }
             response.sendStatus(204); // No content. This is not expected, but we handle it nonetheless
         } catch (error) {
-            // if we get an error, we return the error message and status code
-            return response.status(error.status).send(error.message);
+            // if we get an error, we return the error message and status code. 
+            // We need to make sure the errors are valid, so we replace negative numbers by 500.
+            const status = !error.status || error.status < 0 ? 500 : error.status;
+            return response.status(status).send(error.message);
         }
     };
 }

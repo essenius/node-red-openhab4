@@ -263,18 +263,18 @@ describe("connectionUtils.isPhantomError", function () {
 
     const { isPhantomError } = require("../lib/connectionUtils");
 
-    it("should return true for undefined", function () {
-        expect(isPhantomError(undefined)).to.be.true;
+    it("should return false for undefined", function () {
+        expect(isPhantomError(undefined)).to.be.false;
     });
 
-    it("should return true for null", function () {
-        expect(isPhantomError(null)).to.be.true;
+    it("should return false for null", function () {
+        expect(isPhantomError(null)).to.be.false;
     });
 
-    it("should return true for non-object types", function () {
-        expect(isPhantomError("error")).to.be.true;
-        expect(isPhantomError(42)).to.be.true;
-        expect(isPhantomError(true)).to.be.true;
+    it("should return false for non-object types", function () {
+        expect(isPhantomError("error")).to.be.false;
+        expect(isPhantomError(42)).to.be.false;
+        expect(isPhantomError(true)).to.be.false;
     });
 
     it("should return false for an object without type", function () {

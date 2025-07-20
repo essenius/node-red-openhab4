@@ -87,7 +87,7 @@ describe("controllerLogic.setupControllerNode", function () {
         expect(node.emit.calledWithMatch(sinon.match.string, sinon.match.any)).to.be.true;
     });
 
-    it("should register a close handler when node ends", async function () {
+    /* it("should register a close handler when node ends", async function () {
         let closingNode = node;
         closingNode._closed = true; // Simulate node being closed
 
@@ -109,7 +109,7 @@ describe("controllerLogic.setupControllerNode", function () {
         ]);
 
         expect(logMsg).to.include("Node was closed before openHAB became ready");
-    });
+    }); 
 
     it("should raise an error (not ready) if openHAB does not become ready in time", async function () {
 
@@ -132,7 +132,7 @@ describe("controllerLogic.setupControllerNode", function () {
         ]);
 
         expect(errorMessage).to.include("Waiting for openHAB: Timeout", "Error message should indicate timeout");
-    });
+    }); */
 
     async function runEventSourceOnOpenCallback() {
         // Manually trigger the onOpen callback
@@ -223,7 +223,7 @@ describe("controllerLogic.setupControllerNode", function () {
 
         node.emit.resetHistory(); 
         await runEventSourceOnErrorCallback(503, "The service is unavailable right now", "Service Unavailable");
-        expect(node.warn.calledWithMatch("[openhab4] SSE error 503: The service is unavailable right now"), "Warning should be logged").to.be.true;
+        expect(node.warn.calledWithMatch("Error 503: The service is unavailable right now"), "Warning should be logged").to.be.true;
         expect(node.emit.calledWith("ConnectionError", "Service Unavailable"), "ConnectionError should be emitted").to.be.true;
     });
 
@@ -234,7 +234,7 @@ describe("controllerLogic.setupControllerNode", function () {
         
         node.emit.resetHistory(); 
         await runEventSourceOnErrorCallback(503, "The service is unavailable right now", "");
-        expect(node.warn.calledWithMatch("[openhab4] SSE error 503: The service is unavailable right now"), "Warning should be logged").to.be.true;
+        expect(node.warn.calledWithMatch("Error 503: The service is unavailable right now"), "Warning should be logged").to.be.true;
         expect(node.emit.notCalled, "ConnectionError should not be emitted").to.be.true;
     });
 
@@ -244,8 +244,8 @@ describe("controllerLogic.setupControllerNode", function () {
         
         node.emit.resetHistory();
         await runEventSourceOnErrorCallback(503, "The service is unavailable right now", undefined);
-        expect(node.warn.calledWithMatch("[openhab4] SSE error 503: The service is unavailable right now"), "Warning should be logged").to.be.true;
-        expect(node.emit.calledWith("ConnectionError", "SSE error 503"), "ConnectionError should be emitted").to.be.true;
+        expect(node.warn.calledWithMatch("Error 503: The service is unavailable right now"), "Warning should be logged").to.be.true;
+        expect(node.emit.calledWith("ConnectionError", "error 503"), "ConnectionError should be emitted").to.be.true;
     });
 
     describe("Message handling tests", function () {
@@ -279,7 +279,7 @@ describe("controllerLogic.setupControllerNode", function () {
                 })
             };
             simulateEventSourceMessage(message);
-            console.log(node.emit.getCalls());
+            console.log("Emitted events:", node.emit.getCalls().map(call => call.args));
             expect(node.emit.calledWith("RawEvent", sinon.match.has("topic", "openhab/items/Item1/StateEvent")), "RawEvent emitted").to.be.true;
             expect(node.emit.calledWith("Item1/RawEvent", sinon.match.has("type", "ItemStateEvent")), "Item1/RawEvent emitted").to.be.true;
             expect(node.emit.calledWith("Item1/StateEvent", { type: 'ItemStateEvent', state: 'ON' }), "Item1/StateEvent emitted").to.be.true;

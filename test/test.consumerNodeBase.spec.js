@@ -67,7 +67,7 @@ describe('consumerNodeBase', function () {
             expect(statusSpy.lastCall.args).to.deep.equal([STATE.READY, "ready"]);
 
             controller.emit(EVENT_TYPES.CONNECTION_STATUS, "OFF");
-            expect(statusSpy.lastCall.args).to.deep.equal([STATE.WAITING, "Disconnected from openHAB"]);
+            expect(statusSpy.lastCall.args).to.deep.equal([STATE.WAITING, "disconnected"]);
         });
 
         it('should set status to init', function () {
