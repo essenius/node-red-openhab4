@@ -27,7 +27,7 @@ describe("openHABConnection real", function () {
 
         let connection = new OpenhabConnection({
             protocol: "http",
-            host: "192.168.23.66",
+            host: "localhost",
             port: 8080,
             path: "",
             username: "",
