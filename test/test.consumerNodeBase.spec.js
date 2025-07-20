@@ -59,7 +59,6 @@ describe('consumerNodeBase', function () {
             // Spy on the status methods of the ConsumerNodeBase instance
             const statusSpy = sinon.spy(node, 'setStatus');
 
-
             // Emit the event
             controller.emit(EVENT_TYPES.CONNECTION_ERROR, "test error");
             expect(statusSpy.lastCall.args).to.deep.equal([STATE.ERROR, "test error"]);
@@ -96,8 +95,7 @@ describe('consumerNodeBase', function () {
             node = new TestNode(mockNode, {}, undefined, {});
             node.setupNode();
             expect(mockNode.error.calledOnceWithExactly("No controller configured. Please select an openHAB controller in the node configuration.")).to.be.true;
-            expect(mockNode.setStatus.calledOnceWithExactly({ state: STATE.ERROR, text: "No controller configured" }), "Status message OK");
-
+            expect(mockNode.setStatus.calledOnceWithExactly({ state: STATE.ERROR, text: "No controller configured" }), "Status message OK"); 
         });
 
         [
@@ -119,7 +117,7 @@ describe('consumerNodeBase', function () {
             },
             {
                 input: null,
-                expected: { fill: "yellow", shape: "dot", text: "unknown" },
+                expected: { fill: "yellow", shape: "dot", text: "?" },
             },
             {
                 input: "very long text that exceeds the maximum length",

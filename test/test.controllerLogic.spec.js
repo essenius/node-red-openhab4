@@ -207,6 +207,47 @@ describe("controllerLogic.setupControllerNode", function () {
         }
     });
 
+    async function runEventSourceOnErrorCallback(status, message, shortMessage) {
+        // Manually trigger the onError callback        
+        const startEventSourceArgs = startEventSourceStub.getCall(0).args[0];
+        if (startEventSourceArgs && typeof startEventSourceArgs.onError === "function") {
+            await startEventSourceArgs.onError(status, message, shortMessage);
+        }
+        // Wait for any async error handling to finish
+        await new Promise(resolve => setImmediate(resolve));
+    }
+
+    it("should emit a connection error on Error event if short message is not empty", async function () {
+        setupControllerNode(node, config, { maxAttempts: 1, interval: 0 });
+        await new Promise(resolve => setImmediate(resolve));
+
+        node.emit.resetHistory(); 
+        await runEventSourceOnErrorCallback(503, "The service is unavailable right now", "Service Unavailable");
+        expect(node.warn.calledWithMatch("[openhab4] SSE error 503: The service is unavailable right now"), "Warning should be logged").to.be.true;
+        expect(node.emit.calledWith("ConnectionError", "Service Unavailable"), "ConnectionError should be emitted").to.be.true;
+    });
+
+    
+    it("should not emit a connection error on Error event if short message is empty", async function () {
+        setupControllerNode(node, config, { maxAttempts: 1, interval: 0 });
+        await new Promise(resolve => setImmediate(resolve));
+        
+        node.emit.resetHistory(); 
+        await runEventSourceOnErrorCallback(503, "The service is unavailable right now", "");
+        expect(node.warn.calledWithMatch("[openhab4] SSE error 503: The service is unavailable right now"), "Warning should be logged").to.be.true;
+        expect(node.emit.notCalled, "ConnectionError should not be emitted").to.be.true;
+    });
+
+        it("should use SSE error on Error event if short message is null or undefined", async function () {
+        setupControllerNode(node, config, { maxAttempts: 1, interval: 0 });
+        await new Promise(resolve => setImmediate(resolve));
+        
+        node.emit.resetHistory();
+        await runEventSourceOnErrorCallback(503, "The service is unavailable right now", undefined);
+        expect(node.warn.calledWithMatch("[openhab4] SSE error 503: The service is unavailable right now"), "Warning should be logged").to.be.true;
+        expect(node.emit.calledWith("ConnectionError", "SSE error 503"), "ConnectionError should be emitted").to.be.true;
+    });
+
     describe("Message handling tests", function () {
 
         function simulateEventSourceMessage(message) {
@@ -217,7 +258,7 @@ describe("controllerLogic.setupControllerNode", function () {
         beforeEach(async function () {
             setupControllerNode(node, config, { maxAttempts: 1, interval: 0 });
             await new Promise(resolve => setImmediate(resolve));
-            node.emit.resetHistory(); 
+            node.emit.resetHistory();
             this.startEventSourceArgs = startEventSourceStub.getCall(0).args[0];
         });
 
@@ -238,9 +279,10 @@ describe("controllerLogic.setupControllerNode", function () {
                 })
             };
             simulateEventSourceMessage(message);
-            expect(node.emit.calledWith("Item1/RawEvent", sinon.match.has("type", "ItemStateEvent"))).to.be.true;
-            expect(node.emit.calledWith("RawEvent", sinon.match.has("topic", "openhab/items/Item1/StateEvent"))).to.be.true;
-            expect(node.emit.calledWith("Item1/StateEvent", { type: 'ItemStateEvent', state: 'ON' })).to.be.true;
+            console.log(node.emit.getCalls());
+            expect(node.emit.calledWith("RawEvent", sinon.match.has("topic", "openhab/items/Item1/StateEvent")), "RawEvent emitted").to.be.true;
+            expect(node.emit.calledWith("Item1/RawEvent", sinon.match.has("type", "ItemStateEvent")), "Item1/RawEvent emitted").to.be.true;
+            expect(node.emit.calledWith("Item1/StateEvent", { type: 'ItemStateEvent', state: 'ON' }), "Item1/StateEvent emitted").to.be.true;
         });
 
         it("should not emit empty message", function () {

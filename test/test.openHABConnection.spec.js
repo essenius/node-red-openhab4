@@ -14,12 +14,11 @@
 const { expect } = require("chai");
 const sinon = require("sinon");
 const proxyquire = require("proxyquire");
-const { EVENT_TYPES, RETRY_CONFIG } = require("../lib/constants");
 
 /* describe("openHABConnection real", function () {
 
     // This test uses the real OpenhabConnection class, not a mock. Therefore it can fail.
-    // It is used to test the connection to a real openHAB instance.
+    // It is used to test the connection to a real openHAB instance, hence commented out for normal testing.
 
     const { OpenhabConnection } = require("../lib/openhabConnection");
 

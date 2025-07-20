@@ -35,7 +35,6 @@ describe("openhab4-in node", function () {
         helper.load([controllerNode, inNode], flow, function () {
             const controller = helper.getNode("controller1");
             const helperNode = helper.getNode("helper1");
-
             helperNode.on("input", function (msg) {
                 try {
                     expect(msg.payload).to.equal("OFF");
@@ -44,9 +43,7 @@ describe("openhab4-in node", function () {
                     done(err); 
                 }
             });
-
             controller.emit("TestItem/StateEvent", { type: "ItemStateEvent", state: "OFF" });
-
         });
 
     });
