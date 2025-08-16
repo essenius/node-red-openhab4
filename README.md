@@ -140,6 +140,9 @@ The input message with addition of:
 ### v0.2.212
 - branch coverage over 90%, several defects fixed, refactored for better testability and duplication elimination, enabled ESLint
   
+## v0.2.223
+- Introduced last run timestamp with status
+  
 ## Development Notes
 
 **Important**: When developing/testing, always restart Node-RED after uploading a new package version. Node-RED caches modules in memory and won't use updated code until restarted.

@@ -34,7 +34,7 @@ describe("inLogic", function () {
             on: sinon.spy(),
             off: sinon.spy()
         };
-        const inNode = new InNode(node, config, controller, { generateId: () => "123" });
+        const inNode = new InNode(node, config, controller, { generateId: () => "123", generateTime: () => "12:34:56" });
 
         expect(inNode.itemName).to.equal("testItem", "itemName is set correctly");
         expect(inNode._stateEventName).to.be.null;
@@ -82,10 +82,11 @@ describe("inLogic", function () {
         const config = {};
 
         // force an error by having no controller
-        const inNode = new InNode(node, config, null);
+        const inNode = new InNode(node, config, null, { generateTime: () => "12:34:56" });
         inNode.setupNode();
         expect(node.error.calledWith("No controller configured. Please select an openHAB controller in the node configuration."), "node.error called once").to.be.true;
-        expect(node.status.calledWith({ fill: "red", shape: "ring", text: "no controller" }), "node.status called with no controller").to.be.true;
+        console.log("node.status.args", node.status.args);
+        expect(node.status.calledWith({ fill: "red", shape: "ring", text: "no controller @ 12:34:56" }), "node.status called with no controller").to.be.true;
         expect(inNode._stateEventName, "_stateEventName is not set").to.be.null;
         expect(inNode._rawEventName, "_rawEventName is not set").to.be.null;
         expect(inNode.cleanup(), "Cleanup should succeed").to.not.throw;

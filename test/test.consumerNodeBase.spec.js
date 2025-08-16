@@ -49,7 +49,7 @@ describe('consumerNodeBase', function () {
             };
             controller = new EventEmitter();
 
-            node = new TestNode(mockNode, {}, controller, {});
+            node = new TestNode(mockNode, {}, controller, { generateTime: () => "12:34:56" });
         });
 
         it('calls the handler registered with controller.on', function () {
@@ -72,17 +72,17 @@ describe('consumerNodeBase', function () {
 
         it('should set status to init', function () {
             node.setStatus(STATE.INIT, "testing");
-            expect(mockNode.status.calledOnceWithExactly({ fill: "grey", shape: "ring", text: "testing" }, "correct status parameters"));
+            expect(mockNode.status.calledOnceWithExactly({ fill: "grey", shape: "ring", text: "testing @ 12:34:56" }, "correct status parameters"));
         });
 
         it('should set status to warning', function () {
             node.setStatus(STATE.WARNING, "warning");
-            expect(mockNode.status.calledOnceWithExactly({ fill: "yellow", shape: "dot", text: "warning" }, "correct status parameters"));
+            expect(mockNode.status.calledOnceWithExactly({ fill: "yellow", shape: "dot", text: "warning @ 12:34:56" }, "correct status parameters"));
         });
 
         it('should replace unknown status by error', function () {
             node.setStatus("bogus");
-            expect(mockNode.status.calledOnceWithExactly({ fill: "red", shape: "ring", text: "unknown" }, "correct status parameters"));
+            expect(mockNode.status.calledOnceWithExactly({ fill: "red", shape: "ring", text: "unknown @ 12:34:56" }, "correct status parameters"));
             expect(mockNode.warn.calledOnceWithExactly({ message: "Unknown status state: bogus. Using ERROR state." }, "correct warn parameters"));
         });
 
@@ -101,23 +101,23 @@ describe('consumerNodeBase', function () {
         [
             {
                 input: 0,
-                expected: { fill: "green", shape: "ring", text: "0" },
+                expected: { fill: "green", shape: "ring", text: "0 @ 12:34:56" },
             },
             {
                 input: false,
-                expected: { fill: "green", shape: "ring", text: "false" },
+                expected: { fill: "green", shape: "ring", text: "false @ 12:34:56" },
             },
             {
                 input: "ON",
-                expected: { fill: "green", shape: "dot", text: "ON" },
+                expected: { fill: "green", shape: "dot", text: "ON @ 12:34:56" },
             },
             {
                 input: "",
-                expected: { fill: "green", shape: "ring", text: "" },
+                expected: { fill: "green", shape: "ring", text: " @ 12:34:56" },
             },
             {
                 input: null,
-                expected: { fill: "yellow", shape: "dot", text: "?" },
+                expected: { fill: "yellow", shape: "dot", text: "? @ 12:34:56" },
             },
             {
                 input: "very long text that exceeds the maximum length",

@@ -23,11 +23,11 @@ describe("outLogic", function () {
         const node = { error: sinon.spy(), status: sinon.spy(), debug: sinon.spy() };
         const config = {};
         const controller = { };
-        const outNode = new OutNode(node, config, controller);
+        const outNode = new OutNode(node, config, controller, { generateTime: () => "12:34:56" });
         const msg = { payload: "test" };
 
         await outNode.handleInput(msg);
-        expect(node.status.calledWith({ fill: 'red', shape: 'ring', text: 'no item specified' }), "status called").to.be.true;
+        expect(node.status.calledWith({ fill: 'red', shape: 'ring', text: 'no item specified @ 12:34:56' }), "status called").to.be.true;
         expect(node.error.calledWith("No item specified. Set item in configuration or provide msg.item"), "error called").to.be.true;
         expect(node.debug.notCalled, "debug not called").to.be.true;
 
@@ -39,11 +39,11 @@ describe("outLogic", function () {
         const node = { error: sinon.spy(), status: sinon.spy(), debug: sinon.spy() };
         const config = { itemname: "testItem", topic: "testTopic", payload: "testPayload" };
         const controller = { control: sinon.stub().rejects(new Error("Control failed")) };
-        const outNode = new OutNode(node, config, controller);
+        const outNode = new OutNode(node, config, controller, { generateTime: () => "12:34:56" });
         const msg = { payload: "test" }; // should be overridden by config
 
         await outNode.handleInput(msg);
-        expect(node.status.calledWith({ fill: 'red', shape: 'ring', text: 'testPayload ✗' }), "status called").to.be.true;
+        expect(node.status.calledWith({ fill: 'red', shape: 'ring', text: 'testPayload ✗ @ 12:34:56' }), "status called").to.be.true;
         expect(node.error.calledWith("Control failed"), "error called").to.be.true;
         expect(node.debug.calledWith(sinon.match.string), "debug called with stack trace").to.be.true;
     });
