@@ -1,81 +1,62 @@
 # Development Guide
 
-## Node-RED Module Caching Issue
+## Getting Ready
+
+Clone the repo.
+Install the prerequisites: `npm install`
+
+## Test Flow Generation
+
+```bash
+# Windows PowerShell
+$env:OPENHAB_HOST="your.openhab.host"
+$env:OPENHAB_TEST_ITEM="MyTestItem"
+node generate-test-flow.js
+
+# Linux/Mac
+OPENHAB_HOST=your.openhab.host OPENHAB_TEST_ITEM="MyTestItem" node generate-test-flow.js
+```
+
+If required, you can configure the port `OPENHAB_PORT` (default `8080`) and the protocol via `OPENHAB_PROTOCOL` (default `http`).
+
+This creates `test-flow-generated.json` with your specific configuration that you can import as follows:
+1. Copy the content to the clipboard.
+2. import into Node-RED via `Menu` → `Import` and then pasting the content.
+3. Press `Import`. You will then see a new tab with all the openhab4 nodes, including a controller.
+4. Press `Deploy`.
+
+## Testing During Development
+1. Make your changes.
+2. Update version in `package.json`.
+3. Run the unit tests: `npm test`, and make sure they all pass.
+4. Create new `.tgz`: `npm pack`.
+5. if there is a previous version of the module:
+   1. Delete any openhab4 nodes (if you use the generated flow, deleting the tab suffices).
+   2. Deploy so the nodes are not in use anymore.
+   3. Remove the previous openhab4 module from Node-RED via `Menu` → `Manage Palette` and select the `Remove` button associated with the module (If that button isn't there, a node is still active). 
+6. Restart Node-RED. This is a critical step if there was a previous version, see below.
+7. In the browser, reload: <kbd>Ctrl-Shift-R</kbd>.
+8. Upload the new version via `Menu` → `Manage Palette`, `Install` tab, and then `Upload`. Select the tgz file and then `Upload`.
+9. Verify that the right version is installed (see `Menu` → `Manage Palette`, `Nodes` tab).
+10. Import the generated test flow as per above and validate that all the nodes are loaded successfully.
+11. Test the changes.
+
+### Node-RED Module Caching Issue
 
 **Important**: Node-RED caches Node.js modules in memory and does not automatically reload them when you install/update packages.
 
-### The Problem
-- When you upload a new `.tgz` file to Node-RED without restarting, it continues using the cached version from memory
-- The new code files are written to disk, but Node-RED still executes the old code from `require.cache`
-- This can cause confusion during development when fixes don't seem to take effect
+#### The Problem
+- When you upload a new `.tgz` file to Node-RED without restarting, it continues using the cached version from memory.
+- The new code files are written to disk, but Node-RED still executes the old code from `require.cache`.
+- This can cause confusion during development when fixes don't seem to take effect.
 
-### Solution
+#### Solution
 **Always restart Node-RED after installing/updating the package**
 
 Methods to restart:
-1. **Container restart**: `docker restart node-red` (most reliable)
-2. **Node-RED admin restart**: Use the restart button in Node-RED admin interface
-3. **Process restart**: Stop and start the Node-RED process
-
-### Testing During Development
-1. Make code changes
-2. Update version in `package.json` 
-3. Create new `.tgz`: `npm pack`
-4. Upload to Node-RED
-5. **Restart Node-RED** ← Critical step
-6. Test the changes
-
-### Verifying the Fix
-You can verify that new code is loaded by:
-- Checking Node-RED logs for the new version number
-- Adding temporary log statements to verify new code paths
-- Using our test scripts outside of Node-RED to verify fixes work
-
-## Testing
-
-### Standalone Testing
-Use `test-modernization.js` to test module loading and basic functionality without Node-RED:
-```bash
-node test-modernization.js
-```
-
-### openHAB Connection Testing
-Use `test-out-node.js` to test actual openHAB communication:
-
-**Option 1: Environment variables (recommended)**
-```bash
-# Windows PowerShell
-$env:OPENHAB_HOST="your.host.ip"; node test-out-node.js
-
-# Linux/Mac  
-OPENHAB_HOST=your.host.ip node test-out-node.js
-```
-
-**Option 2: Default localhost**
-```bash
-node test-out-node.js
-```
-
-### Node-RED Test Flow Generation
-Generate a test flow with your openHAB configuration:
-
-```bash
-# Windows PowerShell
-$env:OPENHAB_HOST="your.host.ip"; node generate-test-flow.js
-
-# Linux/Mac
-OPENHAB_HOST=your.host.ip node generate-test-flow.js
-```
-
-This creates `test-flow-generated.json` that you can import into Node-RED.
-
-See `TEST-CONFIG.md` for more configuration options.
-
-### Node-RED Integration Testing
-1. Install the package in Node-RED
-2. Restart Node-RED
-3. Create a test flow with the nodes
-4. Verify functionality in the Node-RED environment
+1. **Container restart**: `docker restart node-red` (most reliable).
+2. **Node-RED admin restart**: Use the restart button in Node-RED admin interface.
+3. **Process restart**: Stop and start the Node-RED process.
 
 ## Common Issues
 

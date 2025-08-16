@@ -9,8 +9,6 @@ const config = {
   protocol: process.env.OPENHAB_PROTOCOL || 'http',
   host: process.env.OPENHAB_HOST || 'localhost',
   port: process.env.OPENHAB_PORT || '8080',
-  username: process.env.OPENHAB_USERNAME || '',
-  password: process.env.OPENHAB_PASSWORD || '',
   testItem: process.env.OPENHAB_TEST_ITEM || 'TestSwitch'
 };
 
