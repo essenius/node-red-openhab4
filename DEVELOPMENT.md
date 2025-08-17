@@ -2,8 +2,8 @@
 
 ## Getting Ready
 
-Clone the repo.
-Install the prerequisites: `npm install`
+- Clone the repo.
+- nstall the prerequisites: `npm install`
 
 ## Test Flow Generation
 
