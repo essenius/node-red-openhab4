@@ -144,6 +144,6 @@ See [DEVELOPMENT.md](DEVELOPMENT.md).
 ### v0.2.212
 - branch coverage over 90%, several defects fixed, refactored for better testability and duplication elimination, enabled ESLint
   
-## v0.2.223
+### v0.2.223
 - Introduced last run timestamp with status
 
