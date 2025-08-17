@@ -102,6 +102,10 @@ The input message with addition of:
 - <code>msg.payload</code> : the item object (name, label, state, ...)
 - <code>msg.payload_in</code> : copy of incoming message payload.
 
+## Development Guide
+
+See [DEVELOPMENT.md](DEVELOPMENT.md).
+
 ## Release notes
 
 ### v0.2.74
@@ -142,7 +146,4 @@ The input message with addition of:
   
 ## v0.2.223
 - Introduced last run timestamp with status
-  
-## Development Notes
 
-See [DEVELOPMENT.md](DEVELOPMENT.md).
