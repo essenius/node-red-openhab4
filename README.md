@@ -145,4 +145,4 @@ The input message with addition of:
   
 ## Development Notes
 
-**Important**: When developing/testing, always restart Node-RED after uploading a new package version. Node-RED caches modules in memory and won't use updated code until restarted.
+See DEVELOPMENT.md.
