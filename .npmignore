@@ -1,1 +1,45 @@
 *.tgz
+test-flow-generated.json
+
+# Logs
+*.log
+npm-debug.log*
+
+# Runtime data
+*.pid
+*.seed
+
+# Node-RED specific files
+.config.json
+.config.json.backup
+.flow.json.backup
+.flow_cred.json.backup
+flow_cred.json
+
+# Environment variables
+.env
+.env.local
+.env.test
+
+# OS-specific files
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+
+# Package manager
+package-lock.json
+yarn.lock
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# tars
+*.tgz
+
+# Local test configuration (contains URLs/credentials)
+test-config.js
+test-config.json
+test-flow-generated.json

@@ -6,8 +6,6 @@ Nodes facilitating integration of [openHAB 4](http://www.openhab.org) with [Node
 
 Inspired by https://github.com/pdmangel/node-red-contrib-openhab2. Largely rewritten and made to work with openHAB 4, which has a different Rest API from openHAB 2.
 
-This project is work in progress, and not yet available in npm.
-
 ## Nodes
 
 ### openhab4-controller
@@ -147,3 +145,5 @@ See [DEVELOPMENT.md](DEVELOPMENT.md).
 ### v0.2.223
 - Introduced last run timestamp with status
 
+### v0.9.0
+- First pre-release on npm
