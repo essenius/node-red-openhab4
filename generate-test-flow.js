@@ -30,7 +30,7 @@ const testFlow = [
         "type": "tab",
         "label": "OpenHAB4 Test Flow",
         "disabled": false,
-        "info": "Test flow for modernized OpenHAB4 nodes"
+        "info": "Test flow for  OpenHAB4 nodes"
     },
     {
         "id": "in-node",
@@ -325,17 +325,17 @@ const testFlow = [
 const outputPath = path.join(__dirname, 'test-flow-generated.json');
 fs.writeFileSync(outputPath, JSON.stringify(testFlow, null, 2));
 
-console.log('🔧 Generated test flow with configuration:');
+console.log('Generated test flow with configuration:');
 console.log(`   Host: ${config.host}`);
 console.log(`   Port: ${config.port}`);
 console.log(`   Protocol: ${config.protocol}`);
 console.log(`   Test Item: ${config.testItem}`);
-console.log('📄 Written to:', outputPath);
+console.log('Written to:', outputPath);
 console.log('');
-console.log('💡 To use different settings:');
+console.log('To use different settings:');
 console.log('   OPENHAB_HOST=your.host.ip OPENHAB_TEST_ITEM=YourItem node generate-test-flow.js');
 console.log('');
-console.log('📋 To import into Node-RED:');
+console.log('To import into Node-RED:');
 console.log('   1. Copy the contents of test-flow-generated.json');
 console.log('   2. In Node-RED, go to Menu > Import');
 console.log('   3. Paste the JSON and click Import');
