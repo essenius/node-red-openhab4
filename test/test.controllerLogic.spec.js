@@ -232,7 +232,6 @@ describe("controllerLogic.setupControllerNode", function () {
                 })
             };
             simulateEventSourceMessage(message);
-            console.log("Emitted events:", node.emit.getCalls().map(call => call.args));
             expect(node.emit.calledWith("RawEvent", sinon.match.has("topic", "openhab/items/Item1/StateEvent")), "RawEvent emitted").to.be.true;
             expect(node.emit.calledWith("Item1/RawEvent", sinon.match.has("type", "ItemStateEvent")), "Item1/RawEvent emitted").to.be.true;
             expect(node.emit.calledWith("Item1/StateEvent", { type: 'ItemStateEvent', state: 'ON' }), "Item1/StateEvent emitted").to.be.true;

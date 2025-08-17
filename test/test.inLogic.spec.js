@@ -85,7 +85,6 @@ describe("inLogic", function () {
         const inNode = new InNode(node, config, null, { generateTime: () => "12:34:56" });
         inNode.setupNode();
         expect(node.error.calledWith("No controller configured. Please select an openHAB controller in the node configuration."), "node.error called once").to.be.true;
-        console.log("node.status.args", node.status.args);
         expect(node.status.calledWith({ fill: "red", shape: "ring", text: "no controller @ 12:34:56" }), "node.status called with no controller").to.be.true;
         expect(inNode._stateEventName, "_stateEventName is not set").to.be.null;
         expect(inNode._rawEventName, "_rawEventName is not set").to.be.null;

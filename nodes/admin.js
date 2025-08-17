@@ -14,8 +14,6 @@
 const path = require("path");
 const express = require("express");   // <— pull in express
 
-console.log("[admin.js] File loaded.");
-
 module.exports = function(RED) {
   // 1) compute the folder that holds your JS (one level up into /static)
   const staticPath = path.join(__dirname, "..", "static");

@@ -41,8 +41,6 @@ describe("getLogic handleInput", function () {
         await getNode.handleInput(msg);
         expect(node.status.getCall(0).args[0], "waiting status called").to.deep.equal({ fill: 'blue', shape: 'ring', text: 'requesting... @ 12:34:56' });
         expect(node.status.getCall(1).args[0], "item status called").to.deep.equal({ fill: 'green', shape: 'dot', text: 'ON @ 12:34:56' });
-                console.log("Node status args:", node.send.args[0][0].item_data);
-
         expect(node.send.calledWith({ payload_in: "test", payload: "ON", item: "testItem", item_data: { state: 'ON' } }), "send called").to.be.true;
 
     });
