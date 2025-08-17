@@ -92,14 +92,12 @@ describe("openhab4-controller /openhab4/items handler", function () {
     });
 
     it("should propagate status and error message when httpRequest does not return data", async function () {
-        // Arrange: create mocks
         const { handler } = getHandler({ retry: true, status: 503, message: "Service Unavailable" });
         const request = { query: { some: "config" } };
         const response = createMockResponse();
 
-        // Act
         await handler(request, response);
-        // Assert
+
         expect(response.status.calledOnceWith(503), "Response.status must be 503").to.be.true;
         const message = response.send.firstCall.args[0];
         expect(message).to.include("Service Unavailable");
@@ -116,10 +114,8 @@ describe("openhab4-controller controllerModule", function () {
             "./admin": () => { } // stub out admin
         });
 
-        // Act
         controllerModule(RED);
 
-        // Assert
         expect(httpAdminGet.calledWith(
             "/openhab4/items"
         )).to.be.true;

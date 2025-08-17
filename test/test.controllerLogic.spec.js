@@ -87,53 +87,6 @@ describe("controllerLogic.setupControllerNode", function () {
         expect(node.emit.calledWithMatch(sinon.match.string, sinon.match.any)).to.be.true;
     });
 
-    /* it("should register a close handler when node ends", async function () {
-        let closingNode = node;
-        closingNode._closed = true; // Simulate node being closed
-
-        // Create a promise that resolves when the log is called with the expected message
-        let logPromise = new Promise(resolve => {
-            closingNode.log = function (msg) {
-                if (msg && msg.includes("Node was closed before openHAB became ready")) {
-                    resolve(msg);
-                }
-            };
-        });
-
-        setupControllerNode(closingNode, config);
-
-        // Wait for the log to be called (or timeout after 100ms)
-        const logMsg = await Promise.race([
-            logPromise,
-            new Promise((_, reject) => setTimeout(() => reject(new Error("Log not called in time")), 100))
-        ]);
-
-        expect(logMsg).to.include("Node was closed before openHAB became ready");
-    }); 
-
-    it("should raise an error (not ready) if openHAB does not become ready in time", async function () {
-
-        // Replace log with a function that resolves a promise when called with the expected message
-        let errorPromise = new Promise(resolve => {
-            node.error = function (msg) {
-                if (msg && msg.includes("Waiting for openHAB: Timeout")) {
-                    resolve(msg);
-                }
-            };
-        });
-
-        // by setting maxAttempts to 0, we simulate that openHAB is not ready (the readiness test isn't executed)
-        setupControllerNode(node, config, { maxAttempts: 0, interval: 50 });
-
-        // Wait for the log to be called (or timeout after 100ms)
-        const errorMessage = await Promise.race([
-            errorPromise,
-            new Promise((_, reject) => setTimeout(() => reject(new Error("Error not called in time")), 100))
-        ]);
-
-        expect(errorMessage).to.include("Waiting for openHAB: Timeout", "Error message should indicate timeout");
-    }); */
-
     async function runEventSourceOnOpenCallback() {
         // Manually trigger the onOpen callback
         const startEventSourceArgs = startEventSourceStub.getCall(0).args[0];
