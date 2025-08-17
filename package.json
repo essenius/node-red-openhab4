@@ -9,12 +9,10 @@
     "node": ">=14.0.0"
   },
   "homepage": "https://github.com/essenius/node-red-openhab4",
-
   "repository": {
     "type": "git",
     "url": "git+https://github.com/essenius/node-red-openhab4.git"
   },
-
   "bugs": {},
   "keywords": [
     "node-red",
@@ -34,6 +32,7 @@
   },
   "dependencies": {
     "@joeybaker/eventsource": "^0.3.0",
+    "express": "^5.1.0",
     "node-fetch": "^2.6.7"
   },
   "devDependencies": {
