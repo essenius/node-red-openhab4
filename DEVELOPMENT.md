@@ -29,17 +29,18 @@ This creates `test-flow-generated.json` with your specific configuration that yo
 1. Make your changes.
 2. Update version in `package.json`.
 3. Run the unit tests: `npm test`, and make sure they all pass.
-4. Create new `.tgz`: `npm pack`.
-5. if there is a previous version of the module:
+4. Run `npm run coverage` to determine code coverage. Check out `coverage/index.html` for details
+5. Create new `.tgz`: `npm pack`.
+6. if there is a previous version of the module:
    1. Delete any openhab4 nodes (if you use the generated flow, deleting the tab suffices).
    2. Deploy so the nodes are not in use anymore.
    3. Remove the previous openhab4 module from Node-RED via `Menu` → `Manage Palette` and select the `Remove` button associated with the module (If that button isn't there, a node is still active). 
-6. Restart Node-RED. This is a critical step if there was a previous version, see below.
-7. In the browser, reload: <kbd>Ctrl-Shift-R</kbd>.
-8. Upload the new version via `Menu` → `Manage Palette`, `Install` tab, and then `Upload`. Select the tgz file and then `Upload`.
-9. Verify that the right version is installed (see `Menu` → `Manage Palette`, `Nodes` tab).
-10. Import the generated test flow as per above and validate that all the nodes are loaded successfully.
-11. Test the changes.
+7. Restart Node-RED. This is a critical step if there was a previous version, see below.
+8. In the browser, reload, so the client side is fresh too: <kbd>Ctrl-Shift-R</kbd>.
+9. Upload the new version via `Menu` → `Manage Palette`, `Install` tab, and then `Upload`. Select the tgz file and then `Upload`.
+10. Verify that the right version is installed (see `Menu` → `Manage Palette`, `Nodes` tab).
+11. Import the generated test flow as per above and validate that all the nodes are loaded successfully.
+12. Test the changes.
 
 ### Node-RED Module Caching Issue
 
