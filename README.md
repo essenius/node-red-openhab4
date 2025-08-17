@@ -147,3 +147,7 @@ See [DEVELOPMENT.md](DEVELOPMENT.md).
 
 ### v0.9.0
 - First pre-release on npm
+
+## Dependency restrictions
+
+As this is a commonjs project, chai needs to stay at version 4, and node-fetch at version 2. Newer versions do not support commonjs.
