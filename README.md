@@ -18,7 +18,7 @@ Configuration node for communication with an openHAB controller, which is used b
 - Name: name for the configuration node (mandatory as referred to by the other nodes)
 - Protocol: <kbd>http</kbd> or <kbd>https</kbd>
 - Allow Self Signed Certificates: switch off certificate checking (default off)
-- Host: the host name or ip address (default localhost)
+- Host: the host name or ip address (default <kbd>localhost</kbd>)
 - Port: the ip port (default <kbd>8080</kbd>)
 - Path: the additional base path (default empty)
 - Username: the user name to authenticate on openHAB (default empty)
