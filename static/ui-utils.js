@@ -21,16 +21,16 @@
             node.itemname = node.itemname[0] || "";
         }
 
-        const $ctrlSel = $("#node-input-controller");
-        const $itemSel = $("#node-input-itemname");
+        const controllerInput = document.getElementById("node-input-controller");
+        const itemNameInput = document.getElementById("node-input-itemname");
 
         let allItemNames = [];
 
-        async function updateItems(controllerConfig, selected) {
-            $itemSel.empty();
+        async function updateItemNameDropdown(controllerConfig, selectedValue) {
+            itemNameInput.innerHTML = "";
 
             if (!controllerConfig) {
-                return $itemSel.append(
+                return itemNameInput.append(
                     $("<option disabled>").text("Select a controller first")
                 );
             }
@@ -48,32 +48,30 @@
 
             try {
                 const items = await $.getJSON("openhab4/items", params);
-
                 items.sort((a, b) => a.name.localeCompare(b.name));
                 allItemNames = items.map(item => item.name); // Store all names for filtering
                 let specialOption = allowEmpty
                     ? { value: "", text: "[No item]" }
                     : { value: "", text: "Select item..." };
                 if (document.getElementById('node-input-item-filter')) {
-                    makeFilterableDropdown('node-input-item-filter', 'node-input-itemname', allItemNames, specialOption);
-                }
-                // Always add the special option first
-                $itemSel.append($("<option>").val(specialOption.value).text(specialOption.text));
-
-                items.forEach(item => {
-                    const option = $("<option>").val(item.name).text(item.name);
-                    if (item.name === (selected || node.itemname)) {
-                        option.prop('selected', true);
+                    const makeDropdownParams = {
+                        filterInputId: 'node-input-item-filter',
+                        selectId: 'node-input-itemname',
+                        allOptions: allItemNames,
+                        specialOption: specialOption,
+                        selectedValue: selectedValue
                     }
-                    $itemSel.append(option);
-                });
+                    makeFilterableDropdown(makeDropdownParams);
+                }
             }
             catch (err) {
                 console.warn("Failed loading items", err);
-                $itemSel.empty();
-                $itemSel.append(
-                    $("<option disabled>").text("⚠️ Failed to load items")
-                );
+                itemNameInput.innerHTML = ""; 
+
+                const option = document.createElement("option");
+                option.disabled = true;
+                option.textContent = "⚠️ Failed to load items";
+                itemNameInput.appendChild(option);
             }
         }
 
@@ -81,13 +79,13 @@
 
         const controllerNode = RED.nodes.node(node.controller);
         if (controllerNode) {
-            updateItems(controllerNode, node.itemname);
+            updateItemNameDropdown(controllerNode, node.itemname);
         }
 
         // reload when controller dropdown changes
-        $ctrlSel.on("change", () => {
-            const newCtrl = RED.nodes.node($ctrlSel.val());
-            updateItems(newCtrl, node.itemname);
+        controllerInput.addEventListener("change", () => {
+            const newController = RED.nodes.node(controllerInput.value);
+            updateItemNameDropdown(newController, node.itemname);
         });
     }
 
@@ -96,40 +94,41 @@
      * @param {string} filterInputId - The ID of the text input for filtering.
      * @param {string} selectId - The ID of the select element to filter.
      * @param {Array<string>} allOptions - The full list of options.
-     * @param {Object} [specialOption] - Optional. An object { value, text } for a special first option.
+     * @param {Object} [specialOption] - An object { value, text } for a special first option.
      */
-    function makeFilterableDropdown(filterInputId, selectId, allOptions, specialOption) {
-        const filterInput = document.getElementById(filterInputId);
-        const select = document.getElementById(selectId);
+    function makeFilterableDropdown(params) {
+        
+        const filterInput = document.getElementById(params.filterInputId);
+        const select = document.getElementById(params.selectId);
 
         function populateDropdown(options) {
             select.innerHTML = '';
-            if (specialOption) {
+            if (params.specialOption) {
                 const opt = document.createElement('option');
-                opt.value = specialOption.value;
-                opt.text = specialOption.text;
+                opt.value = params.specialOption.value;
+                opt.text = params.specialOption.text;
+                opt.selected = (params.specialOption.value === params.selectedValue);
                 select.appendChild(opt);
             }
             options.forEach(item => {
                 const option = document.createElement('option');
                 option.value = item;
                 option.text = item;
+                option.selected = (item === params.selectedValue);
                 select.appendChild(option);
             });
         }
 
         filterInput.addEventListener('input', function () {
             const filter = this.value.toLowerCase();
-            const filtered = allOptions.filter(item => item.toLowerCase().includes(filter));
+            const filtered = params.allOptions.filter(item => item.toLowerCase().includes(filter));
             populateDropdown(filtered);
         });
 
         // Initial population
-        populateDropdown(allOptions);
+        populateDropdown(params.allOptions);
     }
+
     window.openhabEditPrepare = openhabEditPrepare;
     window.makeFilterableDropdown = makeFilterableDropdown;
 })(window);
-
-
-

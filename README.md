@@ -156,6 +156,9 @@ See [DEVELOPMENT.md](DEVELOPMENT.md).
 ### v0.9.2
 - Dependency fixes, added example for localhost.
 
+### v0.9.5
+- fixed bug in item retrieval for in/out/get node definition (eliminated duplicates).
+
 ## Dependency restrictions
 
 As this is a commonjs project, chai needs to stay at version 4, and node-fetch at version 2. Newer versions do not support commonjs.
