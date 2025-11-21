@@ -1,0 +1,318 @@
+[
+  {
+    "id": "test-flow-tab",
+    "type": "tab",
+    "label": "OpenHAB4 Test Flow",
+    "disabled": false,
+    "info": "Test flow for  OpenHAB4 nodes"
+  },
+  {
+    "id": "in-node",
+    "type": "openhab4-in",
+    "z": "test-flow-tab",
+    "name": "",
+    "controller": "controller-node",
+    "itemname": "TestItem",
+    "x": 100,
+    "y": 200,
+    "wires": [
+      [
+        "debug-state"
+      ],
+      [
+        "debug-raw"
+      ]
+    ]
+  },
+  {
+    "id": "get-node",
+    "type": "openhab4-get",
+    "z": "test-flow-tab",
+    "name": "",
+    "controller": "controller-node",
+    "itemname": "TestItem",
+    "x": 290,
+    "y": 300,
+    "wires": [
+      [
+        "debug-get"
+      ]
+    ]
+  },
+  {
+    "id": "out-node",
+    "type": "openhab4-out",
+    "z": "test-flow-tab",
+    "controller": "controller-node",
+    "itemname": "TestItem",
+    "topic": "",
+    "payload": "",
+    "x": 350,
+    "y": 500,
+    "wires": [
+      [
+        "debug-out"
+      ]
+    ]
+  },
+  {
+    "id": "events-node",
+    "type": "openhab4-events",
+    "z": "test-flow-tab",
+    "controller": "controller-node",
+    "x": 100,
+    "y": 400,
+    "wires": [
+      [
+        "debug-events"
+      ]
+    ]
+  },
+  {
+    "id": "health-node",
+    "type": "openhab4-health",
+    "z": "test-flow-tab",
+    "name": "Health Monitor",
+    "controller": "controller-node",
+    "x": 100,
+    "y": 600,
+    "wires": [
+      [
+        "debug-health-status"
+      ],
+      [
+        "debug-health-error"
+      ],
+      [
+        "debug-health-raw"
+      ]
+    ]
+  },
+  {
+    "id": "inject-get",
+    "type": "inject",
+    "z": "test-flow-tab",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "",
+    "crontab": "",
+    "once": false,
+    "onceDelay": 0.1,
+    "topic": "",
+    "payload": "",
+    "payloadType": "date",
+    "x": 100,
+    "y": 300,
+    "wires": [
+      [
+        "get-node"
+      ]
+    ]
+  },
+  {
+    "id": "inject-command",
+    "type": "inject",
+    "z": "test-flow-tab",
+    "name": "",
+    "props": [
+      {
+        "p": "payload"
+      },
+      {
+        "p": "topic",
+        "vt": "str"
+      }
+    ],
+    "repeat": "",
+    "crontab": "",
+    "once": false,
+    "onceDelay": 0.1,
+    "topic": "ItemCommand",
+    "payload": "ON",
+    "payloadType": "str",
+    "x": 130,
+    "y": 480,
+    "wires": [
+      [
+        "out-node"
+      ]
+    ]
+  },
+  {
+    "id": "inject-update",
+    "type": "inject",
+    "z": "test-flow-tab",
+    "name": "",
+    "props": [
+      {
+        "p": "payload"
+      },
+      {
+        "p": "topic",
+        "vt": "str"
+      }
+    ],
+    "repeat": "",
+    "crontab": "",
+    "once": false,
+    "onceDelay": 0.1,
+    "topic": "ItemUpdate",
+    "payload": "OFF",
+    "payloadType": "str",
+    "x": 120,
+    "y": 520,
+    "wires": [
+      [
+        "out-node"
+      ]
+    ]
+  },
+  {
+    "id": "debug-state",
+    "type": "debug",
+    "z": "test-flow-tab",
+    "name": "Debug In Channel 1",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "true",
+    "targetType": "full",
+    "statusVal": "",
+    "statusType": "auto",
+    "x": 320,
+    "y": 180,
+    "wires": []
+  },
+  {
+    "id": "debug-raw",
+    "type": "debug",
+    "z": "test-flow-tab",
+    "name": "Debug In Channel 2",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "true",
+    "targetType": "full",
+    "statusVal": "",
+    "statusType": "auto",
+    "x": 320,
+    "y": 220,
+    "wires": []
+  },
+  {
+    "id": "debug-get",
+    "type": "debug",
+    "z": "test-flow-tab",
+    "name": "Debug Get",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "true",
+    "targetType": "full",
+    "statusVal": "",
+    "statusType": "auto",
+    "x": 490,
+    "y": 300,
+    "wires": []
+  },
+  {
+    "id": "debug-out",
+    "type": "debug",
+    "z": "test-flow-tab",
+    "name": "Debug Out",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "true",
+    "targetType": "full",
+    "statusVal": "",
+    "statusType": "auto",
+    "x": 550,
+    "y": 500,
+    "wires": []
+  },
+  {
+    "id": "debug-events",
+    "type": "debug",
+    "z": "test-flow-tab",
+    "name": "Debug Events",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "true",
+    "targetType": "full",
+    "statusVal": "",
+    "statusType": "auto",
+    "x": 300,
+    "y": 400,
+    "wires": []
+  },
+  {
+    "id": "debug-health-status",
+    "type": "debug",
+    "z": "test-flow-tab",
+    "name": "Debug Health Status",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "true",
+    "targetType": "full",
+    "statusVal": "",
+    "statusType": "auto",
+    "x": 350,
+    "y": 580,
+    "wires": []
+  },
+  {
+    "id": "debug-health-error",
+    "type": "debug",
+    "z": "test-flow-tab",
+    "name": "Debug Health Error",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "true",
+    "targetType": "full",
+    "statusVal": "",
+    "statusType": "auto",
+    "x": 350,
+    "y": 620,
+    "wires": []
+  },
+  {
+    "id": "debug-health-raw",
+    "type": "debug",
+    "z": "test-flow-tab",
+    "name": "Debug Health Raw",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "true",
+    "targetType": "full",
+    "statusVal": "",
+    "statusType": "auto",
+    "x": 340,
+    "y": 660,
+    "wires": []
+  },
+  {
+    "id": "controller-node",
+    "type": "openhab4-controller",
+    "z": "test-flow-tab",
+    "name": "openhab4",
+    "protocol": "http",
+    "host": "localhost",
+    "port": "8080"
+  }
+]

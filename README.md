@@ -100,6 +100,11 @@ The input message with addition of:
 - <code>msg.payload</code> : the item object (name, label, state, ...)
 - <code>msg.payload_in</code> : copy of incoming message payload.
 
+## Test flow
+
+An example flow is provided in examples/test-flow-localhost.json. This expects the OpenHAB server at http://localhost:8080 and uses an item called TestItem.
+it will create a separate tab with a couple of flows that use all the nodes. There is also a test flow generator which uses environment variables for OpenHAB protocol, server, port and test item. See [DEVELOPMENT.md](DEVELOPMENT.md) for more details.
+
 ## Development Guide
 
 See [DEVELOPMENT.md](DEVELOPMENT.md).
@@ -147,3 +152,13 @@ See [DEVELOPMENT.md](DEVELOPMENT.md).
 
 ### v0.9.0
 - First pre-release on npm
+
+### v0.9.2
+- Dependency fixes, added example for localhost.
+
+### v0.9.5
+- fixed bug in item retrieval for in/out/get node definition (eliminated duplicates).
+
+## Dependency restrictions
+
+As this is a commonjs project, chai needs to stay at version 4, and node-fetch at version 2. Newer versions do not support commonjs.

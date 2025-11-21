@@ -26,14 +26,15 @@ describe("healthLogic", function () {
         const eventHandlers = {};
         const controller = {
             on: sinon.spy((event, handler) => { eventHandlers[event] = handler; }),
-            off: sinon.spy()
-        };
+            off: sinon.spy()        };
         const healthNode = new HealthNode(node, config, controller, { generateId: () => "123" });
         expect(healthNode.getNodeType(), "node type is health").to.equal("Health");
 
         expect(healthNode._lastStatus, "last status is null").to.be.null;
 
         healthNode.setupNode();
+
+        expect(healthNode.node.name).to.equal("openhab4-health", "node name is set to name of controller");
 
         expect(healthNode._onConnectionStatus, "_onConnectionStatus is a function").to.be.a("function");
         expect(healthNode._onConnectionError, "_onConnectionError is a function").to.be.a("function");
@@ -75,7 +76,7 @@ describe("healthLogic", function () {
         // force an error by having no controller
         const healthNode = new HealthNode(node, config, null);
         healthNode.setupNode();
-
+        expect(healthNode.node.name).to.equal("openhab4-health", "node name is set to default");
         const sendArgs = node.send.getCall(0).args[0]; // The array passed to node.send
         expect(sendArgs[0], "First channel is null").to.be.null; 
         expect(sendArgs[1], "Second channel has the error message").to.include({ payload: 'No controller configured', event: 'ConnectionError' });
