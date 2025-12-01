@@ -2,11 +2,11 @@
   "name": "@essenius/node-red-openhab4",
   "author": "Rik Essenius (https://github.com/essenius)",
   "type": "commonjs",
-  "version": "0.9.5",
+  "version": "0.10.1",
   "description": "OpenHAB 4 integration nodes for Node-RED",
   "main": "nodes/controller.js",
   "engines": {
-    "node": ">=14.0.0"
+    "node": ">=16.0.0"
   },
   "homepage": "https://github.com/essenius/node-red-openhab4",
   "repository": {
@@ -31,7 +31,7 @@
     }
   },
   "dependencies": {
-    "@joeybaker/eventsource": "^0.3.0",
+    "eventsource": "^3.0.0",
     "express": "^5.1.0",
     "node-fetch": "2.7.0"
   },

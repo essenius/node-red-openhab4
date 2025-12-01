@@ -15,73 +15,96 @@ const path = require('path');
 const { expect } = require("chai");
 const sinon = require("sinon");
 const healthLogicPath = path.join(__dirname, '..', 'lib', 'healthLogic.js');
-const { HealthNode } = require(healthLogicPath);
+const { HealthNodeHandler } = require(healthLogicPath);
 
 describe("healthLogic", function () {
 
     it("should setup the right handlers and send the right messages", async function () {
-        const node = { error: sinon.spy(), status: sinon.spy(), send: sinon.spy(), on: sinon.spy() };
-        const config = {};
 
-        const eventHandlers = {};
+        const node = {
+            type: "openhab4-health",
+            status: sinon.spy(), 
+            send: sinon.spy(), 
+            on: sinon.spy(),
+            off: sinon.spy(),
+        };
+        const config = { };
+
+        const eventBus = {
+            publish: sinon.spy(),
+            subscribe: sinon.spy(),
+            unsubscribe: sinon.spy()
+        }
+
+        const controller = {
+            eventBus: eventBus,
+            on: sinon.spy(),
+            off: sinon.spy()
+        };
+
+        const healthNodeHandler = new HealthNodeHandler(node, config, controller, { generateId: () => "123" , generateTime: () => "12:34:56" });
+
+/*        const eventHandlers = {};
         const controller = {
             on: sinon.spy((event, handler) => { eventHandlers[event] = handler; }),
-            off: sinon.spy()        };
-        const healthNode = new HealthNode(node, config, controller, { generateId: () => "123" });
-        expect(healthNode.getNodeType(), "node type is health").to.equal("Health");
+            off: sinon.spy()        }; */
+        expect(healthNodeHandler.getNodeType(), "node type is health").to.equal("Health");
+        expect(healthNodeHandler._lastStatus, "last status is null").to.be.null;
 
-        expect(healthNode._lastStatus, "last status is null").to.be.null;
+        healthNodeHandler.setupNode();
+        expect(healthNodeHandler.node.name).to.equal("openhab4-health", "node name is set to name of controller");
+        expect(node.on.callCount, "node.on called 5 times").to.equal(5);
+        expect(node.on.getCall(0).args[0]).to.equal('ConnectionStatus');
+        expect(node.on.getCall(1).args[0]).to.equal('NodeError');
+        expect(node.on.getCall(2).args[0]).to.equal('close');
+        expect(node.on.getCall(3).args[0]).to.equal('ConnectionStatus');
+        expect(node.on.getCall(4).args[0]).to.equal('GlobalError');
 
-        healthNode.setupNode();
+        healthNodeHandler._onConnectionStatus("ON");
 
-        expect(healthNode.node.name).to.equal("openhab4-health", "node name is set to name of controller");
-
-        expect(healthNode._onConnectionStatus, "_onConnectionStatus is a function").to.be.a("function");
-        expect(healthNode._onConnectionError, "_onConnectionError is a function").to.be.a("function");
-        expect(controller.on.callCount, "controller.on called 5 times").to.equal(5);
-
-        healthNode._onConnectionStatus("ON");
-
-        var sendArgs = node.send.getCall(0).args[0]; // The array passed to node.send
-        expect(sendArgs[0], "First channel provides the status").to.include({ payload: 'ON', event: 'ConnectionStatus' }); 
+        let sendArgs = node.send.getCall(0).args[0]; // The array passed to node.send
+        expect(sendArgs[0], "First channel provides the status").to.include({ payload: 'ON', topic: 'ConnectionStatus' }); 
         expect(sendArgs[1], "Second channel is null").to.be.null;
-        expect(sendArgs[2], "Third channel is null").to.be.null; 
+
+        expect(node.status.getCall(0).args[0], "Initializing status called").to.deep.equal({ fill: 'grey', shape: 'ring', text: 'initializing... @ 12:34:56' });
+        expect(node.status.getCall(1).args[0], "Status cleared").to.deep.equal({ });
+
         node.send.resetHistory();
-        healthNode._onConnectionStatus("ON");
+        healthNodeHandler._onConnectionStatus("ON");
         expect(node.send.notCalled, "send not called again").to.be.true;
 
-        healthNode._onConnectionError("Connection error");
+        healthNodeHandler._onGlobalError("Connection error");
         sendArgs = node.send.getCall(0).args[0];
         expect(sendArgs[0], "First channel is null").to.be.null; 
-        expect(sendArgs[1], "Second channel has the error message").to.include({ payload: 'Connection error', event: 'ConnectionError' });
-        expect(sendArgs[2], "Third channel is null").to.be.null; 
-
-        node.send.resetHistory();
-        healthNode._onRawEvent("rawEvent1");
-        sendArgs = node.send.getCall(0).args[0]; 
-        expect(sendArgs[0], "First channel is null").to.be.null; 
-        expect(sendArgs[1], "Second channel is null").to.be.null; 
-        expect(sendArgs[2], "Third channel has the raw event").to.include({ payload: "rawEvent1", event: 'RawEvent' });
+        expect(sendArgs[1], "Second channel has the error message").to.include({ payload: 'Connection error', topic: 'GlobalError' });
         
-        healthNode.cleanup();
-        expect(controller.off.callCount, "controller.off called 3 times").to.equal(3);
-        expect(healthNode._lastStatus, "_lastStatus is null after cleanup").to.be.null;
+        healthNodeHandler.cleanup();
+        expect(node.off.callCount, "controller.off called 2 times").to.equal(2);
+        expect(node.off.getCall(0).args[0]).to.equal('GlobalError');
+        expect(node.off.getCall(1).args[0]).to.equal('ConnectionStatus');
+
+        expect(healthNodeHandler._lastStatus, "_lastStatus is null after cleanup").to.be.null;
     });
 
     
     it("should not setup logic if error is set", async function () {
-        const node = { error: sinon.spy(), status: sinon.spy(), send: sinon.spy(), on: sinon.spy() };
+        const node = { type:"openhab4-health", status: sinon.spy(), send: sinon.spy(), on: sinon.spy(), off: sinon.spy() };
         const config = {};
 
         // force an error by having no controller
-        const healthNode = new HealthNode(node, config, null);
-        healthNode.setupNode();
-        expect(healthNode.node.name).to.equal("openhab4-health", "node name is set to default");
-        const sendArgs = node.send.getCall(0).args[0]; // The array passed to node.send
-        expect(sendArgs[0], "First channel is null").to.be.null; 
-        expect(sendArgs[1], "Second channel has the error message").to.include({ payload: 'No controller configured', event: 'ConnectionError' });
-        expect(sendArgs[2], "Third channel is null").to.be.null; 
-        // the configuration has not completed, so the _onConnectionStatus should not be set
-        expect(healthNode._onConnectionStatus, "_onConnectionStatus is not defined").to.be.undefined;
+        const healthNodeHandler = new HealthNodeHandler(node, config, null, { generateId: () => "123" , generateTime: () => "12:34:56" });
+        healthNodeHandler.setupNode();
+
+
+        expect(node.on.callCount, "One call to on as there is no controller").to.equal(1);
+        expect(node.on.firstCall.args[0]).to.equal('close');
+
+        expect(node.name).to.equal("openhab4-health", "node name is set to default");
+
+        expect(node.status.getCall(0).args[0], "Initializing status called").to.deep.equal({ fill: 'grey', shape: 'ring', text: 'initializing... @ 12:34:56' });
+        expect(node.status.getCall(1).args[0], "no controller status called").to.deep.equal({ fill: 'red', shape: 'ring', text: 'no controller @ 12:34:56' });
+        
+        expect(node.send.notCalled, "Nothing sent out (as no controller, so no eventBus)").to.be.true;
+        expect(node.off.notCalled, "off not called as nothing subscribed to");
     });
 });

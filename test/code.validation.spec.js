@@ -56,8 +56,9 @@ describe('Code validation', function () {
         const modulesToTest = [
             '../lib/connectionUtils',
             '../lib/constants',
-            '../lib/consumerNodeBase',
+            '../lib/consumerNodeHandler',
             '../lib/controllerLogic',
+            '../lib/eventBus',
             '../lib/eventsLogic',
             '../lib/getLogic',
             '../lib/healthLogic',

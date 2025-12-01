@@ -12,12 +12,24 @@
 const helper = require("node-red-node-test-helper");
 const inNode = require("../nodes/in.js");
 const { expect } = require("chai");
+const sinon = require("sinon");
 
+// Enhanced mock controller node
 const controllerNode = function (RED) {
-    function ControllerNode(config) {
-        RED.nodes.createNode(this, config);
-    }
-    RED.nodes.registerType("openhab4-controller", ControllerNode);
+  function ControllerNode(config) {
+    this.eventBus = {
+      publish: sinon.spy(),
+      subscribe: sinon.spy(),
+      unsubscribe: sinon.spy()
+    };
+    this.handler = {
+      control: sinon.spy((_itemname, _topic, _payload) => { return "OK"; })
+    };
+    RED.nodes.createNode(this, config);
+    // Spy/stub for the control method
+  }
+
+  RED.nodes.registerType("openhab4-controller", ControllerNode);
 };
 
 describe("openhab4-in node", function () {
@@ -33,17 +45,18 @@ describe("openhab4-in node", function () {
         ];
 
         helper.load([controllerNode, inNode], flow, function () {
-            const controller = helper.getNode("controller1");
             const helperNode = helper.getNode("helper1");
+            const inNode = helper.getNode("in1");
             helperNode.on("input", function (msg) {
                 try {
+                    console.log(msg);
                     expect(msg.payload).to.equal("OFF");
                     done();
                 } catch (err) {
                     done(err); 
                 }
             });
-            controller.emit("TestItem/StateEvent", { type: "ItemStateEvent", state: "OFF" });
+            inNode.emit("items/TestItem", { type: "ItemStateEvent", name: "TestItem", payload: { value: "OFF", type: "OnOff" } });
         });
 
     });

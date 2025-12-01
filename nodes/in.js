@@ -13,7 +13,7 @@
 
 const { setupInNode } = require('../lib/inLogic');
 
-module.exports = function (RED) {
+module.exports = function(RED) {
     function createInNode(config) {
         RED.nodes.createNode(this, config);
         const controller = RED.nodes.getNode(config.controller);

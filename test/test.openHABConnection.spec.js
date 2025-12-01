@@ -195,6 +195,16 @@ describe("openHABConnection with mocked fetch", function () {
 
 });
 
+describe("OpenHABConnection StartEventSource real", function () {
+    it("should run the event source", function(){
+        const { OpenhabConnection } = require('../lib/openhabConnection');
+        const config = { protocol: "http", host: "localhost", port: 8080, path: "", username: "", password: "", allowSelfSigned: true };
+        const connection = new OpenhabConnection(config);
+        connection.startEventSource({ onOpen: {}, onMessage: {}, onError: {} });
+
+    });
+});
+
 describe("openHABConnection StartEventSource", function () {
     class MockEventSource {
         constructor(url, options) {

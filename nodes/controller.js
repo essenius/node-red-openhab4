@@ -12,7 +12,7 @@
 "use strict";
 
 const { httpRequest, getConnectionString, setDefaults } = require("../lib/connectionUtils");
-const { setupControllerNode } = require('../lib/controllerLogic');
+const { setupController } = require('../lib/controllerLogic');
 const { ENDPOINTS } = require("../lib/constants");
 
 /** Handler for the httpAdmin request to get all OpenHAB items. This is used to populate the dropdowns in the controller and other nodes */
@@ -50,7 +50,7 @@ function controllerModule(RED) {
         RED.nodes.createNode(this, config);
         const mergedConfig = setDefaults({ ...config, ...(this.credentials || {}) });
         this.name = config.name || `${config.host}:${config.port}`;
-        setupControllerNode(this, mergedConfig);
+        this.controller = setupController(this, mergedConfig);
     }
 
     RED.nodes.registerType("openhab4-controller", createControllerNode, {

@@ -32,6 +32,11 @@
     	<select id="node-input-itemname" name="node-input-itemname">
     	</select>
     </div>
+        <div class="form-row">
+        <label for="node-input-changesonly"><i class="fa fa-refresh"></i> Changes only</label>
+    	<input type="checkbox" id="node-input-changesonly" name="node-input-changesonly">
+    	</select>
+    </div>
 </script>
 
 <script type="text/x-red" data-help-name="openhab4-in">
@@ -51,41 +56,30 @@
         <dd>Text to filter the list of items with. Leave empty to show all items.</dd>
         <dt>Item <span class="property-type">string</span></dt>
         <dd>The name of the item to listen to. Overrides <code>msg.item</code></dd>
+        <dt>Changes only <span class="property-type">bool</span></dt>
+        <dd>Checked: only send item state changes. Unchecked: send all item events</dd>
     </dl>
 
     <h3>Outputs</h3>
     <ol class="node-ports">
-        <li>State Events
+        <li>Incoming Message
             <dl class="message-properties">
                 <dt>payload <span class="property-type">string</span></dt>
                 <dd>The new state of the selected item</dd>
                 <dt>item <span class="property-type">string</span></dt>
                 <dd>The name of the item</dd>
                 <dt>event <span class="property-type">string</span></dt>
-                <dd>Event type: 'StateEvent'</dd>
-            </dl>
-        </li>
-        <li>Raw Events
-            <dl class="message-properties">
-                <dt>payload <span class="property-type">object</span></dt>
-                <dd>Unprocessed event data for the item</dd>
-                <dt>item <span class="property-type">string</span></dt>
-                <dd>The name of the item</dd>
-                <dt>event <span class="property-type">string</span></dt>
-                <dd>Event type: 'RawEvent'</dd>
+                <dd>the event type: 'StateChangedEvent' if changes only was set, the incoming event type if not.</dd>
+                <dt>rawEvent <span class="property-type">object</span></dt>
+                <dd>Unprocessed event data for the item.</dd>
             </dl>
         </li>
     </ol>
 
     <h3>Details</h3>
-    <p>This node monitors a specific openHAB item for changes:</p>
-    <ul>
-        <li><strong>Output 1:</strong> Sends messages only when the item's state actually changes</li>
-        <li><strong>Output 2:</strong> Sends all raw events for the item (including commands, updates, etc.)</li>
-    </ul>
-    
-    <p>Use output 1 for most automation scenarios where you want to react to state changes. 
-    Use output 2 for debugging or when you need access to all event details.</p>
+    <p>This node monitors a specific openHAB item. Normal operation is signalling changes only.
+        It is also possible to signal all item events by unchecking Changes Only, which might be useful for debugging or special automation cases.
+    </p>
 </script>
 
 <script type="text/javascript">
@@ -96,17 +90,18 @@
             name: { value: "" },
             controller: { value: "", type: "openhab4-controller", required: true },
             itemname: { value: "", required: true },
+            changesonly: { value: true, required: true }
         },
         inputs: 0,
-        outputs: 2,
-        outputLabels: ["state", "raw"],
+        outputs: 1,
+        outputLabels: ["message"],
         icon: "openhab4-logo-in.svg",
         paletteLabel: "openhab4-in",
         label: function () {
             return window.OPENHAB4.generateNodeName('in', this.name, this.itemname);
         },
         oneditprepare: function () {
-            openhabEditPrepare(this, false);
+            openhabEditPrepare(this, "Select item...");
         }
     });
 </script>

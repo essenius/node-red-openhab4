@@ -15,36 +15,51 @@ const path = require('path');
 const { expect } = require("chai");
 const sinon = require("sinon");
 const outLogicPath = path.join(__dirname, '..', 'lib', 'outLogic.js');
-const { OutNode } = require(outLogicPath);
+const { OutNodeHandler } = require(outLogicPath);
+
+
+function createOutNodeHandler({
+    controlResult = { ok: true, payload: {} },
+    config = {},
+    time = "12:34:56"
+} = {}) {
+    const node = { type: "openhab4-out", status: sinon.spy(), on: sinon.spy(), send: sinon.spy() };
+    const controllerHandler = { control: sinon.stub().resolves(controlResult) };
+    const controller = { handler: controllerHandler };
+    const outNodeHandler = new OutNodeHandler(node, config, controller, { generateTime: () => time });
+    return { outNodeHandler, node, controller };
+}
 
 describe("outLogic", function () {
 
-    it("should set state and send error with handleInput on undefined items", async function () {
-        const node = { error: sinon.spy(), status: sinon.spy(), debug: sinon.spy() };
-        const config = {};
-        const controller = { };
-        const outNode = new OutNode(node, config, controller, { generateTime: () => "12:34:56" });
-        const msg = { payload: "test" };
+    it("should set state on successful send", async function () {
+        const { outNodeHandler, node } = createOutNodeHandler({});
+        const msg = { item: "test", payload: "testPayload" };
+        await outNodeHandler.handleInput(msg);
+        expect(node.status.getCall(0).args[0]).to.deep.equal({ fill: 'blue', shape: 'dot', text: 'testPayload ⇨ @ 12:34:56'}, "status sending called");
+        expect(node.status.getCall(1).args[0]).to.deep.equal({ fill: 'green', shape: 'dot', text: 'testPayload ✓ @ 12:34:56'}, "status sent called");
 
-        await outNode.handleInput(msg);
-        expect(node.status.calledWith({ fill: 'red', shape: 'ring', text: 'no item specified @ 12:34:56' }), "status called").to.be.true;
-        expect(node.error.calledWith("No item specified. Set item in configuration or provide msg.item"), "error called").to.be.true;
-        expect(node.debug.notCalled, "debug not called").to.be.true;
-
-        // should be a separate test, but that seems topo much overhead
-        expect(outNode.getNodeType(), "node type is out").to.equal("Out");
+        // should be a separate test, but that seems too much overhead
+        expect(outNodeHandler.getNodeType(), "node type is Out").to.equal("Out");
     });
 
-    it ("should throw an error if control fails", async function () {
-        const node = { error: sinon.spy(), status: sinon.spy(), debug: sinon.spy() };
-        const config = { itemname: "testItem", topic: "testTopic", payload: "testPayload" };
-        const controller = { control: sinon.stub().rejects(new Error("Control failed")) };
-        const outNode = new OutNode(node, config, controller, { generateTime: () => "12:34:56" });
+    it("should set state and show error with handleInput on undefined items", async function () {
+        const { outNodeHandler, node } = createOutNodeHandler({});
+        const msg = { payload: "test" };
+
+        await outNodeHandler.handleInput(msg);
+        expect(node.status.calledWith({ fill: 'red', shape: 'ring', text: 'no item specified @ 12:34:56' }), "status called").to.be.true;
+
+    });
+
+    it ("should show an error if control fails", async function () {
+        const { outNodeHandler, node } = createOutNodeHandler(
+            { controlResult: {ok: false, retry: false, message: "Simulated error"}, 
+              config: { itemname: "testItem", topic: "testTopic", payload: "testPayload" }});
+
         const msg = { payload: "test" }; // should be overridden by config
 
-        await outNode.handleInput(msg);
+        await outNodeHandler.handleInput(msg);
         expect(node.status.calledWith({ fill: 'red', shape: 'ring', text: 'testPayload ✗ @ 12:34:56' }), "status called").to.be.true;
-        expect(node.error.calledWith("Control failed"), "error called").to.be.true;
-        expect(node.debug.calledWith(sinon.match.string), "debug called with stack trace").to.be.true;
     });
 });

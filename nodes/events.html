@@ -20,6 +20,10 @@
         <label for="node-input-controller"><i class="fa fa-cogs"></i> Controller</label>
         <input type="text" id="node-input-controller">
     </div>
+    <div class="form-row">
+        <label for="node-input-filter"><i class="fa fa-filter"></i> Event Filter</label>
+        <input type="text" id="node-input-filter">
+    </div>
 </script>
 
 <script type="text/x-red" data-help-name="openhab4-events">
@@ -35,6 +39,8 @@
         <dd>Optional name for the node</dd>
         <dt>Controller <span class="property-type">openhab4-controller</span></dt>
         <dd>The openHAB4 controller to monitor</dd>
+        <dt>Filter <span class="property-type">string</span></dt>
+        <dd>The event filter without the API identifier (default <code>items/*</code>)</dd>
     </dl>
 
     <h3>Outputs</h3>
@@ -52,12 +58,7 @@
     </ol>
 
     <h3>Details</h3>
-    <p>This node connects to the openHAB event bus and forwards all events:</p>
-    <ul>
-        <li><strong>Real-time monitoring:</strong> Receives events as they happen in openHAB</li>
-        <li><strong>All events:</strong> Captures item state changes, commands, group updates, and system events</li>
-        <li><strong>Event filtering:</strong> Use Node-RED switch nodes to filter for specific event types or items</li>
-    </ul>
+    <p>This node connects to the openHAB event bus and forwards all filtered events.</p>
     
     <p>Common event types include:</p>
     <ul>
@@ -79,7 +80,7 @@
         defaults: {
             name: { value: "" },
             controller: { value: "", type: "openhab4-controller", required: true },
-            itemname: { value: "", required: false },
+            filter: { value: "items/*",required: false }
         },
         inputs: 0,
         outputs: 1,

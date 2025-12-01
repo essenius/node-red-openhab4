@@ -12,25 +12,30 @@
 "use strict";
 
 const helper = require("node-red-node-test-helper");
-const getNode = require("../nodes/get.js"); 
+const getNode = require("../nodes/get.js");
 const { expect } = require("chai");
 const sinon = require("sinon");
-
-// Mock controller node with getItem method
-
 
 // Enhanced mock controller node
 const controllerNode = function (RED) {
   function ControllerNode(config) {
+    this.eventBus = {
+      publish: sinon.spy(),
+      subscribe: sinon.spy(),
+      unsubscribe: sinon.spy()
+    };
+    this.handler = {
+      control: sinon.stub().callsFake(async (_consumer, item, _topic, _payload) => {
+        if (item === "TestItem") {
+          return { ok: true, data: "MockValue" };
+        }
+        return null;
+      })
+    };
     RED.nodes.createNode(this, config);
     // Spy/stub for the control method
-    this.control = sinon.stub().callsFake(async (item, _topic, _payload, _consumerNode) => {
-      if (item === "TestItem") {
-        return '{ state: "MockValue" }';
-      }
-      return null;
-    });
   }
+
   RED.nodes.registerType("openhab4-controller", ControllerNode);
 };
 
@@ -70,6 +75,8 @@ describe("openhab4-get node", function () {
   });
 
   it("should get an item value from the controller", function (done) {
+    this.timeout(1000); 
+
     const flow = getFlow();
 
     helper.load([controllerNode, getNode], flow, function (err) {
@@ -78,17 +85,24 @@ describe("openhab4-get node", function () {
       const get = helper.getNode("get1");
       const helperNode = helper.getNode("helper1");
       const controller = helper.getNode("controller1");
+
+      // Fail the test if nothing happens
+      const failTimer = setTimeout(() => {
+        done(new Error("helperNode input handler was never called"));
+      }, 1000);
+
       helperNode.on("input", function (msg) {
+        clearTimeout(failTimer);
         try {
-          expect(controller.control.calledOnce, "control called once").to.be.true;
-          expect(controller.control.firstCall.args[0]).to.equal("TestItem");
-          expect(msg.payload).to.equal('{ state: "MockValue" }');
+          const control = controller.handler.control;
+          expect(control.calledOnce, "control called once").to.be.true;
+          expect(control.firstCall.args[1]).to.equal("TestItem");
+          expect(msg.payload).to.equal('MockValue');
           done();
         } catch (error) {
           done(error);
         }
       });
-
       // Trigger the get node
       get.receive({ item: "TestItem" });
     });

@@ -39,6 +39,11 @@
         <input type="number" id="node-config-input-port">
     </div>
     <div class="form-row">
+        <label for="node-config-event-filter"><i class="fa fa-filter"></i> Event Filter</label>
+        <input type="number" id="node-config-event-filter">
+        <p class="form-tips">comma separated list of topics, using * as wildcard, e.g. */items/* for all item events. Empty is no filtering</p>
+    </div>
+    <div class="form-row">
         <label for="node-config-input-path"><i class="fa fa-random"></i> Base Path</label>
         <input type="text" id="node-config-input-path">
     </div>
@@ -67,6 +72,8 @@
         <dd>The hostname or IP address of the openHAB server (default: <code>localhost</code>)</dd>
         <dt>Port <span class="property-type">number</span></dt>
         <dd>The port number for the openHAB REST API (default: <code>8080</code>)</dd>
+        <dt>Event filter <span class="property-type">string</span></dt>
+        <dd>The matching filter for the event source topic (default: <code>*</code>)</dd>
         <dt>Base Path <span class="property-type">string</span></dt>
         <dd>Additional base path if openHAB is served from a subdirectory (optional)</dd>
         <dt>User name <span class="property-type">string</span></dt>
@@ -80,13 +87,14 @@
     It is referenced by all other openHAB4 nodes in your flows.</p>
     
     <p><strong>Connection URLs:</strong> The node constructs URLs in the format:</p>
-    <code>{protocol}://{host}:{port}{/path}/rest/</code>
+    <code>{protocol}://{host}:{port}{/basepath}/rest/</code>
     
     <p><strong>Authentication:</strong> If username is provided, 
     HTTP Basic Authentication will be used for all requests to the openHAB server.</p>
     
     <p><strong>Event Stream:</strong> The controller also manages the Server-Sent Events (SSE) 
-    connection for real-time event monitoring used by events and health nodes.</p>
+    connection for real-time event monitoring used by events and health nodes. 
+    A filter can be applied if other events are needed than just the items.</p>
     
     <p><strong>Multiple Controllers:</strong> You can create multiple controller configurations 
     to connect to different openHAB instances or use different authentication credentials.</p>
@@ -103,6 +111,7 @@
             allowSelfSigned: { value: false },
             host: { value: "localhost", required: true },
             port: { value: 8080, required: false },
+            eventFilter: { value: "*", required: false },
             path: { value: "", required: false },
         },
         credentials: {

@@ -19,12 +19,18 @@ const sinon = require("sinon");
 // Enhanced mock controller node
 const controllerNode = function (RED) {
   function ControllerNode(config) {
+    this.eventBus = {
+      publish: sinon.spy(),
+      subscribe: sinon.spy(),
+      unsubscribe: sinon.spy()
+    };
+    this.handler = {
+      control: sinon.spy((_itemname, _topic, _payload) => { return "OK"; })
+    };
     RED.nodes.createNode(this, config);
     // Spy/stub for the control method
-    this.control = sinon.spy((_itemname, _topic, _payload) => {
-      return "OK";
-    });
   }
+
   RED.nodes.registerType("openhab4-controller", ControllerNode);
 };
 
@@ -65,7 +71,6 @@ describe("openhab4-out node", function () {
     helper.load([controllerNode, outNode], flow, function (_err) {
       const controller = helper.getNode("controller1");
       const out = helper.getNode("out1");
-
       // Send a message to the out node
       out.receive({
         item: "ub_Warning",
@@ -73,14 +78,17 @@ describe("openhab4-out node", function () {
         payload: "test1"
       });
 
-      // Assert that controller.control was called with the correct arguments
+      // Assert that the controller handler's control was called with the correct arguments
       setTimeout(() => {
         try {
-          expect(controller.control.calledOnce, "control called once").to.be.true;
-          const call = controller.control.getCall(0);
-          expect(call.args[0]).to.equal("ub_Warning", "Item name should match");
-          expect(call.args[1]).to.equal("itemCommand", "Topic should match");
-          expect(call.args[2]).to.equal("test1", "Payload should match");
+
+          const control = controller.handler.control;
+          expect(control.calledOnce, "control called once").to.be.true;
+          const call = control.getCall(0);
+          expect(call.args[0]).to.equal(out.handler, "Item name should match");
+          expect(call.args[1]).to.equal("ub_Warning", "Item name should match");
+          expect(call.args[2]).to.equal("itemCommand", "Topic should match");
+          expect(call.args[3]).to.equal("test1", "Payload should match");
           done();
         } catch (err) {
           done(err);
@@ -105,9 +113,10 @@ describe("openhab4-out node", function () {
 
       setTimeout(() => {
         try {
-          expect(controller.control.calledOnce).to.be.true;
-          const call = controller.control.getCall(0);
-          expect(call.args[2]).to.equal("configured-payload"); // Should use the config value
+          const control = controller.handler.control;
+          expect(control.calledOnce).to.be.true;
+          const call = control.getCall(0);
+          expect(call.args[3]).to.equal("configured-payload"); // Should use the config value
           done();
         } catch (err) {
           done(err);

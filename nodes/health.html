@@ -55,26 +55,16 @@
                 <dd>Event type: 'ConnectionError'</dd>
             </dl>
         </li>
-        <li>Raw Events
-            <dl class="message-properties">
-                <dt>payload <span class="property-type">object</span></dt>
-                <dd>Raw event data from the openHAB event bus (all items)</dd>
-                <dt>event <span class="property-type">string</span></dt>
-                <dd>Event type: 'RawEvent'</dd>
-            </dl>
-        </li>
     </ol>
 
     <h3>Details</h3>
     <p>This node provides system-level monitoring of the openHAB connection:</p>
     <ul>
         <li><strong>Output 1:</strong> Sends messages when the connection status changes</li>
-        <li><strong>Output 2:</strong> Sends messages when connection errors occur</li>
-        <li><strong>Output 3:</strong> Forwards all raw events from the openHAB event bus</li>
+        <li><strong>Output 2:</strong> Sends messages when global errors (e.g. broken connection) occur</li>
     </ul>
     
-    <p>Use this node to monitor the overall health of your openHAB integration and 
-    to build flows that react to system-level events rather than specific item changes.</p>
+    <p>Use this node to monitor the overall health of your openHAB integration.</p>
 </script>
 
 <script src="openhab4/ui-constants.js"></script>
@@ -88,8 +78,8 @@
             controller: { value: "", type: "openhab4-controller", required: true }
         },
         inputs: 0,
-        outputs: 3,
-        outputLabels: ["status", "errors", "events"],
+        outputs: 2,
+        outputLabels: [ "status", "errors" ],
         icon: "openhab4-logo-health.svg",
         paletteLabel: "openhab4-health",
         label: function() {

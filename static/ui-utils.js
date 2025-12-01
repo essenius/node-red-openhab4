@@ -13,9 +13,9 @@
     /**
      * Populate a native <select> dropdown with OpenHAB items.
      * @param node    the current node instance
-     * @param allowEmpty  if true, adds a “[No item]” blank option
+     * @param emptyText  Text to use for empty value
      */
-    function openhabEditPrepare(node, allowEmpty) {
+    function openhabEditPrepare(node, emptyText) {
         // Fix existing array data
         if (Array.isArray(node.itemname)) {
             node.itemname = node.itemname[0] || "";
@@ -50,9 +50,7 @@
                 const items = await $.getJSON("openhab4/items", params);
                 items.sort((a, b) => a.name.localeCompare(b.name));
                 allItemNames = items.map(item => item.name); // Store all names for filtering
-                let specialOption = allowEmpty
-                    ? { value: "", text: "[No item]" }
-                    : { value: "", text: "Select item..." };
+                let specialOption = { value: "", text: emptyText };
                 if (document.getElementById('node-input-item-filter')) {
                     const makeDropdownParams = {
                         filterInputId: 'node-input-item-filter',
