@@ -1,4 +1,4 @@
-// Copyright 2025 Rik Essenius
+// Copyright 2025-2026 Rik Essenius
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License. You may obtain a copy of the License at
@@ -17,12 +17,12 @@
      */
     function openhabEditPrepare(node, emptyText) {
         // Fix existing array data
-        if (Array.isArray(node.itemname)) {
-            node.itemname = node.itemname[0] || "";
+        if (Array.isArray(node.itemName)) {
+            node.itemName = node.itemName[0] || "";
         }
 
         const controllerInput = document.getElementById("node-input-controller");
-        const itemNameInput = document.getElementById("node-input-itemname");
+        const itemNameInput = document.getElementById("node-input-itemName");
 
         let allItemNames = [];
 
@@ -54,7 +54,7 @@
                 if (document.getElementById('node-input-item-filter')) {
                     const makeDropdownParams = {
                         filterInputId: 'node-input-item-filter',
-                        selectId: 'node-input-itemname',
+                        selectId: 'node-input-itemName',
                         allOptions: allItemNames,
                         specialOption: specialOption,
                         selectedValue: selectedValue
@@ -77,13 +77,13 @@
 
         const controllerNode = RED.nodes.node(node.controller);
         if (controllerNode) {
-            updateItemNameDropdown(controllerNode, node.itemname);
+            updateItemNameDropdown(controllerNode, node.itemName);
         }
 
         // reload when controller dropdown changes
         controllerInput.addEventListener("change", () => {
             const newController = RED.nodes.node(controllerInput.value);
-            updateItemNameDropdown(newController, node.itemname);
+            updateItemNameDropdown(newController, node.itemName);
         });
     }
 
@@ -127,6 +127,6 @@
         populateDropdown(params.allOptions);
     }
 
-    window.openhabEditPrepare = openhabEditPrepare;
-    window.makeFilterableDropdown = makeFilterableDropdown;
+    globalThis.openhabEditPrepare = openhabEditPrepare;
+    globalThis.makeFilterableDropdown = makeFilterableDropdown;
 })(window);

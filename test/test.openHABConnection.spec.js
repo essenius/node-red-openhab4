@@ -1,4 +1,4 @@
-// Copyright 2025 Rik Essenius
+// Copyright 2025-2026 Rik Essenius
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License. You may obtain a copy of the License at
@@ -15,7 +15,29 @@ const { expect } = require("chai");
 const sinon = require("sinon");
 const proxyquire = require("proxyquire");
 
-describe("openHABConnection real", function () {
+function createNotFoundResponse(jsonBody) {
+    return {
+                ok: false,
+                text: async () => jsonBody,
+                status: 404,
+                statusText: "Not Found"
+            };    
+}
+
+function createOkFetchResponse(jsonBody, overrides = {}) {
+    return {
+        text: async () => JSON.stringify(jsonBody),
+        headers: {
+            get: (name) =>
+                name.toLowerCase() === "content-type" ? "application/json" : undefined
+        },
+        status: 200,
+        statusText: "OK",
+        ...overrides
+    };
+}
+
+describe("openhabConnection real", function () {
 
     // This test uses the real OpenhabConnection class, not a mock. Therefore it can fail.
     // It is used to test the connection to a real openHAB instance, but is forgiving if there isn't one.
@@ -31,19 +53,20 @@ describe("openHABConnection real", function () {
             port: 8082,
             path: "",
             username: "",
-            password: ""
+            password: "",
+            retryTimeout: 0
         });
         const item = "ub_warning";
-        try {
-            let items = await connection.getItems();
-            expect(items).to.include(item, "Item should be in the list of items");
-        } catch (error) {
-            expect(String(error)).to.include("ECONNREFUSED", "Connection refused error expected");
+        let result = await connection.getItems();
+        if (result.ok) {
+            expect(result.data).to.include(item, "Item should be in the list of items");
+        } else {
+            expect(result.message).to.include("ECONNREFUSED", "Connection refused error expected");
         }
     });
 });
 
-describe("openHABConnection with mocked fetch", function () {
+describe("openhabConnection with mocked fetch", function () {
 
     // Import the httpRequest function from connectionUtils.js, using proxyquire to stub out node-fetch
     // This allows us to control the behavior of fetch without making actual HTTP requests.
@@ -52,9 +75,9 @@ describe("openHABConnection with mocked fetch", function () {
 
 
     beforeEach(() => {
-        originalFetch = global.fetch;
+        originalFetch = globalThis.fetch;
         fetchStub = sinon.stub();
-        global.fetch = fetchStub;
+        globalThis.fetch = fetchStub;
 
         const { OpenhabConnection } = proxyquire("../lib/openhabConnection", {
             "./connectionUtils": proxyquire("../lib/connectionUtils", {
@@ -68,144 +91,115 @@ describe("openHABConnection with mocked fetch", function () {
             port: 8081,
             path: "",
             username: "",
-            password: ""
+            password: "",
+            retryTimeout: 0
         });
     });
 
     afterEach(() => {
         if (originalFetch === undefined) {
-            delete global.fetch;
+            delete globalThis.fetch;
         } else {
-            global.fetch = originalFetch;
+            globalThis.fetch = originalFetch;
         }
     });
     describe("controlItem tests", function () {
-        it("should throw an error on fetch failure", async function () {
-            const cause = JSON.parse('{"errno":-4078,"code":"ECONNREFUSED","syscall":"connect","address":"localhost","port":8081}');
-            const error = new Error("fetch failed");
-            error.cause = cause;
-            fetchStub.rejects(error);
-            try {
-                await connection.controlItem("TestItem");
-                expect.fail("Expected error to be thrown");
-            } catch (error) {
-                expect(error.message).to.equal("ECONNREFUSED");
-                expect(error.status).to.equal(-4078);
-            }
+        it("should return error details on fetch failure", async function () {
+            const cause = new Error("Network failure");
+            cause.code = "ECONNREFUSED";
+            const err = new TypeError("fetch failed", { cause });
+            fetchStub.rejects(err);
+            const response = await connection.controlItem("TestItem");
+
+            expect(response).to.deep.equal({ attempts: 1, ok: false, retry: true, type: "network", message: "ECONNREFUSED" });
         });
 
         it("should return error details on fetch with missing item", async function () {
-            let returnObject = {
-                text: async () => JSON.stringify({ error: { message: "Item TestItem does not exist!", "http-code": 404 } }),
-                headers: {
-                    get: (name) => name.toLowerCase() === "content-type" ? "application/json" : undefined
-                },
-                status: 404,
-                statusText: "Not Found"
-            };
+            fetchStub.resolves(createNotFoundResponse(
+                JSON.stringify({ error: { message: "Item TestItem does not exist!", "http-code": 404 } })
+            ));
+            const response = await connection.controlItem("TestItem");
 
-            const fakeResponse = returnObject;
-            fetchStub.resolves(fakeResponse);
-            try {
-                await connection.controlItem("TestItem");
-                expect.fail("Expected error to be thrown");
-            } catch (error) {
-
-                expect(fetchStub.calledOnce).to.be.true;
-                expect(error.status).to.equal(404);
-                expect(error.message).to.include("Item TestItem does not exist!");
-            }
+            expect(fetchStub.calledOnce).to.be.true;
+            expect(response.status).to.equal(404);
+            expect(response.message).to.include("Item TestItem does not exist!");
         });
 
         it("should return error details from http if no body", async function () {
-            let returnObject = {
-                text: async () => "",
-                status: 404,
-                statusText: "Not Found"
-            };
+            fetchStub.resolves(createNotFoundResponse(""));
+            const result = await connection.controlItem("TestItem");
 
-            const fakeResponse = returnObject;
-            fetchStub.resolves(fakeResponse);
-            try {
-                await connection.controlItem("TestItem");
-                expect.fail("Expected error to be thrown");
-            } catch (error) {
-                expect(fetchStub.calledOnce).to.be.true;
-                expect(error.status).to.equal(404);
-                expect(error.message).to.include("Not Found");
-            }
+            expect(fetchStub.calledOnce).to.be.true;
+            expect(result.status).to.equal(404);
+            expect(result.message).to.include("Not Found");
         });
+
 
         it("should return value if all goes well", async function () {
-            let returnObject = {
-                text: async () => '{"link":"http://localhost:8080/rest/items/ub_warning","state":"123","stateDescription":{"pattern":"%s","readOnly":false,"options":[]},"editable":false,"type":"String","name":"ub_warning","label":"Warning","tags":[],"groupNames":["Indoor"]}',
-                headers: {
-                    get: (name) => name.toLowerCase() === "content-type" ? "application/json" : undefined
-                },
-                status: 200,
-                statusText: "OK"
-            };
-
-            const fakeResponse = returnObject;
-            fetchStub.resolves(fakeResponse);
+            fetchStub.resolves(createOkFetchResponse(
+                {link:"http://localhost:8080/rest/items/ub_warning", state:"123",
+                stateDescription: {pattern:"%s", readOnly:false, options:[]},
+                editable:false, type:"String", name:"ub_warning", label:"Warning",
+                tags:[], groupNames:["Indoor"]}
+            ));            
             const response = await connection.controlItem("ub_warning");
+
             expect(fetchStub.calledOnce).to.be.true;
-            expect(response.name).to.equal("ub_warning");
-            expect(response.state).to.equal("123");
+            expect(response.data.name).to.equal("ub_warning");
+            expect(response.data.state).to.equal("123");
         });
+
+        it("should return v4 metadata if name is empty", async function () {
+            fetchStub.resolves(createOkFetchResponse(
+                {version:"8", locale:"en_NL", measurementSystem:"SI",
+                runtimeInfo:{version:"4.3.5", buildString:"Release Build"}, links: []})
+            );
+            const response = await connection.controlItem("");
+
+            expect(fetchStub.calledOnce).to.be.true;
+            expect(response.data.version).to.equal("8");
+            expect(response.data.runtimeInfo.version).to.equal("4.3.5");
+            expect(response.data.measurementSystem).to.equal("SI");
+            expect(response.links).to.be.undefined;
+        });
+        
+        it("should return v2 metadata if name is empty", async function () {
+            fetchStub.resolves(createOkFetchResponse({version:"3",links: []}));
+            const response = await connection.controlItem("");
+
+            expect(fetchStub.calledOnce).to.be.true;
+            expect(response.data.version).to.equal("3");
+            expect(response.data.runtimeInfo.version).to.equal("2.x");
+            expect(response.links).to.be.undefined;
+        });        
     });
 
     it("should handle getItems() successfully", async function () {
-        let returnObject = {
-            text: async () => JSON.stringify(["item1", "item2"]),
-            headers: {
-                get: (name) => name.toLowerCase() === "content-type" ? "application/json" : undefined
-            },
-            status: 200,
-            statusText: "OK"
-        };
-
-        const fakeResponse = returnObject;
-        fetchStub.resolves(fakeResponse);
+        fetchStub.resolves(createOkFetchResponse(["item1", "item2"]));
         const items = await connection.getItems();
+
         expect(fetchStub.calledOnce).to.be.true;
-        expect(items).to.deep.equal(["item1", "item2"]);
-        expect(fetchStub.getCall(0).args[0]).to.equal("http://localhost:8081/rest/items");
+        expect(items.ok, "OK response").to.be.true;
+        expect(items.data, "data ok").to.deep.equal(["item1", "item2"]);
+        expect(fetchStub.getCall(0).args[0]).to.equal("http://localhost:8081/rest/items", "right call");
     });
-
-
-    /*
-    it("should handle testIfLive() successfully", async function () {
-        let returnObject = {
-            text: async () => JSON.stringify({ status: "OK" }),
-            headers: {
-                get: (name) => name.toLowerCase() === "content-type" ? "application/json" : undefined
-            },
-            status: 200,
-            statusText: "OK"
-        };
-
-        const fakeResponse = returnObject;
-        fetchStub.resolves(fakeResponse);
-        const isLive = await connection.testIfLive();
-        expect(fetchStub.calledOnce).to.be.true;
-        expect(isLive).to.be.true;
-        expect(fetchStub.getCall(0).args[0]).to.equal("http://localhost:8081/rest");
-    }); */
-
 });
 
-describe("OpenHABConnection StartEventSource real", function () {
-    it("should run the event source", function(){
+describe("openhabConnection StartEventSource real", function () {
+    it("should run the real event source", function () {
         const { OpenhabConnection } = require('../lib/openhabConnection');
         const config = { protocol: "http", host: "localhost", port: 8080, path: "", username: "", password: "", allowSelfSigned: true };
         const connection = new OpenhabConnection(config);
         connection.startEventSource({ onOpen: {}, onMessage: {}, onError: {} });
 
+        if (connection.eventSource && connection.eventSource.close) {
+            connection.eventSource.close();
+        }
+
     });
 });
 
-describe("openHABConnection StartEventSource", function () {
+describe("openhabConnection StartEventSource", function () {
     class MockEventSource {
         constructor(url, options) {
             this.url = url;
@@ -228,7 +222,7 @@ describe("openHABConnection StartEventSource", function () {
     const fakeClearTimeout = sinon.spy();
 
     it("should start EventSource and handle open, error, and message events", function () {
-        const config = { protocol: "http", host: "localhost", port: 8080, path: "", username: "", password: "", allowSelfSigned: true };
+        const config = { protocol: "http", host: "localhost", port: 8080, path: "", username: "", password: "", allowSelfSigned: true, retryTimeout : 0 };
         const connection = new OpenhabConnection(config, MockEventSource, fakeSetTimeout, fakeClearTimeout);
 
         const openSpy = sinon.spy();
@@ -262,7 +256,7 @@ describe("openHABConnection StartEventSource", function () {
         connection.eventSource.onerror("No response");
         expect(errorSpy.calledOnce).to.be.true;
         const errorArgs = errorSpy.lastCall.args;
-        expect(errorArgs, "Right message").to.deep.equal([500, "No response (Retry #1 in 2.5 s)", "Retry #1 in 2.5 s"]);
+        expect(errorArgs, "Right message").to.deep.equal(["No response (Retry #1 in 2.5 s)", "Retry #1 in 2.5 s"]);
         expect(fakeSetTimeout.calledOnce, "setTimeout called").to.be.true;
         expect(connection.retryTimer, "retryTimer set").to.not.be.null;
     });
@@ -290,7 +284,8 @@ describe("openHABConnection StartEventSource", function () {
             connection.eventSource.onerror({ type: { errno: -111, code: "ERRCONREFUSED" } });
             const errorArgs = errorSpy.lastCall.args;
             expect(errorArgs, `onError #${index} called with right parameters`)
-                .to.deep.equal([-111, `ERRCONREFUSED (Retry #${index} in ${delay} s)`, `Retry #${index} in ${delay} s`]);
+                .to.deep.equal([`ERRCONREFUSED (Retry #${index} in ${delay} s)`, `Retry #${index} in ${delay} s`]);
+
             expect(fakeSetTimeout.calledOnce, "setTimeout called").to.be.true;
             expect(connection.retryTimer, "retryTimer set").to.not.be.null;
             expect(connection.eventSource, "EventSource null").to.be.null;

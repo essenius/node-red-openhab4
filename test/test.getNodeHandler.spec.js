@@ -1,4 +1,4 @@
-// Copyright 2025 Rik Essenius
+// Copyright 2025-2026 Rik Essenius
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License. You may obtain a copy of the License at
@@ -11,18 +11,18 @@
 
 "use strict";
 
-const path = require('path');
-const { expect } = require("chai");
-const sinon = require("sinon");
-const getLogicPath = path.join(__dirname, '..', 'lib', 'getLogic.js');
-const { GetNodeHandler } = require(getLogicPath);
+const path = require('node:path');
+const { expect } = require('chai');
+const sinon = require('sinon');
+const getNodeHandlerPath = path.join(__dirname, '..', 'lib', 'getNodeHandler.js');
+const { GetNodeHandler } = require(getNodeHandlerPath);
 
 function createGetNodeHandler({
     controlResult = { ok: true, payload: {} },
     config = {},
     time = "12:34:56"
 } = {}) {
-    const node = { status: sinon.spy(), send: sinon.spy(), on: sinon.spy() };
+    const node = { status: sinon.spy(), send: sinon.spy(), on: sinon.spy(), log: sinon.spy() };
     let controller;
     if (controlResult === null) {
         controller = null;
@@ -36,7 +36,7 @@ function createGetNodeHandler({
     return { getNodeHandler, node, controller };
 }
 
-describe("getLogic handleInput", function () {
+describe("getNodeHandler handleInput", function () {
 
     it("should show version info if no item is specified", async function () {
         const { node, getNodeHandler } = createGetNodeHandler({ controlResult: { ok: true, data: { version: 8, runtimeInfo: { version: "4.3.5" } } } });

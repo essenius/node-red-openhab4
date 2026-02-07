@@ -1,4 +1,4 @@
-// Copyright 2025 Rik Essenius
+// Copyright 2025-2026 Rik Essenius
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License. You may obtain a copy of the License at
@@ -12,7 +12,7 @@
 "use strict";
 
 const { httpRequest, getConnectionString, setDefaults } = require("../lib/connectionUtils");
-const { setupController } = require('../lib/controllerLogic');
+const { setupController } = require('../lib/controllerHandler');
 const { ENDPOINTS } = require("../lib/constants");
 
 /** Handler for the httpAdmin request to get all OpenHAB items. This is used to populate the dropdowns in the controller and other nodes */
@@ -21,19 +21,18 @@ function createItemsHandler() {
         // request.query also contains the credentials, so we can use it to fetch items
         const config = setDefaults(request.query);
         const url = getConnectionString(config) + ENDPOINTS.ITEMS;
-        try {
             const result = await httpRequest(url, config);
+            if (!result.ok) {
+                // if we get an error, we return the error message and status code. 
+                // We need to make sure the errors are valid, so we replace negative numbers by 500.
+                const status = !result.status || result.status < 0 ? 500 : result.status;
+                return response.status(status).send(result.message);
+            }
             if (result.data) {
                 response.send(result.data); // implicitly returns 200 OK
                 return;
             }
             response.sendStatus(204); // No content. This is not expected, but we handle it nonetheless
-        } catch (error) {
-            // if we get an error, we return the error message and status code. 
-            // We need to make sure the errors are valid, so we replace negative numbers by 500.
-            const status = !error.status || error.status < 0 ? 500 : error.status;
-            return response.status(status).send(error.message);
-        }
     };
 }
 
@@ -48,8 +47,8 @@ function controllerModule(RED) {
 
     function createControllerNode(config) {
         RED.nodes.createNode(this, config);
-        const mergedConfig = setDefaults({ ...config, ...(this.credentials || {}) });
-        this.name = config.name || `${config.host}:${config.port}`;
+        const mergedConfig = setDefaults({ ...config, ...(this.credentials) });
+        this.name = config.name || `${mergedConfig.host}:${mergedConfig.port}`;
         this.controller = setupController(this, mergedConfig);
     }
 

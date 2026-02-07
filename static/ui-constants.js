@@ -1,4 +1,4 @@
-// Copyright 2025 Rik Essenius
+// Copyright 2025-2026 Rik Essenius
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License. You may obtain a copy of the License at
@@ -10,7 +10,7 @@
 // See the License for the specific language governing permissions and limitations under the License.
 
 // ensure the namespace exists
-window.OPENHAB4 = window.OPENHAB4 || {};
+globalThis.OPENHAB4 = globalThis.OPENHAB4 || {};
 
 // Attach constants
 ; (function (ns) {
@@ -27,5 +27,5 @@ window.OPENHAB4 = window.OPENHAB4 || {};
         }
         return `openhab4-${nodeType}`;
     };
-})(window.OPENHAB4);
+})(globalThis.OPENHAB4);
 

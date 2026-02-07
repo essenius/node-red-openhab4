@@ -1,4 +1,4 @@
-// Copyright 2025 Rik Essenius
+// Copyright 2025-2026 Rik Essenius
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License. You may obtain a copy of the License at
@@ -11,32 +11,27 @@
 
 "use strict";
 
-const { expect } = require("chai");
-const sinon = require("sinon");
-const proxyquire = require("proxyquire");
-const { ERROR_TYPES, EVENT_TAGS, SWITCH_STATUS } = require('../lib/constants');
+const { expect } = require('chai');
+const sinon = require('sinon');
+const proxyquire = require('proxyquire');
+const { ERROR_TYPES, EVENT_TAGS, EVENT_TYPES, SWITCH_STATUS } = require('../lib/constants');
 const { EventBus } = require('../lib/eventBus');
-const { EventEmitter } = require("events");
+const { EventEmitter } = require('node:events');
 
-describe("controllerLogic.setupControllerHandler", function () {
+function createMockNode() {
+    const node = new EventEmitter();
+
+    node.log = sinon.spy();
+    node.warn = sinon.spy();
+    node.error = sinon.spy();
+    return node;
+}
+
+describe("controllerHandler.setupControllerHandler", function () {
     let controlItemStub, startEventSourceStub, testIfLiveStub, OpenhabConnectionStub, config;
     let bus, mockNode, ControllerHandler, nodeErrorHandlerSpy, globalErrorHandlerSpy, connectionStatusSpy;
 
-    function createMockNode() {
-        const node = new EventEmitter();
 
-        node.log = sinon.spy();
-        node.warn = sinon.spy();
-        node.error = sinon.spy();
-
-        nodeErrorHandlerSpy = sinon.spy();
-        node.on(EVENT_TAGS.NODE_ERROR, nodeErrorHandlerSpy);
-        globalErrorHandlerSpy = sinon.spy();
-        node.on(EVENT_TAGS.GLOBAL_ERROR, globalErrorHandlerSpy);
-        connectionStatusSpy = sinon.spy();
-        node.on(EVENT_TAGS.CONNECTION_STATUS, connectionStatusSpy);
-        return node;
-    }
 
     function setupOpenhabConnectionWithGetItems(getItemsResult, callErrorHandler = false) {
         const getItemsStub = sinon.stub().callsFake(async (errorHandler) => {
@@ -59,13 +54,21 @@ describe("controllerLogic.setupControllerHandler", function () {
 
     beforeEach(() => {
         bus = new EventBus();
-        controlItemStub = sinon.stub().callsFake(async (_itemname, topic, _payload, handler) => {
+
+        nodeErrorHandlerSpy = sinon.spy();
+        bus.subscribe(EVENT_TAGS.NODE_ERROR, nodeErrorHandlerSpy);
+        globalErrorHandlerSpy = sinon.spy();
+        bus.subscribe(EVENT_TAGS.GLOBAL_ERROR, globalErrorHandlerSpy);
+        connectionStatusSpy = sinon.spy();
+        bus.subscribe(EVENT_TAGS.CONNECTION_STATUS, connectionStatusSpy);
+
+        controlItemStub = sinon.stub().callsFake(async (_itemName, topic, _payload, handler) => {
             if (topic === "error") {
                 const result = { ok: false, retry: false, type: ERROR_TYPES.NETWORK, message: "Simulated error" };
                 handler(result);
                 return result;
             }
-            return { ok: true, data: { name: "test", state: "OFF" } };
+            return { ok: true, data: { name: "test", state: SWITCH_STATUS.OFF } };
         });
 
         startEventSourceStub = sinon.stub();
@@ -73,13 +76,13 @@ describe("controllerLogic.setupControllerHandler", function () {
         OpenhabConnectionStub = sinon.stub();
 
         // Stub OpenhabConnection so no real connection is made
-        setupOpenhabConnectionWithGetItems({ ok: true, data: [{ name: "Item1", state: "ON" }] });
+        setupOpenhabConnectionWithGetItems({ ok: true, data: [{ name: "Item1", state: SWITCH_STATUS.ON }] });
 
         mockNode = createMockNode();
 
-        delete require.cache[require.resolve("../lib/controllerLogic")];
+        delete require.cache[require.resolve("../lib/controllerHandler")];
 
-        ({ ControllerHandler } = proxyquire("../lib/controllerLogic", {
+        ({ ControllerHandler } = proxyquire("../lib/controllerHandler", {
             "./openhabConnection": { OpenhabConnection: OpenhabConnectionStub },
         }));
 
@@ -92,7 +95,7 @@ describe("controllerLogic.setupControllerHandler", function () {
 
     it("should log connection info and create OpenhabConnection", function () {
         const mockNode = createMockNode();
-        new ControllerHandler(mockNode, config, bus).setupNode()
+        new ControllerHandler(mockNode, config, bus).setupNode();
         expect(mockNode.log.calledWithMatch("OpenHAB Controller connecting to: http://localhost:8080"), "connecting message").to.be.true;
         expect(mockNode.log.calledWithMatch("OpenHAB is ready, starting EventSource connection..."), "connected message").to.be.true;
         expect(OpenhabConnectionStub.calledOnce).to.be.true;
@@ -104,7 +107,7 @@ describe("controllerLogic.setupControllerHandler", function () {
 
         controllerHandler._onClose(() => { }, () => { });
 
-        // Should call log, emit, and set connection to null
+        // Should call log, publish, and set connection to null
         expect(mockNode.log.calledWithMatch("CONTROLLER CLOSE EVENT")).to.be.true;
         expect(publishSpy.calledOnceWithExactly(EVENT_TAGS.CONNECTION_STATUS, SWITCH_STATUS.OFF)).to.be.true;
         expect(controllerHandler.connection).to.be.null;
@@ -129,13 +132,15 @@ describe("controllerLogic.setupControllerHandler", function () {
         // Wait for async code to run
         await new Promise(resolve => setImmediate(resolve));
         // simulate OnOpen
-        await runEventSourceOnOpenCallback();
+        expect(publishSpy.calledWithMatch(EVENT_TAGS.CONNECTION_STATUS, SWITCH_STATUS.OFF), "Connection status OFF published").to.be.true;
+        publishSpy.resetHistory();
 
+        await runEventSourceOnOpenCallback();
         expect(mockNode.log.calledWithMatch("EventSource connection established"), "Connected to event source").to.be.true;
         expect(startEventSourceStub.calledOnce, "EventSource should be started").to.be.true;
         expect(mockNode.log.calledWithMatch("Getting state of all items"), "Getting items").to.be.true;
-        expect(publishSpy.calledWithMatch('ConnectionStatus', 'ON'), "Connection status ON published").to.be.true;
-        expect(publishSpy.calledWithMatch('items/Item1', sinon.match({ name: 'Item1', state: "ON", event: "ItemStateEvent" })), "Item published").to.be.true;
+        expect(publishSpy.calledWithMatch(EVENT_TAGS.CONNECTION_STATUS, SWITCH_STATUS.ON), "Connection status ON published").to.be.true;
+        expect(publishSpy.calledWithMatch('items/Item1', sinon.match({ name: 'Item1', state: SWITCH_STATUS.ON, event: EVENT_TYPES.ITEM_STATE })), "Item published").to.be.true;
 
         // TODO: extract to separate test
         let clientNode = {
@@ -157,33 +162,25 @@ describe("controllerLogic.setupControllerHandler", function () {
     });
 
     it("should handle error in getItems appropriately", async function () {
-        const emitSpy = sinon.spy(mockNode, 'emit');
 
         const errorGetItemsResult = { ok: false, retry: false, message: "Fake Error" };
+        bus.subscribe(EVENT_TAGS.NODE_ERROR, nodeErrorHandlerSpy);
+        bus.subscribe(EVENT_TAGS.GLOBAL_ERROR, globalErrorHandlerSpy);
+        bus.subscribe(EVENT_TAGS.CONNECTION_STATUS, connectionStatusSpy);
 
         const getItemsStub = setupOpenhabConnectionWithGetItems(errorGetItemsResult, true);
-
-        bus.subscribe(mockNode, EVENT_TAGS.NODE_ERROR);
-        bus.subscribe(mockNode, EVENT_TAGS.GLOBAL_ERROR);
-        bus.subscribe(mockNode, EVENT_TAGS.CONNECTION_STATUS);
 
         const controllerHandler = new ControllerHandler(mockNode, config, bus).setupNode();
 
         await controllerHandler.connection.getItems();
         expect(getItemsStub.calledOnce, "GetItems called").to.be.true;
 
-        // Wait for async code to run
-        //await new Promise(resolve => setImmediate(resolve));
-
         await runEventSourceOnOpenCallback();
 
         controllerHandler._onClose(false, () => { });
         expect(connectionStatusSpy.calledOnceWithExactly('OFF'));
-        expect(emitSpy.calledWithMatch("ConnectionStatus", "OFF"), "ConnectionStatus emitted").to.be.true;
-        expect(emitSpy.calledWithMatch("NodeError", "Fake Error"), "NodeError emitted").to.be.true;
-        expect(emitSpy.calledWithMatch("GlobalError", "Fake Error"), "NodeError emitted").to.be.true;
-        expect(emitSpy.calledWithExactly("ConnectionStatus", "ON"), "No ConnectionStatus ON was emitted").to.be.false;
-        expect(emitSpy.callCount).to.equal(5); // 3 times ConnectionStatus OFF
+        expect(nodeErrorHandlerSpy.calledOnceWithMatch("Fake Error"), "NodeError emitted").to.be.true;
+        expect(globalErrorHandlerSpy.calledOnceWithMatch("Fake Error"), "GlobalError emitted").to.be.true;
     });
 
     async function runEventSourceOnErrorCallback(message, shortMessage) {
@@ -255,9 +252,9 @@ describe("controllerLogic.setupControllerHandler", function () {
 
             controllerHandler._handleMessage(message);
             expect(publishSpy.calledWith(
-                    "items/Item1",
-                    sinon.match({ topic: "openhab/items/Item1/StateEvent", name: "Item1", fullName: "items/Item1", payload: { value: "ON" }})
-                ),
+                "items/Item1",
+                sinon.match({ topic: "openhab/items/Item1/StateEvent", name: "Item1", fullName: "items/Item1", payload: { value: "ON" } })
+            ),
                 "Item Event emitted").to.be.true;
         });
 
@@ -267,11 +264,44 @@ describe("controllerLogic.setupControllerHandler", function () {
             expect(publishSpy.callCount).to.equal(0);
         });
 
+        it("should not emit null message", function () {
+            publishSpy.resetHistory();
+            controllerHandler._handleMessage(null);
+            expect(publishSpy.callCount).to.equal(0);
+        });
+
         it("should raise an error and emit an error for invalid JSON", function () {
             controllerHandler._handleMessage({ data: "This is not a valid JSON string" });
             expect(publishSpy.calledWith("GlobalError", "Failed to parse event as JSON: This is not a valid JSON string"));
         });
 
+        it("should ignore messages not starting with openhab or smarthome", function () {
+            const message = {
+                data: JSON.stringify({
+                    type: "ItemStateEvent",
+                    topic: "bogus/items/Item1/StateEvent",
+                    payload: JSON.stringify({ value: 'ON' })
+                })
+            };
+            publishSpy.resetHistory();
+            controllerHandler._handleMessage(message);
+            console.log(publishSpy.args);
+            expect(publishSpy.callCount).to.equal(0);
+        });
+
+        it("should ignore messages not having all of type, topic and payload", function () {
+            const message = {
+                data: JSON.stringify({
+                    topic: "bogus/items/Item1/state",
+                    payload: JSON.stringify({ value: 'ON' })
+                })
+            };
+            publishSpy.resetHistory();
+            controllerHandler._handleMessage(message);
+            console.log(publishSpy.args);
+            expect(publishSpy.callCount).to.equal(0);
+        });
+        
         const testCases =
             [
                 {

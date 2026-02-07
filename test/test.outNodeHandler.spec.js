@@ -1,4 +1,4 @@
-// Copyright 2025 Rik Essenius
+// Copyright 2025-2026 Rik Essenius
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License. You may obtain a copy of the License at
@@ -11,11 +11,11 @@
 
 "use strict";
 
-const path = require('path');
-const { expect } = require("chai");
-const sinon = require("sinon");
-const outLogicPath = path.join(__dirname, '..', 'lib', 'outLogic.js');
-const { OutNodeHandler } = require(outLogicPath);
+const path = require('node:path');
+const { expect } = require('chai');
+const sinon = require('sinon');
+const outNodeHandlerPath = path.join(__dirname, '..', 'lib', 'outNodeHandler.js');
+const { OutNodeHandler } = require(outNodeHandlerPath);
 
 
 function createOutNodeHandler({
@@ -30,7 +30,7 @@ function createOutNodeHandler({
     return { outNodeHandler, node, controller };
 }
 
-describe("outLogic", function () {
+describe("outNodeHandler", function () {
 
     it("should set state on successful send", async function () {
         const { outNodeHandler, node } = createOutNodeHandler({});
@@ -55,7 +55,7 @@ describe("outLogic", function () {
     it ("should show an error if control fails", async function () {
         const { outNodeHandler, node } = createOutNodeHandler(
             { controlResult: {ok: false, retry: false, message: "Simulated error"}, 
-              config: { itemname: "testItem", topic: "testTopic", payload: "testPayload" }});
+              config: { itemName: "testItem", topic: "testTopic", payload: "testPayload" }});
 
         const msg = { payload: "test" }; // should be overridden by config
 

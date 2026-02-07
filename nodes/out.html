@@ -1,5 +1,5 @@
 <!--
- Copyright 2025 Rik Essenius
+ Copyright 2025-2026 Rik Essenius
 
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License. You may obtain a copy of the License at
@@ -25,8 +25,8 @@
         <input type="text" id="node-input-item-filter" placeholder="Type to filter...">
     </div>
     <div class="form-row">
-        <label for="node-input-itemname"><i class="fa fa-crosshairs"></i> Item Name</label>
-    	<select id="node-input-itemname" name="node-input-itemname">
+        <label for="node-input-itemName"><i class="fa fa-crosshairs"></i> Item Name</label>
+    	<select id="node-input-itemName" name="node-input-itemName">
     	</select>
     </div>
     <div class="form-row">
@@ -109,11 +109,11 @@
 <script type="text/javascript">
     RED.nodes.registerType('openhab4-out', {
         category: 'home automation',
-        color: window.OPENHAB4.NODE_COLOR,
+        color: globalThis.OPENHAB4.NODE_COLOR,
         defaults: {
             name: { value: "" },
             controller: { value: "", type: "openhab4-controller", required: true },
-            itemname: { value: "", required: false },
+            itemName: { value: "", required: false },
             topic: { value: "ItemUpdate", required: false },
             payload: { value: "", required: false }
         },
@@ -123,7 +123,7 @@
         icon: "openhab4-logo-out.svg",
         paletteLabel: "openhab4-out",
         label: function () {
-            return window.OPENHAB4.generateNodeName('out', this.name, this.itemname);
+            return globalThis.OPENHAB4.generateNodeName('out', this.name, this.itemName);
         },
         oneditprepare: function () {
             openhabEditPrepare(this, "[No Item]");

@@ -1,5 +1,5 @@
 <!--
- Copyright 2025 Rik Essenius
+ Copyright 2025-2026 Rik Essenius
 
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License. You may obtain a copy of the License at
@@ -34,8 +34,8 @@
         <input type="text" id="node-input-item-filter" placeholder="Type to filter...">
     </div>
     <div class="form-row">
-        <label for="node-input-itemname"><i class="fa fa-crosshairs"></i> Item Name</label>
-        <select id="node-input-itemname" name="node-input-itemname" style="width: 70%; height: auto; appearance: menulist;"></select>
+        <label for="node-input-itemName"><i class="fa fa-crosshairs"></i> Item Name</label>
+        <select id="node-input-itemName" name="node-input-itemName" style="width: 70%; height: auto; appearance: menulist;"></select>
     </div>
 </script>
 
@@ -101,11 +101,11 @@
 <script type="text/javascript">
     RED.nodes.registerType('openhab4-get', {
         category: 'home automation',
-        color: window.OPENHAB4.NODE_COLOR,
+        color: globalThis.OPENHAB4.NODE_COLOR,
         defaults: {
-            name: { value: "" },
+            name: { value: "", required: false },
             controller: { value: "", type: "openhab4-controller", required: true },
-            itemname: { value: "", required: false }
+            itemName: { value: "", required: false }
         },
         inputs: 1,
         outputs: 1,
@@ -113,7 +113,7 @@
         icon: "openhab4-logo-get.svg",
         paletteLabel: "openhab4-get",
         label: function () {
-            return window.OPENHAB4.generateNodeName('get', this.name, this.itemname);
+            return globalThis.OPENHAB4.generateNodeName('get', this.name, this.itemName);
         },
         oneditprepare: function () {
             openhabEditPrepare(this, "[Test Connection]");

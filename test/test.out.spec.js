@@ -1,4 +1,4 @@
-// Copyright 2025 Rik Essenius
+// Copyright 2025-2026 Rik Essenius
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License. You may obtain a copy of the License at
@@ -25,7 +25,7 @@ const controllerNode = function (RED) {
       unsubscribe: sinon.spy()
     };
     this.handler = {
-      control: sinon.spy((_itemname, _topic, _payload) => { return "OK"; })
+      control: sinon.spy((_itemName, _topic, _payload) => { return "OK"; })
     };
     RED.nodes.createNode(this, config);
     // Spy/stub for the control method

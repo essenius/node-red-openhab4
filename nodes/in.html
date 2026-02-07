@@ -1,5 +1,5 @@
 <!--
- Copyright 2025 Rik Essenius
+ Copyright 2025-2026 Rik Essenius
 
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License. You may obtain a copy of the License at
@@ -28,13 +28,13 @@
         <input type="text" id="node-input-item-filter" placeholder="Type to filter...">
     </div>
     <div class="form-row">
-        <label for="node-input-itemname"><i class="fa fa-crosshairs"></i> Item Name</label>
-    	<select id="node-input-itemname" name="node-input-itemname">
+        <label for="node-input-itemName"><i class="fa fa-crosshairs"></i> Item Name</label>
+    	<select id="node-input-itemName" name="node-input-itemName">
     	</select>
     </div>
         <div class="form-row">
-        <label for="node-input-changesonly"><i class="fa fa-refresh"></i> Changes only</label>
-    	<input type="checkbox" id="node-input-changesonly" name="node-input-changesonly">
+        <label for="node-input-changesOnly"><i class="fa fa-refresh"></i> Changes only</label>
+    	<input type="checkbox" id="node-input-changesOnly" name="node-input-changesOnly">
     	</select>
     </div>
 </script>
@@ -85,12 +85,12 @@
 <script type="text/javascript">
     RED.nodes.registerType('openhab4-in', {
         category: 'home automation',
-        color: window.OPENHAB4.NODE_COLOR,
+        color: globalThis.OPENHAB4.NODE_COLOR,
         defaults: {
-            name: { value: "" },
+            name: { value: "", required: false },
             controller: { value: "", type: "openhab4-controller", required: true },
-            itemname: { value: "", required: true },
-            changesonly: { value: true, required: true }
+            itemName: { value: "", required: true },
+            changesOnly: { value: true, required: true }
         },
         inputs: 0,
         outputs: 1,
@@ -98,7 +98,7 @@
         icon: "openhab4-logo-in.svg",
         paletteLabel: "openhab4-in",
         label: function () {
-            return window.OPENHAB4.generateNodeName('in', this.name, this.itemname);
+            return globalThis.OPENHAB4.generateNodeName('in', this.name, this.itemName);
         },
         oneditprepare: function () {
             openhabEditPrepare(this, "Select item...");

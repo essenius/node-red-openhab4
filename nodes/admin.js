@@ -1,4 +1,4 @@
-// Copyright 2025 Rik Essenius
+// Copyright 2025-2026 Rik Essenius
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License. You may obtain a copy of the License at
@@ -11,10 +11,10 @@
 
 "use strict";
 
-const path = require("path");
+const path = require("node:path");
 const express = require("express");   // <— pull in express
 
-module.exports = function(RED) {
+function registerOpenHabAdminSite(RED) {
   // 1) compute the folder that holds your JS (one level up into /static)
   const staticPath = path.join(__dirname, "..", "static");
 
@@ -23,3 +23,5 @@ module.exports = function(RED) {
 
   // any other admin‐side setup…  
 };
+
+module.exports = registerOpenHabAdminSite;

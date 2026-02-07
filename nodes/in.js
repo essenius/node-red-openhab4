@@ -1,4 +1,4 @@
-// Copyright 2025 Rik Essenius
+// Copyright 2025-2026 Rik Essenius
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License. You may obtain a copy of the License at
@@ -11,9 +11,9 @@
 
 "use strict";
 
-const { setupInNode } = require('../lib/inLogic');
+const { setupInNode } = require('../lib/inNodeHandler');
 
-module.exports = function(RED) {
+function registerOpenHabInNode(RED) {
     function createInNode(config) {
         RED.nodes.createNode(this, config);
         const controller = RED.nodes.getNode(config.controller);
@@ -22,3 +22,5 @@ module.exports = function(RED) {
 
     RED.nodes.registerType("openhab4-in", createInNode);
 };
+
+module.exports = registerOpenHabInNode;

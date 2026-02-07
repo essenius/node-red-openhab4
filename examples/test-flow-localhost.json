@@ -12,7 +12,7 @@
     "z": "test-flow-tab",
     "name": "",
     "controller": "controller-node",
-    "itemname": "TestItem",
+    "itemName": "TestItem",
     "x": 100,
     "y": 200,
     "wires": [
@@ -30,7 +30,7 @@
     "z": "test-flow-tab",
     "name": "",
     "controller": "controller-node",
-    "itemname": "TestItem",
+    "itemName": "TestItem",
     "x": 290,
     "y": 300,
     "wires": [
@@ -44,7 +44,7 @@
     "type": "openhab4-out",
     "z": "test-flow-tab",
     "controller": "controller-node",
-    "itemname": "TestItem",
+    "itemName": "TestItem",
     "topic": "",
     "payload": "",
     "x": 350,

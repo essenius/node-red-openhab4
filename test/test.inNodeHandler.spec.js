@@ -1,4 +1,4 @@
-// Copyright 2025 Rik Essenius
+// Copyright 2025-2026 Rik Essenius
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License. You may obtain a copy of the License at
@@ -14,10 +14,11 @@
 const path = require('node:path');
 const { expect } = require("chai");
 const sinon = require("sinon");
-const inLogicPath = path.join(__dirname, '..', 'lib', 'inLogic.js');
-const { InNodeHandler } = require(inLogicPath);
+const inNodeHandlerPath = path.join(__dirname, '..', 'lib', 'inNodeHandler.js');
+const { InNodeHandler } = require(inNodeHandlerPath);
+const {EVENT_TYPES, SWITCH_STATUS } = require('../lib/constants');
 
-describe("inLogic", function () {
+describe("inNodeHandler", function () {
 
     it("should setup the right handlers and send the right messages", async function () {
         const contextStore = {};
@@ -28,21 +29,24 @@ describe("inLogic", function () {
             send: sinon.spy(), 
             on: sinon.spy(),
             off: sinon.spy(),
+            log: sinon.spy(),
             context: () => ({
                 set: (key, value) => { contextStore[key] = value; },
                 get: (key) => contextStore[key]
             })
         };
-        const config = { itemname: "testItem" };
+        const config = { itemName: "testItem" };
 
         const eventBus = {
             publish: sinon.spy(),
             subscribe: sinon.spy(),
             unsubscribe: sinon.spy()
-        }
+        };
+
+        const handler = { eventBus: eventBus };
 
         const controller = {
-            eventBus: eventBus,
+            handler: handler,
             on: sinon.spy(),
             off: sinon.spy()
         };
@@ -55,26 +59,29 @@ describe("inLogic", function () {
 
         inNodeHandler.setupNode();
 
-        // node.on called for ConnectionStatus, NodeError, close and items/TestItem (no input)
-        expect(node.on.callCount, "node.on called 4 times").to.equal(4);
+        // node.on called for close
+        expect(node.on.calledOnce, "node.on called once").to.be.true;
+        // subscribe called for ConnectionStatus, NodeError, items/TestItem (no input)
+        expect(eventBus.subscribe.callCount).to.equal(3, "Subscribe called 3 times");
 
-        inNodeHandler._processEvent({ name: "testItem", type: "StateEvent", payload: { value: "ON" }});
-        expect(node.send.firstCall.args[0]).to.deep.include({ payload: 'ON', topic: 'StateEvent', name: "testItem", item: "testItem" }, "First incoming message sent out");
+        inNodeHandler._processEvent({ name: "testItem", type: EVENT_TYPES.ITEM_STATE, payload: { value: SWITCH_STATUS.ON }});
+        expect(node.send.firstCall.args[0]).to.deep.include({ payload: SWITCH_STATUS.ON, topic: EVENT_TYPES.ITEM_STATE, name: "testItem", item: "testItem" }, "First incoming message sent out");
 
         node.send.resetHistory();
-        inNodeHandler._processEvent({ name: "testItem", type: "StateEvent", payload: { value: "ON", type: "OnOff" }});
-        expect(node.send.called, "send not called again when payload not changed (despite type is now sent too)").to.be.false;
+        inNodeHandler._processEvent({ name: "testItem", type: EVENT_TYPES.ITEM_STATE, payload: { value: SWITCH_STATUS.ON, type: "OnOff" }});
+        expect(node.send.notCalled, "send not called again when payload not changed (despite type is now sent too)").to.be.true;
 
-        inNodeHandler._processEvent({ name: "testItem", type: "StateEvent", payload: { value: "OFF", type: "OnOff" }});
-        expect(node.send.firstCall.args[0]).to.deep.include({ payload: 'OFF', topic: 'StateEvent', name: "testItem", item: "testItem", type: "OnOff" }, "Message with different value does get sent");
+        inNodeHandler._processEvent({ name: "testItem", type: EVENT_TYPES.ITEM_STATE, payload: { value: SWITCH_STATUS.OFF, type: "OnOff" }});
+        expect(node.send.firstCall.args[0]).to.deep.include({ payload:  SWITCH_STATUS.OFF, topic: EVENT_TYPES.ITEM_STATE, name: "testItem", item: "testItem", type: "OnOff" }, "Message with different value does get sent");
 
+        eventBus.unsubscribe.resetHistory();
         inNodeHandler.cleanup();
-        expect(node.off.calledOnce, "node.off called once").to.be.true;
+        expect(eventBus.unsubscribe.calledOnce, "unsubscribe called once").to.be.true;
     });
 
 
     it("should not setup logic if error is set", async function () {
-        const node = { status: sinon.spy(), send: sinon.spy(), on: sinon.spy(), off: sinon.spy() };
+        const node = { status: sinon.spy(), send: sinon.spy(), on: sinon.spy(), off: sinon.spy(), log: sinon.spy() };
         const config = {};
 
         // force an error by having no controller

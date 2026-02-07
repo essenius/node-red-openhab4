@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-// Copyright 2025 Rik Essenius
+// Copyright 2025-2026 Rik Essenius
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License. You may obtain a copy of the License at
@@ -13,8 +13,8 @@
 
 // Script to generate test-flow.json with environment-specific configuration
 
-const fs = require('fs');
-const path = require('path');
+const fs = require('node:fs');
+const path = require('node:path');
 
 // Get configuration from environment variables or use defaults
 const config = {
@@ -39,12 +39,12 @@ const testFlow = [
         "z": "test-flow-tab",
         "name": "",
         "controller": "controller-node",
-        "itemname": config.testItem,
+        "itemName": config.testItem,
+        "changesOnly": true,
         "x": 100,
         "y": 200,
         "wires": [
-            ["debug-state"],
-            ["debug-raw"]
+            ["debug-in"]
         ]
     },
     {
@@ -53,7 +53,7 @@ const testFlow = [
         "z": "test-flow-tab",
         "name": "",
         "controller": "controller-node",
-        "itemname": config.testItem,
+        "itemName": config.testItem,
         "x": 290,
         "y": 300,
         "wires": [
@@ -65,7 +65,7 @@ const testFlow = [
         "type": "openhab4-out",
         "z": "test-flow-tab",
         "controller": "controller-node",
-        "itemname": config.testItem,
+        "itemName": config.testItem,
         "topic": "",
         "payload": "",
         "x": 350,
@@ -79,6 +79,7 @@ const testFlow = [
         "type": "openhab4-events",
         "z": "test-flow-tab",
         "controller": "controller-node",
+        "filter": "items/*",
         "x": 100,
         "y": 400,
         "wires": [
@@ -95,8 +96,7 @@ const testFlow = [
         "y": 600,
         "wires": [
             ["debug-health-status"],
-            ["debug-health-error"],
-            ["debug-health-raw"]
+            ["debug-health-error"]
         ]
     },
     {
@@ -176,10 +176,10 @@ const testFlow = [
         ]
     },
     {
-        "id": "debug-state",
+        "id": "debug-in",
         "type": "debug",
         "z": "test-flow-tab",
-        "name": "Debug In Channel 1",
+        "name": "Debug In",
         "active": true,
         "tosidebar": true,
         "console": false,
@@ -188,25 +188,8 @@ const testFlow = [
         "targetType": "full",
         "statusVal": "",
         "statusType": "auto",
-        "x": 320,
-        "y": 180,
-        "wires": []
-    },
-    {
-        "id": "debug-raw",
-        "type": "debug",
-        "z": "test-flow-tab",
-        "name": "Debug In Channel 2",
-        "active": true,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "true",
-        "targetType": "full",
-        "statusVal": "",
-        "statusType": "auto",
-        "x": 320,
-        "y": 220,
+        "x": 280,
+        "y": 200,
         "wires": []
     },
     {
@@ -295,30 +278,15 @@ const testFlow = [
         "wires": []
     },
     {
-        "id": "debug-health-raw",
-        "type": "debug",
-        "z": "test-flow-tab",
-        "name": "Debug Health Raw",
-        "active": true,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "true",
-        "targetType": "full",
-        "statusVal": "",
-        "statusType": "auto",
-        "x": 340,
-        "y": 660,
-        "wires": []
-    },
-    {
         "id": "controller-node",
         "type": "openhab4-controller",
         "z": "test-flow-tab",
         "name": "openhab4",
         "protocol": config.protocol,
         "host": config.host,
-        "port": config.port
+        "port": config.port,
+        "eventFilter": "*",
+        "allowSelfSigned": false
     }
 ];
 

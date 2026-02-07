@@ -1,4 +1,4 @@
-// Copyright 2025 Rik Essenius
+// Copyright 2025-2026 Rik Essenius
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License. You may obtain a copy of the License at
@@ -14,92 +14,129 @@
 const { expect } = require("chai");
 const sinon = require("sinon");
 
-function expectOneErrorEvent(node, label) {
-    expect(node.emit.calledWith("Error", "Connection broken"), label + " notified with right parameters").to.be.true;
-    expect(node.emit.calledOnce, label + " notified once").to.be.true;
-}
-
 describe("eventBus single tag subscribe", function () {
 
     const { EventBus } = require("../lib/eventBus");
 
-    const createNode = () => ({ emit: sinon.spy() });
-
-    const [exactMatchNode1, exactMatchNode2, regexNode1, regexNode2, regexNode3] = Array.from({ length: 5 }, createNode);
+    const exactMatchCallback1 = sinon.spy();
+    const exactMatchCallback2 = sinon.spy();
+    const regexCallback1 = sinon.spy();
+    const regexCallback2 = sinon.spy();
+    const regexCallback3 = sinon.spy();
 
     let eventBus;
 
     beforeEach(function () {
         eventBus = new EventBus();
-        eventBus.subscribe(exactMatchNode1, "items/testItem1");
-        eventBus.subscribe(exactMatchNode2, "items/testItem2");
-        eventBus.subscribe(exactMatchNode1, "items/anotherTestItem");
-        eventBus.subscribe(regexNode1, "items/test*");
-        eventBus.subscribe(regexNode2, "*");
-        eventBus.subscribe(regexNode3, "things/*");
-        exactMatchNode1.emit.resetHistory();
-        exactMatchNode2.emit.resetHistory();
-        regexNode1.emit.resetHistory();
-        regexNode2.emit.resetHistory();
-        regexNode3.emit.resetHistory();
+        eventBus.subscribe("items/testItem1", exactMatchCallback1);
+        eventBus.subscribe("items/testItem2", exactMatchCallback2);
+        eventBus.subscribe("items/anotherTestItem", exactMatchCallback1);
+        eventBus.subscribe("items/test*", regexCallback1);
+        eventBus.subscribe("*", regexCallback2);
+        eventBus.subscribe("things/*", regexCallback3);
+        exactMatchCallback1.resetHistory();
+        exactMatchCallback2.resetHistory();
+        regexCallback1.resetHistory();
+        regexCallback2.resetHistory();
+        regexCallback3.resetHistory();
     });
 
     it("should successfully notify nodes of testItem1", function () {
         eventBus.publish("items/testItem1", "Payload1");
-        expect(exactMatchNode1.emit.calledWith("items/testItem1", "Payload1"), "exact node 1 notified").to.be.true;
-        expect(exactMatchNode2.emit.notCalled, "exact node 2 not notified").to.be.true;
-        expect(regexNode1.emit.calledWith("items/testItem1", "Payload1"), "regex node 1 notified").to.be.true;
-        expect(regexNode2.emit.calledWith("items/testItem1", "Payload1"), "regex node 2 notified").to.be.true;
-        expect(regexNode3.emit.notCalled, "regex node 3 not notified").to.be.true;
+        expect(exactMatchCallback1.calledWith("Payload1"), "exact node 1 notified").to.be.true;
+        expect(exactMatchCallback2.notCalled, "exact node 2 not notified").to.be.true;
+        expect(regexCallback1.calledWith("Payload1"), "regex node 1 notified").to.be.true;
+        expect(regexCallback2.calledWith("Payload1"), "regex node 2 notified").to.be.true;
+        expect(regexCallback3.notCalled, "regex node 3 not notified").to.be.true;
     });
 
     it("should successfully notify nodes of testItem2", function () {
         eventBus.publish("items/testItem2", "Payload2");
-        expect(exactMatchNode1.emit.notCalled, "exact node 1 not notified").to.be.true;
-        expect(exactMatchNode2.emit.calledWith("items/testItem2", "Payload2"), "exact node 2 notified").to.be.true;
-        expect(regexNode1.emit.calledWith("items/testItem2", "Payload2"), "regex node 1 notified").to.be.true;
-        expect(regexNode2.emit.calledWith("items/testItem2", "Payload2"), "regex node 2 notified").to.be.true;
-        expect(regexNode3.emit.notCalled, "regex node 3 not notified").to.be.true;
+        expect(exactMatchCallback1.notCalled, "exact node 1 not notified").to.be.true;
+        expect(exactMatchCallback2.calledWith("Payload2"), "exact node 2 notified").to.be.true;
+        expect(regexCallback1.calledWith("Payload2"), "regex node 1 notified").to.be.true;
+        expect(regexCallback2.calledWith("Payload2"), "regex node 2 notified").to.be.true;
+        expect(regexCallback3.notCalled, "regex node 3 not notified").to.be.true;
     });
 
     it("should successfully notify nodes of anotherTestItem", function () {
         eventBus.publish("items/anotherTestItem", "Payload3");
-        expect(exactMatchNode1.emit.calledWith("items/anotherTestItem", "Payload3"), "exact node 1 notified").to.be.true;
-        expect(exactMatchNode2.emit.notCalled, "exact node 2 not notified").to.be.true;
-        expect(regexNode1.emit.notCalled, "regex node 1 not notified").to.be.true;
-        expect(regexNode2.emit.calledWith("items/anotherTestItem", "Payload3"), "regex node 2 notified").to.be.true;
-        expect(regexNode3.emit.notCalled, "regex node 3 not notified").to.be.true;
+        expect(exactMatchCallback1.calledWith("Payload3"), "exact node 1 notified").to.be.true;
+        expect(exactMatchCallback2.notCalled, "exact node 2 not notified").to.be.true;
+        expect(regexCallback1.notCalled, "regex node 1 not notified").to.be.true;
+        expect(regexCallback2.calledWith("Payload3"), "regex node 2 notified").to.be.true;
+        expect(regexCallback3.notCalled, "regex node 3 not notified").to.be.true;
     });
 
-    it("should not allow multiple subscriptions to the same tag", function () {
-        eventBus.subscribe(exactMatchNode1, "items/testItem1");
+    it("should not allow multiple subscriptions to the same tag with the same callback", function () {
+        eventBus.subscribe("items/testItem1", exactMatchCallback1);
         eventBus.publish("items/testItem1", "Payload4");
-        expect(exactMatchNode1.emit.callCount).to.equal(1, "exact node 1 notified once");
-        expect(exactMatchNode1.emit.calledWith("items/testItem1", "Payload4"), "exact node 1 notified").to.be.true;
-        eventBus.unsubscribe(exactMatchNode1, "items/testItem1");
-        exactMatchNode1.emit.resetHistory();
+        expect(exactMatchCallback1.callCount).to.equal(1, "exact node 1 notified once");
+        expect(exactMatchCallback1.calledWith("Payload4"), "exact node 1 notified").to.be.true;
+        eventBus.unsubscribe("items/testItem1", exactMatchCallback1);
+        exactMatchCallback1.resetHistory();
         eventBus.publish("items/testItem1", "Payload5");
-        expect(exactMatchNode1.emit.notCalled, "exact node 1 not notified as unsubscribed").to.be.true;
-        expect(regexNode1.emit.calledWith("items/testItem1", "Payload5"), "regex node 1 notified").to.be.true;
+        expect(exactMatchCallback1.notCalled, "exact node 1 not notified as unsubscribed").to.be.true;
+        expect(regexCallback1.calledWith("Payload5"), "regex node 1 notified").to.be.true;
+    });
+
+    function testMultipleSubscriptions(eventBus, {
+        pattern,
+        baseCallback,
+        payload,
+        label
+    }) {
+        const extraCallback = sinon.spy();
+
+        eventBus.subscribe(pattern, extraCallback);
+        eventBus.publish("items/testItem1", payload);
+
+        expect(baseCallback.calledWith(payload), `${label} base notified`).to.be.true;
+        expect(extraCallback.calledWith(payload), `${label} extra notified`).to.be.true;
+
+        baseCallback.resetHistory();
+        extraCallback.resetHistory();
+
+        eventBus.unsubscribe(pattern, baseCallback);
+        eventBus.publish("items/testItem1", payload);
+
+        expect(baseCallback.notCalled, `${label} base unsubscribed`).to.be.true;
+        expect(extraCallback.calledWith(payload), `${label} extra still notified`).to.be.true;
+
+        extraCallback.resetHistory();
+        
+        eventBus.unsubscribe(pattern, extraCallback);
+        eventBus.publish("items/testItem1", payload);
+
+        expect(baseCallback.notCalled, `${label} base not called after final unsubscribe`).to.be.true;
+        expect(extraCallback.notCalled, `${label} extra not called after final unsubscribe`).to.be.true;
+    }
+
+    it("should allow multiple exact subscriptions to the same tag with a different callback", function () {
+        testMultipleSubscriptions(eventBus, {
+            pattern: "items/testItem1",
+            baseCallback: exactMatchCallback1,
+            payload: "Payload6",
+            label: "exact"
+        });
+    });
+
+    it("should allow multiple regex subscriptions to the same tag with a different callback", function () {
+        testMultipleSubscriptions(eventBus, {
+            pattern: "items/test*",
+            baseCallback: regexCallback1,
+            payload: "Payload7",
+            label: "regex"
+        });
     });
 
     it("should unsubscribe correctly", function () {
-        eventBus.unsubscribe(regexNode1, "*/bogus");
-        eventBus.publish("items/testQ", "Payload6");
-        expect(regexNode1.emit.callCount).to.equal(1, "regex node 1 still notified after bogus unsubscribe");
-        eventBus.unsubscribe(regexNode1, "items/test*");
-        regexNode1.emit.resetHistory();
-        eventBus.publish("items/testQ", "Payload6");
-        expect(regexNode1.emit.notCalled, "regex node 1 not notified after unsubscribe").to.be.true;
-    });
-
-    // TODO: eliminate
-    it("should broadcast correctly", function () {
-        eventBus.broadcastToAll("Error", "Connection broken");
-        expectOneErrorEvent(exactMatchNode1, "exactMatchNode1");
-        expectOneErrorEvent(exactMatchNode2, "exactMatchNode2");
-        expectOneErrorEvent(regexNode1, "regexNode1");
-        expectOneErrorEvent(regexNode2, "regexNode2");
-        expectOneErrorEvent(regexNode3, "regexNode3");
+        eventBus.unsubscribe("*/bogus", regexCallback1);
+        eventBus.publish("items/testQ", "Payload7");
+        expect(regexCallback1.callCount).to.equal(1, "regex node 1 still notified after bogus unsubscribe");
+        eventBus.unsubscribe("items/test*", regexCallback1);
+        regexCallback1.resetHistory();
+        eventBus.publish("items/testQ", "Payload7");
+        expect(regexCallback1.notCalled, "regex node 1 not notified after unsubscribe").to.be.true;
     });
 });

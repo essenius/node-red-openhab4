@@ -1,5 +1,5 @@
 <!--
- Copyright 2025 Rik Essenius
+ Copyright 2025-2026 Rik Essenius
 
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License. You may obtain a copy of the License at
@@ -76,11 +76,11 @@
 <script type="text/javascript">
     RED.nodes.registerType('openhab4-events', {
         category: 'home automation',
-        color: window.OPENHAB4.NODE_COLOR,
+        color: globalThis.OPENHAB4.NODE_COLOR,
         defaults: {
-            name: { value: "" },
+            name: { value: "", required: false },
             controller: { value: "", type: "openhab4-controller", required: true },
-            filter: { value: "items/*",required: false }
+            filter: {value: "items/*", required: true }
         },
         inputs: 0,
         outputs: 1,
@@ -88,7 +88,7 @@
         icon: "openhab4-logo-events.svg",
         paletteLabel: "openhab4-events",
         label: function () {
-            return window.OPENHAB4.generateNodeName('events', this.name, null);
+            return globalThis.OPENHAB4.generateNodeName('events', this.name, null);
         },
         oneditprepare: function () {
         }

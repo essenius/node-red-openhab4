@@ -1,4 +1,4 @@
-// Copyright 2025 Rik Essenius
+// Copyright 2025-2026 Rik Essenius
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License. You may obtain a copy of the License at
@@ -11,22 +11,21 @@
 
 const helper = require("node-red-node-test-helper");
 const inNode = require("../nodes/in.js");
+const { EventBus } = require("../lib/eventBus.js");
 const { expect } = require("chai");
 const sinon = require("sinon");
+const { EVENT_TYPES, SWITCH_STATUS } = require("../lib/constants.js");
 
-// Enhanced mock controller node
+
+const eventBus = new EventBus();
+
 const controllerNode = function (RED) {
   function ControllerNode(config) {
-    this.eventBus = {
-      publish: sinon.spy(),
-      subscribe: sinon.spy(),
-      unsubscribe: sinon.spy()
-    };
-    this.handler = {
-      control: sinon.spy((_itemname, _topic, _payload) => { return "OK"; })
-    };
     RED.nodes.createNode(this, config);
-    // Spy/stub for the control method
+    this.handler = {
+      control: sinon.spy((_itemName, _topic, _payload) => { return "OK"; }),
+      eventBus: eventBus,
+    };
   }
 
   RED.nodes.registerType("openhab4-controller", ControllerNode);
@@ -40,23 +39,25 @@ describe("openhab4-in node", function () {
     it("should emit a message when an openHAB event is received", function (done) {
         const flow = [
             { id: "controller1", type: "openhab4-controller", name: "Test Controller" },
-            { id: "in1", type: "openhab4-in", controller: "controller1", itemname: "TestItem", wires: [["helper1"]] },
+            { id: "in1", type: "openhab4-in", controller: "controller1", itemName: "TestItem", wires: [["helper1"]] },
             { id: "helper1", type: "helper" }
         ];
 
         helper.load([controllerNode, inNode], flow, function () {
             const helperNode = helper.getNode("helper1");
-            const inNode = helper.getNode("in1");
+            const controller = helper.getNode("controller1");
+
             helperNode.on("input", function (msg) {
                 try {
-                    console.log(msg);
-                    expect(msg.payload).to.equal("OFF");
+                    expect(msg).to.deep.include({payload: SWITCH_STATUS.OFF, type: "OnOff", name: "TestItem", item: "TestItem", topic: "ItemStateEvent", 
+                      rawEvent: { type: EVENT_TYPES.ITEM_STATE, name: 'TestItem', payload: { value: SWITCH_STATUS.OFF, type: "OnOff"}}}, "Right message sent");                  
                     done();
                 } catch (err) {
                     done(err); 
                 }
             });
-            inNode.emit("items/TestItem", { type: "ItemStateEvent", name: "TestItem", payload: { value: "OFF", type: "OnOff" } });
+
+            controller.handler.eventBus.publish("items/TestItem", { type: "ItemStateEvent", name: "TestItem", payload: { value: "OFF", type: "OnOff" } });
         });
 
     });

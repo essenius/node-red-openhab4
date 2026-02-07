@@ -1,4 +1,4 @@
-// Copyright 2025 Rik Essenius
+// Copyright 2025-2026 Rik Essenius
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License. You may obtain a copy of the License at
@@ -11,13 +11,13 @@
 
 "use strict";
 
-const path = require('path');
+const path = require('node:path');
 const { expect } = require("chai");
 const sinon = require("sinon");
-const healthLogicPath = path.join(__dirname, '..', 'lib', 'healthLogic.js');
-const { HealthNodeHandler } = require(healthLogicPath);
+const healthNodeHandlerPath = path.join(__dirname, '..', 'lib', 'healthNodeHandler.js');
+const { HealthNodeHandler } = require(healthNodeHandlerPath);
 
-describe("healthLogic", function () {
+describe("healthNodeHandler", function () {
 
     it("should setup the right handlers and send the right messages", async function () {
 
@@ -27,6 +27,7 @@ describe("healthLogic", function () {
             send: sinon.spy(), 
             on: sinon.spy(),
             off: sinon.spy(),
+            log: sinon.spy(),
         };
         const config = { };
 
@@ -34,31 +35,32 @@ describe("healthLogic", function () {
             publish: sinon.spy(),
             subscribe: sinon.spy(),
             unsubscribe: sinon.spy()
-        }
+        };
+
+        const handler = { eventBus: eventBus };
 
         const controller = {
-            eventBus: eventBus,
+            handler: handler,
             on: sinon.spy(),
             off: sinon.spy()
         };
 
         const healthNodeHandler = new HealthNodeHandler(node, config, controller, { generateId: () => "123" , generateTime: () => "12:34:56" });
 
-/*        const eventHandlers = {};
-        const controller = {
-            on: sinon.spy((event, handler) => { eventHandlers[event] = handler; }),
-            off: sinon.spy()        }; */
         expect(healthNodeHandler.getNodeType(), "node type is health").to.equal("Health");
         expect(healthNodeHandler._lastStatus, "last status is null").to.be.null;
 
         healthNodeHandler.setupNode();
         expect(healthNodeHandler.node.name).to.equal("openhab4-health", "node name is set to name of controller");
-        expect(node.on.callCount, "node.on called 5 times").to.equal(5);
-        expect(node.on.getCall(0).args[0]).to.equal('ConnectionStatus');
-        expect(node.on.getCall(1).args[0]).to.equal('NodeError');
-        expect(node.on.getCall(2).args[0]).to.equal('close');
-        expect(node.on.getCall(3).args[0]).to.equal('ConnectionStatus');
-        expect(node.on.getCall(4).args[0]).to.equal('GlobalError');
+        expect(node.on.calledOnce, "node.on called once").to.be.true;
+        expect(node.on.firstCall.args[0]).to.equal('close');
+
+        const subscribe = controller.handler.eventBus.subscribe;
+        expect(subscribe.callCount, "subscribe called 4 times").to.equal(4);
+        expect(subscribe.getCall(0).args[0]).to.equal('ConnectionStatus');
+        expect(subscribe.getCall(1).args[0]).to.equal('NodeError');
+        expect(subscribe.getCall(2).args[0]).to.equal('ConnectionStatus');
+        expect(subscribe.getCall(3).args[0]).to.equal('GlobalError');
 
         healthNodeHandler._onConnectionStatus("ON");
 
@@ -79,22 +81,22 @@ describe("healthLogic", function () {
         expect(sendArgs[1], "Second channel has the error message").to.include({ payload: 'Connection error', topic: 'GlobalError' });
         
         healthNodeHandler.cleanup();
-        expect(node.off.callCount, "controller.off called 2 times").to.equal(2);
-        expect(node.off.getCall(0).args[0]).to.equal('GlobalError');
-        expect(node.off.getCall(1).args[0]).to.equal('ConnectionStatus');
+        const unsubscribe = controller.handler.eventBus.unsubscribe;
+        expect(unsubscribe.callCount, "controller.off called 2 times").to.equal(2);
+        expect(unsubscribe.getCall(0).args[0]).to.equal('GlobalError');
+        expect(unsubscribe.getCall(1).args[0]).to.equal('ConnectionStatus');
 
         expect(healthNodeHandler._lastStatus, "_lastStatus is null after cleanup").to.be.null;
     });
 
     
     it("should not setup logic if error is set", async function () {
-        const node = { type:"openhab4-health", status: sinon.spy(), send: sinon.spy(), on: sinon.spy(), off: sinon.spy() };
+        const node = { type:"openhab4-health", status: sinon.spy(), send: sinon.spy(), on: sinon.spy(), off: sinon.spy(), log: sinon.spy() };
         const config = {};
 
         // force an error by having no controller
         const healthNodeHandler = new HealthNodeHandler(node, config, null, { generateId: () => "123" , generateTime: () => "12:34:56" });
         healthNodeHandler.setupNode();
-
 
         expect(node.on.callCount, "One call to on as there is no controller").to.equal(1);
         expect(node.on.firstCall.args[0]).to.equal('close');

@@ -1,4 +1,4 @@
-// Copyright 2025 Rik Essenius
+// Copyright 2025-2026 Rik Essenius
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License. You may obtain a copy of the License at
@@ -19,12 +19,7 @@ const controllerModule = require("../nodes/controller.js");
 
 // Helper to create the handler with mocks
 function getHandler(fetchResult) {
-    let mockHttpRequest
-    if (fetchResult.data) {
-        mockHttpRequest = sinon.stub().resolves(fetchResult);
-    } else {
-        mockHttpRequest = sinon.stub().rejects(fetchResult);
-    }
+    const mockHttpRequest = sinon.stub().resolves(fetchResult);    
     const mockGetConnectionString = sinon.stub().returns("http://mocked");
     const controller = proxyquire("../nodes/controller.js", {
         "../lib/connectionUtils": {
@@ -72,9 +67,31 @@ function createNodeThis() {
     };
 }
 
+function testCreateControllerNode(nodeThis, config, expectedNamePart) {
+    try {
+        const { RED, registerType } = createMockRED();
+        controllerModule(RED);
+        const call = registerType.getCalls().find(c => c.args[0] === "openhab4-controller");
+        expect(call).to.exist;
+        const createControllerNode = call.args[1];
+        RED.nodes.createNode = sinon.spy();
+        createControllerNode.call(nodeThis, config);
+        expect(RED.nodes.createNode.calledOnce, `Created node for test '${expectedNamePart}'`).to.be.true;
+        expect(nodeThis.name, `name ${expectedNamePart} included`).to.include(expectedNamePart);
+    } catch (error_) {
+        // ensure we don't leave the node in a bad state
+        nodeThis.error("Error running testCreateControllerNode", error_);
+    }
+    // the only handler set in createControllerNode is the close handler, so we can check that
+    if (nodeThis.on.callCount > 0) {
+        // if it was set, call the close handler to break out of waitForOpenHABReady
+        nodeThis.on.getCall(0).args[1](false, () => { });
+    }
+}
+
 describe("openhab4-controller /openhab4/items handler", function () {
     it("should create the right URL and return items from mocked httpRequest", async function () {
-        const { handler, mockHttpRequest, mockGetConnectionString } = getHandler({ data: ["item1", "item2"] });
+        const { handler, mockHttpRequest, mockGetConnectionString } = getHandler({ ok: true, data: ["item1", "item2"] });
         const request = { query: { some: "config" } };
         const response = createMockResponse();
 
@@ -89,12 +106,11 @@ describe("openhab4-controller /openhab4/items handler", function () {
     });
 
     it("should propagate status and error message when httpRequest does not return data", async function () {
-        const { handler } = getHandler({ retry: true, status: 503, message: "Service Unavailable" });
+        const { handler } = getHandler({ ok: false, retry: true, status: 503, message: "Service Unavailable" });
         const request = { query: { some: "config" } };
         const response = createMockResponse();
 
         await handler(request, response);
-
         expect(response.status.calledOnceWith(503), "Response.status must be 503").to.be.true;
         const message = response.send.firstCall.args[0];
         expect(message).to.include("Service Unavailable");
@@ -113,39 +129,15 @@ describe("openhab4-controller controllerModule", function () {
 
         controllerModule(RED);
 
-        expect(httpAdminGet.calledWith(
-            "/openhab4/items"
-        )).to.be.true;
+        expect(httpAdminGet.calledWith("/openhab4/items")).to.be.true;
 
-        expect(registerType.calledWith(
-            "openhab4-controller"
-        )).to.be.true;
+        expect(registerType.calledWith("openhab4-controller")).to.be.true;
     });
-
-    function testCreateControllerNode(nodeThis, config, expectedNamePart) {
-        try {
-            const { RED, registerType } = createMockRED();
-            controllerModule(RED);
-            const call = registerType.getCalls().find(c => c.args[0] === "openhab4-controller");
-            expect(call).to.exist;
-            const createControllerNode = call.args[1];
-            RED.nodes.createNode = sinon.spy();
-            createControllerNode.call(nodeThis, config);
-            expect(RED.nodes.createNode.calledOnce, `Created node for test '${expectedNamePart}'`).to.be.true;
-            expect(nodeThis.name, `name ${expectedNamePart} included`).to.include(expectedNamePart);
-        } catch (_err) {
-            // ensure we don't leave the node in a bad state
-        }
-        // the only handler set in createControllerNode is the close handler, so we can check that
-        if (nodeThis.on.callCount > 0) {
-            // if it was set, call the close handler to break out of waitForOpenHABReady
-            nodeThis.on.getCall(0).args[1](false, () => { });
-        }
-    }
 
     it("should call createControllerNode when a node is instantiated", function () {
         const nodeThis = createNodeThis();
         testCreateControllerNode(nodeThis, { name: "TestController", host: "localhost" }, "TestController");
+        expect(nodeThis.error.calledOnce).to.be.false;
 
     });
 

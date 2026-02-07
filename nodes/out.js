@@ -1,4 +1,4 @@
-// Copyright 2025 Rik Essenius
+// Copyright 2025-2026 Rik Essenius
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License. You may obtain a copy of the License at
@@ -11,9 +11,9 @@
 
 "use strict";
 
-const { setupOutNode } = require('../lib/outLogic');
+const { setupOutNode } = require('../lib/outNodeHandler');
 
-module.exports = function (RED) {
+function registerOpenHabOutNode(RED) {
   function createOutNode(config) {
     RED.nodes.createNode(this, config);
     const controller = RED.nodes.getNode(config.controller);
@@ -22,3 +22,5 @@ module.exports = function (RED) {
 
   RED.nodes.registerType("openhab4-out", createOutNode);
 };
+
+module.exports = registerOpenHabOutNode;

@@ -1,4 +1,4 @@
-// Copyright 2025 Rik Essenius
+// Copyright 2025-2026 Rik Essenius
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License. You may obtain a copy of the License at
@@ -11,8 +11,8 @@
 
 "use strict";
 
-const fs = require('fs');
-const path = require('path');
+const fs = require('node:fs');
+const path = require('node:path');
 const { expect } = require('chai');
 
 describe('Code validation', function () {
@@ -20,14 +20,18 @@ describe('Code validation', function () {
     const requiredFiles = [
         'lib/connectionUtils.js',
         'lib/constants.js',
-        'lib/consumerNodeBase.js',
-        'lib/controllerLogic.js',
-        'lib/eventsLogic.js',
-        'lib/getLogic.js',
-        'lib/healthLogic.js',
-        'lib/inLogic.js',
+        'lib/consumerNodeHandler.js',
+        'lib/controllerHandler.js',
+        'lib/eventBus.js',
+        'lib/eventsNodeHandler.js',
+        'lib/getNodeHandler.js',
+        'lib/healthNodeHandler.js',
+        'lib/inNodeHandler.js',
         'lib/openhabConnection.js',
-        'lib/outLogic.js',
+        'lib/outNodeHandler.js', 
+        'nodes/admin.js',    
+        'nodes/controller.js',
+        'nodes/controller.html',
         'nodes/events.js',
         'nodes/events.html',
         'nodes/get.js',
@@ -38,7 +42,16 @@ describe('Code validation', function () {
         'nodes/in.html',
         'nodes/out.js',
         'nodes/out.html',
+        'nodes/icons/openhab4-logo-events.svg',
+        'nodes/icons/openhab4-logo-get.svg',
+        'nodes/icons/openhab4-logo-health.svg',
+        'nodes/icons/openhab4-logo-in.svg',
+        'nodes/icons/openhab4-logo-out.svg',
+        'nodes/icons/openhab4-logo.svg',
+        'DEVELOPMENT.md',
+        'LICENSE',
         'package.json',
+        'README.md',
         'static/ui-constants.js',
         'static/ui-utils.js',
     ];
@@ -57,14 +70,14 @@ describe('Code validation', function () {
             '../lib/connectionUtils',
             '../lib/constants',
             '../lib/consumerNodeHandler',
-            '../lib/controllerLogic',
+            '../lib/controllerHandler',
             '../lib/eventBus',
-            '../lib/eventsLogic',
-            '../lib/getLogic',
-            '../lib/healthLogic',
-            '../lib/inLogic',
+            '../lib/eventsNodeHandler',
+            '../lib/getNodeHandler',
+            '../lib/healthNodeHandler',
+            '../lib/inNodeHandler',
             '../lib/openhabConnection',
-            '../lib/outLogic',
+            '../lib/outNodeHandler',
         ];
 
         modulesToTest.forEach(modulePath => {

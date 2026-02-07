@@ -1,5 +1,5 @@
 
-// Copyright 2025 Rik Essenius
+// Copyright 2025-2026 Rik Essenius
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License. You may obtain a copy of the License at
@@ -15,6 +15,13 @@
 const { expect } = require("chai");
 const sinon = require("sinon");
 const proxyquire = require("proxyquire");
+const { ERROR_TYPES } = require("../lib/constants");
+
+function loadConnectionUtils() {
+    proxyquire("../lib/connectionUtils", {
+        "node-fetch": () => { console.log("called"); throw new Error("fake node-fetch error"); }
+    });
+}
 
 describe("connectionUtils Load", function () {
 
@@ -22,26 +29,39 @@ describe("connectionUtils Load", function () {
         // Skip this test on Node.js 18 or higher as fetch is built-in
         const [major] = process.versions.node.split(".").map(Number);
         if (major >= 18) {
-            this.skip();
+            this.skip("this test is skipped", () => { /* ... */ });
         }
 
-        let originalFetch = global.fetch;
-        global.fetch = undefined; // Simulate no fetch available
+        let originalFetch = globalThis.fetch;
+        globalThis.fetch = undefined; // Simulate no fetch available
 
-        function loadConnectionUtils() {
-            proxyquire("../lib/connectionUtils", {
-                "node-fetch": () => { console.log("called"); throw new Error("fake node-fetch error"); }
-            });
-        }
+
         expect(loadConnectionUtils).to.throw("No fetch available. Install 'node-fetch' or upgrade Node.js. Error: fake node-fetch error");
 
-        // Restore global.fetch
+        // Restore globalThis.fetch
         if (originalFetch !== undefined) {
-            global.fetch = originalFetch;
+            globalThis.fetch = originalFetch;
         }
     });
 
 });
+
+function createFakeResponse({ ok = true, status = 200, text = "", statusText = "", contentType = "application/json" } = {}) {
+    return {
+        ok,
+        status,
+        statusText,
+        text: async () => text,
+        headers: {
+            get: (header) => {
+                if (header.toLowerCase() === "content-type") {
+                    return contentType;
+                }
+                return undefined;
+            }
+        }
+    };
+}
 
 describe("connectionUtils.httpRequest", function () {
 
@@ -51,9 +71,9 @@ describe("connectionUtils.httpRequest", function () {
     let fetchStub, httpRequest, originalFetch;
 
     beforeEach(() => {
-        originalFetch = global.fetch;
+        originalFetch = globalThis.fetch;
         fetchStub = sinon.stub();
-        global.fetch = fetchStub;
+        globalThis.fetch = fetchStub;
         ({ httpRequest } = proxyquire("../lib/connectionUtils", {
             "node-fetch": fetchStub
         }));
@@ -61,157 +81,181 @@ describe("connectionUtils.httpRequest", function () {
 
     afterEach(() => {
         if (originalFetch === undefined) {
-            delete global.fetch;
+            delete globalThis.fetch;
         } else {
-            global.fetch = originalFetch;
+            globalThis.fetch = originalFetch;
         }
     });
 
-    function createFakeResponse({ ok = true, status = 200, text = "", statusText = "", contentType = "application/json" } = {}) {
-        return {
-            ok,
-            status,
-            statusText,
-            text: async () => text,
-            headers: {
-                get: (header) => {
-                    if (header.toLowerCase() === "content-type") {
-                        return contentType;
-                    }
-                    return undefined;
-                }
-            }
-        };
-    }
-
-    [
+    const successTestCases = [
         {
             testId: "valid JSON data",
-            fakeResponse: { text: JSON.stringify({ foo: "bar" }) },
+            fetchResponse: { text: JSON.stringify({ foo: "bar" }) },
             data: { foo: "bar" }
         },
         {
             testId: "empty responses",
-            fakeResponse: { text: "" },
+            fetchResponse: { text: "" },
             data: null
         },
         {
             testId: "text/plain content type",
-            fakeResponse: { text: "Hello, World!", contentType: "text/plain" },
+            fetchResponse: { text: "Hello, World!", contentType: "text/plain" },
             data: "Hello, World!"
         },
 
-    ].forEach(({ testId, fakeResponse, data }) => {
-        it(`should handle ${testId} as expected`, async function () {
-            fetchStub.resolves(createFakeResponse(fakeResponse));
+    ];
+
+    for (const { testId, fetchResponse, data } of successTestCases) {
+        it(`should handle valid ${testId} as expected`, async function () {
+            fetchStub.resolves(createFakeResponse(fetchResponse));
             const result = await httpRequest("http://test", {}, {});
+
             if (data === null) {
                 expect(result.data).to.be.null;
             } else {
                 expect(result.data).to.deep.equal(data);
             }
         });
-    });
+    };
 
-    [
+    const errorTestCases = [
         {
             testId: "503 - retry",
-            fakeResponse: { status: 503 },
+            fetchResponse: { status: 503 },
             retry: true,
             status: 503,
         },
         {
+            testId: "403 - no retry",
+            fetchResponse: { status: 403, statusText: "Forbidden", text: '{"error":{"message":"Access denied","http-code":403}}' },
+            retry: false,
+            status: 403,
+            message: "Access denied" 
+        },        
+        {
             testId: "404 with body - no retry",
-            fakeResponse: { status: 404, statusText: "Not Found", text: '{"error":{"message":"Item q does not exist!","http-code":404}}' },
+            fetchResponse: { status: 404, statusText: "Not Found", text: '{"error":{"message":"Item q does not exist!","http-code":404}}' },
             retry: false,
             status: 404,
             message: "Item q does not exist!"
         },
         {
             testId: "404 without body - retry",
-            fakeResponse: { status: 404, statusText: "Not Found" },
+            fetchResponse: { status: 404, statusText: "Not Found" },
             retry: true,
             status: 404,
             message: "Not Found"
         },
         {
-            testId: "401 without credentials - authRequired",
-            fakeResponse: { status: 401 },
+            testId: "401 without credentials - authRequired - no text",
+            fetchResponse: { status: 401, statusText: "Unauthorized" },
             authRequired: true,
             status: 401,
-            message: "No credentials provided."
+            message: "Unauthorized"
+        },
+        {
+            testId: "401 without credentials - authRequired",
+            fetchResponse: { status: 401, statusText: "Unauthorized", text: '{"error":{"message":"Authentication required","http-code":401}}' },
+            authRequired: true,
+            status: 401,
+            message: "Authentication required"
+        },
+        {
+            testId: "401 with credentials - authFailed",
+            config: { username: "foo" },
+            fetchResponse: { status: 401, text: '{"error":{"message":"Invalid credentials","http-code":401}}' },
+            authFailed: true,
+            status: 401,
+            message: "Invalid credentials"
         },
         {
             testId: "No status, statusText",
-            fakeResponse: { status: null, statusText: "Internal Server Error" },
+            fetchResponse: { status: null, statusText: "Internal Server Error" },
             message: "Internal Server Error"
         },
         {
             testId: "No status, no statusText",
-            fakeResponse: { status: null, statusText: null },
+            fetchResponse: { status: null, statusText: null },
             message: "HTTP Error 500"
         },
         {
-            testId: "Invalid JSON",
-            fakeResponse: { text: "<>" },
-            message: "Unexpected token '<', \"<>\" is not valid JSON"
-        },
-        {
             testId: "XML",
-            fakeResponse: { status: 400, contentType: "application/xml", text: "<xml>error</xml>" },
-            message: "Unsupported content type: application/xml"
+            fetchResponse: { status: 400, headers: new Headers({ "content-type": "application/xml" }), text: "<xml>error</xml>" },
+            message: "<xml>error</xml>"
         }
-    ].forEach(({ testId, fakeResponse, authRequired, authFailed, retry, status, message }) => {
-        it(`should throw an error for ${testId} as expected`, async function () {
-            fetchStub.resolves(createFakeResponse(fakeResponse));
-            try {
-                await httpRequest("http://test", {}, {});
-                expect.fail("Expected error to be thrown");
-            } catch (error) {
-                if (retry !== undefined) expect(!!error.retry, "retry test").to.equal(retry);
-                if (authRequired !== undefined) expect(!!error.authRequired, "authRequired test").to.equal(authRequired);
-                if (authFailed !== undefined) expect(!!error.authFailed, "autFailed test").to.equal(authFailed);
-                if (status !== undefined) expect(error.status, "status test").to.equal(status);
-                if (message !== undefined) expect(error.message, "message test").to.equal(message);
+    ];
+
+    for (const { testId, config, fetchResponse, authRequired, authFailed, retry, status, message } of errorTestCases) {
+        it(`should report an error for ${testId} as expected`, async function () {
+            fetchStub.resolves(createFakeResponse(fetchResponse));
+            const conf = config ?? {};
+            const result = await httpRequest("http://test", conf, {});
+            expect(result.ok, "Result not ok").to.be.false;
+            if (retry !== undefined) expect(!!result.retry, "retry test").to.equal(retry);
+            if (authRequired !== undefined) expect(!!result.authRequired, "authRequired test").to.equal(authRequired);
+            if (authFailed !== undefined) expect(!!result.authFailed, "autFailed test").to.equal(authFailed);
+            if (status !== undefined) expect(result.status, "status test").to.equal(status);
+            if (message !== undefined) expect(result.message, "message test").to.equal(message);
+        });
+    };
+
+    describe("connectionUtils.httpRequest error handling", function () {
+
+        const cases = [
+            {
+                name: "should report error on network failure",
+                code: "ENOTFOUND",
+                errorType: ERROR_TYPES.NETWORK,
+                expected: { ok: false, retry: true, type: ERROR_TYPES.NETWORK, message: "ENOTFOUND" }
+            },
+            {
+                name: "should report unknown error",
+                code: "BOGUS",
+                errorType: ERROR_TYPES.UNKNOWN,
+                expected: { ok: false, type: ERROR_TYPES.UNKNOWN, message: "BOGUS" }
+            },
+            {
+                name: "should report error on tls failure",
+                code: "ERR_TLS_CERT_EXPIRED",
+                errorType: ERROR_TYPES.TLS,
+                expected: { ok: false, type: ERROR_TYPES.TLS, message: "ERR_TLS_CERT_EXPIRED" }
+            },
+            {
+                name: "should show the message of an error that does not have a cause property",
+                code: undefined,
+                errorType: undefined,
+                expected: { ok: false, retry: false, type: ERROR_TYPES.UNKNOWN, name: "TypeError", message: "fetch failed" }
             }
+        ];
+
+        cases.forEach(({ name, code, expected }) => {
+            it(name, async function () {
+                const cause = new Error("Test failure");
+                cause.code = code;
+                const err = new TypeError("fetch failed", { cause });
+
+                fetchStub.rejects(err);
+
+                const result = await httpRequest("http://test", {}, {});
+                expect(result).to.deep.equal(expected);
+            });
         });
     });
 
-    it("should handle HTTP 401 as authRequired and report wrong credentials", async function () {
-        const fakeResponse = createFakeResponse({ ok: false, status: 401 });
-        fetchStub.resolves(fakeResponse);
-
-        try {
-            await httpRequest("http://test", { username: "foo" }, {});
-            expect.fail("Expected error to be thrown");
-        } catch (error) {
-            expect(error.authFailed).to.be.true;
-            expect(error.status).to.equal(401);
-            expect(error.message).to.equal("Wrong credentials provided.");
-        }
-    });
-
-    it("should return error on fetch failure", async function () {
-        fetchStub.rejects(new Error("network fail"));
-        try {
-            await httpRequest("http://test", {}, {});
-            expect.fail("Expected error to be thrown");
-        } catch (result) {
-            expect(result).to.be.an("error");
-            expect(result.message).to.equal("network fail");
-        }
-    });
-
-    it("should return error on fetch failure and show default message", async function () {
-        fetchStub.rejects(new Error());
-        try {
-            await httpRequest("http://test", {}, {});
-            expect.fail("Expected error to be thrown");
-        } catch (error) {
-            expect(error.message).to.equal("Fetch failed");
-        }
-    });
 });
+
+function setConfig(username, password) {
+    return {
+        protocol: "https",
+        host: "openhab.local",
+        port: 8443,
+        path: "api",
+        username: username,
+        password: password
+    };
+}
+
 
 describe("connectionUtils.getConnectionString", function () {
 
@@ -228,16 +272,7 @@ describe("connectionUtils.getConnectionString", function () {
         expect(url).to.equal("http://localhost:8080/rest");
     });
 
-    function setConfig(username, password) {
-        return {
-            protocol: "https",
-            host: "openhab.local",
-            port: 8443, 
-            path: "api",
-            username: username,
-            password: password
-        };
-    }
+
     it("should build a URL with credentials when includeCredentials is true, and pass empty password", function () {
         const config = setConfig("user", "");
         const url = getConnectionString(config, { includeCredentials: true });
@@ -290,6 +325,21 @@ describe("connectionUtils.isPhantomError", function () {
     });
 });
 
+describe("connectionUtils.retryable", function () {
+    it("should retry", async function () {
+        const { retryable } = require("../lib/connectionUtils");
+
+        let callCount = 0;
+        const mockAsync = sinon.stub().callsFake(async () => {
+            return { ok: callCount++ > 0, retry: true };
+        });
+        const result = await retryable(mockAsync, { retryTimeout: 1, startInterval: 1 });
+        expect(result.ok).to.be.true;
+        expect(callCount).to.equal(2);
+
+    });
+});
+
 describe("connectionUtils.setDefaultsTest", function () {
 
     const { setDefaults } = require("../lib/connectionUtils");
@@ -309,7 +359,7 @@ describe("connectionUtils.setDefaultsTest", function () {
         const config = {
             protocol: "   https  ",
             host: " 192.168.1.1  ",
-            port: NaN,
+            port: Number.NaN,
             path: " /  ",
             username: "    abc",
             password: "  def  "
@@ -340,3 +390,4 @@ describe("connectionUtils.setDefaultsTest", function () {
 
     });
 });
+
