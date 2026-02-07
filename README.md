@@ -4,7 +4,7 @@
 
 Nodes facilitating integration of [openHAB 4](http://www.openhab.org) with [Node-RED](http://nodered.org), allowing for the use of Node Red as a rules engine for OpenHAB.
 
-Inspired by https://github.com/pdmangel/node-red-contrib-openhab2. Largely rewritten and made to work with openHAB 4, which has a different Rest API from openHAB 2.
+Inspired by https://github.com/pdmangel/node-red-contrib-openhab2. Largely rewritten and made to work with openHAB 4+, which has a different Rest API from openHAB 2.
 
 ## Nodes
 
