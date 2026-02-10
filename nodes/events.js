@@ -11,14 +11,14 @@
 
 "use strict";
 
-const { setupEventsNode } = require('../lib/eventsNodeHandler');
+const { setupEventsNodeHandler } = require('../lib/eventsNodeHandler');
 
 function registerOpenHabEventsNode(RED) {
   function createEventsNode(config) {
     RED.nodes.createNode(this, config);
 
     const controller = RED.nodes.getNode(config.controller);
-    setupEventsNode(this, config, controller);
+    setupEventsNodeHandler(this, config, controller);
   }
 
   RED.nodes.registerType("openhab4-events", createEventsNode);

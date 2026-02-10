@@ -14,6 +14,7 @@
 const { expect } = require("chai");
 const sinon = require("sinon");
 const proxyquire = require("proxyquire");
+const { setDefaults } = require("../lib/connectionUtils");
 
 function createNotFoundResponse(jsonBody) {
     return {
@@ -48,10 +49,8 @@ describe("openhabConnection real", function () {
         this.timeout(5000); // 5 seconds
 
         let connection = new OpenhabConnection({
-            protocol: "http",
-            host: "localhost",
-            port: 8082,
-            path: "",
+            url: "http://localhost:8082",
+            token: "",
             username: "",
             password: "",
             retryTimeout: 0
@@ -73,7 +72,6 @@ describe("openhabConnection with mocked fetch", function () {
 
     let fetchStub, originalFetch, connection;
 
-
     beforeEach(() => {
         originalFetch = globalThis.fetch;
         fetchStub = sinon.stub();
@@ -86,10 +84,8 @@ describe("openhabConnection with mocked fetch", function () {
         });
 
         connection = new OpenhabConnection({
-            protocol: "http",
-            host: "localhost",
-            port: 8081,
-            path: "",
+            url: "http://localhost:8081",
+            token: "",
             username: "",
             password: "",
             retryTimeout: 0
@@ -188,14 +184,13 @@ describe("openhabConnection with mocked fetch", function () {
 describe("openhabConnection StartEventSource real", function () {
     it("should run the real event source", function () {
         const { OpenhabConnection } = require('../lib/openhabConnection');
-        const config = { protocol: "http", host: "localhost", port: 8080, path: "", username: "", password: "", allowSelfSigned: true };
+        const config = { url: "http://localhost:8080", token: "", username: "", password: "", allowSelfSigned: true };
         const connection = new OpenhabConnection(config);
         connection.startEventSource({ onOpen: {}, onMessage: {}, onError: {} });
 
         if (connection.eventSource && connection.eventSource.close) {
             connection.eventSource.close();
         }
-
     });
 });
 
@@ -207,8 +202,10 @@ describe("openhabConnection StartEventSource", function () {
             this.onopen = null;
             this.onerror = null;
             this.onmessage = null;
-            this.close = sinon.spy();
+            this.close = sinon.stub();
         }
+
+        __mockMarker() { /* Satisfy Sonar – this class intentionally acts as a test double */ }
     }
 
     const { OpenhabConnection } = require('../lib/openhabConnection');
@@ -222,7 +219,8 @@ describe("openhabConnection StartEventSource", function () {
     const fakeClearTimeout = sinon.spy();
 
     it("should start EventSource and handle open, error, and message events", function () {
-        const config = { protocol: "http", host: "localhost", port: 8080, path: "", username: "", password: "", allowSelfSigned: true, retryTimeout : 0 };
+        const config = { url: "https://localhost:8080", token: "", username: "", password: "", allowSelfSigned: true, retryTimeout : 0 };
+        setDefaults(config);
         const connection = new OpenhabConnection(config, MockEventSource, fakeSetTimeout, fakeClearTimeout);
 
         const openSpy = sinon.spy();
@@ -231,7 +229,7 @@ describe("openhabConnection StartEventSource", function () {
         connection.startEventSource({ onOpen: openSpy, onMessage: messageSpy, onError: errorSpy });
         expect(connection.eventSource.options.https).to.deep.equal({ rejectUnauthorized: false }, "https options set for self-signed certs");
         expect(connection.eventSource, "instance of MockEventSource").to.be.an.instanceof(MockEventSource);
-        expect(connection.eventSource.url, "URL ok").to.include("http://localhost:8080/rest/events");
+        expect(connection.eventSource.url, "URL ok").to.include("https://localhost:8080/rest/events");
         expect(connection.eventSource.onopen, "onopen set").to.be.a('function');
         expect(connection.eventSource.onerror, "onerror set").to.be.a('function');
         expect(connection.eventSource.onmessage, "onmessage set").to.be.a('function');
@@ -253,7 +251,7 @@ describe("openhabConnection StartEventSource", function () {
         expect(messageSpy.calledWith({ data: "test" })).to.be.true;
         expect(errorSpy.notCalled, "Node error not called").to.be.true;
 
-        connection.eventSource.onerror("No response");
+        connection.eventSource.onerror({ message: "No response" });
         expect(errorSpy.calledOnce).to.be.true;
         const errorArgs = errorSpy.lastCall.args;
         expect(errorArgs, "Right message").to.deep.equal(["No response (Retry #1 in 2.5 s)", "Retry #1 in 2.5 s"]);
@@ -262,7 +260,7 @@ describe("openhabConnection StartEventSource", function () {
     });
 
     it("should start EventSource allowing self signed and handle open, error, and message events", function () {
-        const config = { protocol: "http", host: "localhost", port: 8080, path: "", username: "", password: "" };
+        const config = { url: "http://localhost:8080", token: "", username: "", password: "" };
         const connection = new OpenhabConnection(config, MockEventSource, fakeSetTimeout, fakeClearTimeout);
 
         const errorSpy = sinon.spy();
@@ -271,7 +269,6 @@ describe("openhabConnection StartEventSource", function () {
 
         expect(connection.eventSource.url, "URL ok").to.include("http://localhost:8080/rest/events?topics=first-topic");
         expect(connection.eventSource.options.https).to.be.undefined;
-
         connection.eventSource.onopen();
 
         const message = { data: "test" };
@@ -281,7 +278,7 @@ describe("openhabConnection StartEventSource", function () {
 
         function validateError(index, delay) {
             fakeSetTimeout.resetHistory();
-            connection.eventSource.onerror({ type: { errno: -111, code: "ERRCONREFUSED" } });
+            connection.eventSource.onerror({ message: "ERRCONREFUSED" });
             const errorArgs = errorSpy.lastCall.args;
             expect(errorArgs, `onError #${index} called with right parameters`)
                 .to.deep.equal([`ERRCONREFUSED (Retry #${index} in ${delay} s)`, `Retry #${index} in ${delay} s`]);

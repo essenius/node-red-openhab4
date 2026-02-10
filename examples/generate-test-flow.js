@@ -18,11 +18,14 @@ const path = require('node:path');
 
 // Get configuration from environment variables or use defaults
 const config = {
-  protocol: process.env.OPENHAB_PROTOCOL || 'http',
+  protocol: process.env.OPENHAB_PROTOCOL || 'https',
   host: process.env.OPENHAB_HOST || 'localhost',
-  port: process.env.OPENHAB_PORT || '8080',
+  port: process.env.OPENHAB_PORT || '8443',
+  token: process.env.OPENHAB_TOKEN || '',
   testItem: process.env.OPENHAB_TEST_ITEM || 'TestSwitch'
 };
+
+config.url = `${config.protocol}://${config.host}:${config.port}`;
 
 // Test flow template
 const testFlow = [
@@ -282,11 +285,13 @@ const testFlow = [
         "type": "openhab4-controller",
         "z": "test-flow-tab",
         "name": "openhab4",
-        "protocol": config.protocol,
-        "host": config.host,
-        "port": config.port,
+        "url": config.url,
+        "allowSelfSigned": false,
+        "credentials": {
+            "token": config.token,
+        },
         "eventFilter": "*",
-        "allowSelfSigned": false
+        "retryTimeout": ""
     }
 ];
 
@@ -295,9 +300,7 @@ const outputPath = path.join(__dirname, 'test-flow-generated.json');
 fs.writeFileSync(outputPath, JSON.stringify(testFlow, null, 2));
 
 console.log('Generated test flow with configuration:');
-console.log(`   Host: ${config.host}`);
-console.log(`   Port: ${config.port}`);
-console.log(`   Protocol: ${config.protocol}`);
+console.log(`   URL: ${config.url}`);
 console.log(`   Test Item: ${config.testItem}`);
 console.log('Written to:', outputPath);
 console.log('');

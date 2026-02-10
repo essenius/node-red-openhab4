@@ -50,16 +50,37 @@ describe("getNodeHandler handleInput", function () {
         expect(node.status.getCall(2).args[0], "requesting status called").to.deep.equal({ fill: 'blue', shape: 'ring', text: 'requesting... @ 12:34:56' });
         expect(node.status.getCall(3).args[0], "OpenHAB version shown").to.deep.equal({ fill: 'green', shape: 'dot', text: '4.3.5 @ 12:34:56' });
         expect(node.send.getCall(0).args[0], "Version sent").to.deep.equal(
-            { payload_in: {}, payload: "4.3.5", name: "openhab_version", item_data: { version: 8, runtimeInfo: { version: '4.3.5' } } }
+            { payload_in: {}, payload: "4.3.5", name: "openhab_version", raw_response: { version: 8, runtimeInfo: { version: '4.3.5' } } }
         );
 
+    });
+    
+    it("should deal gracefully with failed fetch", async function () {
+        const { node, getNodeHandler } = createGetNodeHandler({ controlResult: { ok: false }});
+
+        node.status.resetHistory();
+        await getNodeHandler.handleInput({});
+
+        expect(node.status.getCall(0).args[0], "requesting status called").to.deep.equal({ fill: 'blue', shape: 'ring', text: 'requesting... @ 12:34:56' });
+        expect(node.status.calledOnce, "Status called once").to.be.true;
+    });
+
+    it("should deal gracefully with empty payload", async function () {
+        const { node, getNodeHandler } = createGetNodeHandler({ controlResult: { ok: true }});
+
+        node.status.resetHistory();
+        await getNodeHandler.handleInput({});
+
+        expect(node.status.getCall(0).args[0], "requesting status called").to.deep.equal({ fill: 'blue', shape: 'ring', text: 'requesting... @ 12:34:56' });
+        expect(node.status.getCall(1).args[0], "Empty response reported").to.deep.equal({ fill: 'red', shape: 'ring', text: 'Empty response @ 12:34:56' });
+        expect(node.status.callCount, "Status called twice").to.equal(2);
     });
 
     it("should show an error if incoming data is malformed", async function () {
         const { node, getNodeHandler } = createGetNodeHandler({ controlResult: { ok: true, data: [] } });
         await getNodeHandler.handleInput({ payload: "test" });
         expect(node.status.getCall(2).args[0], "requesting status called").to.deep.equal({ fill: 'blue', shape: 'ring', text: 'requesting... @ 12:34:56' });
-        expect(node.status.getCall(3).args[0], "Error shown").to.deep.equal({ fill: 'red', shape: 'ring', text: 'Unexpected response @ 12:34:56' });
+        expect(node.status.getCall(3).args[0], "Error shown").to.deep.equal({ fill: 'red', shape: 'ring', text: 'Empty response @ 12:34:56' });
         expect(node.send.notCalled, "No message sent").to.be.true;
     });
 
@@ -69,7 +90,7 @@ describe("getNodeHandler handleInput", function () {
         await getNodeHandler.handleInput(msg);
         expect(node.status.getCall(2).args[0], "requesting status called").to.deep.equal({ fill: 'blue', shape: 'ring', text: 'requesting... @ 12:34:56' });
         expect(node.status.getCall(3).args[0], "item status called").to.deep.equal({ fill: 'green', shape: 'dot', text: 'ON @ 12:34:56' });
-        expect(node.send.calledWith({ payload_in: "test", payload: "ON", item: "testItem", name: "testItem", item_data: { state: 'ON' } }), "send called").to.be.true;
+        expect(node.send.calledWith({ payload_in: "test", payload: "ON", item: "testItem", name: "testItem", raw_response: { state: 'ON' } }), "send called").to.be.true;
     });
 
     it("should show error message if no controller was specified", async function () {

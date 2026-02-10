@@ -14,13 +14,13 @@ Configuration node for communication with an openHAB controller, which is used b
 
 *Configuration:*
 - Name: name for the configuration node (mandatory as referred to by the other nodes)
-- Protocol: <kbd>http</kbd> or <kbd>https</kbd>
-- Allow Self Signed Certificates: switch off certificate checking (default off)
-- Host: the host name or ip address (default <kbd>localhost</kbd>)
-- Port: the ip port (default <kbd>8080</kbd>)
-- Path: the additional base path (default empty)
-- Username: the user name to authenticate on openHAB (default empty)
+- URL: the base URL of OpenHAB, e.g. <kbd>https://my-openhab:8443/</kbd>
+- Certificates / Allow self signed: switch off certificate checking (default: off, i.e. checking is on)
+- Token: the token to use for authentication (bearer)
+- Username: if token is not used, user name and password can be used for basic authentication (default empty, means no authentication)
 - Password: the password to authenticate (default empty)
+- Event Filter: the events to be captured in a comma separated list, using * as wildcard (e.g. `*/items/*` for all item events)
+- Retry timeout: the timeout in milliseconds after which the system stops retrying to connect. Empty means keep trying forever.
 
 ### openhab4-in
 
@@ -29,20 +29,17 @@ Listens to state changes of a selected openHAB Item.
 *Configuration:*
 - Name: the name of the node instance (default empty, then takes over the item name)
 - Controller: the openHAB controller
+- Filter Events / State changes only: only pass on events that changed the value
 - Filter Items: the filter applied to the dropdown. Empty means no filter.
 - Item Name: the name of the item to listen to. Overrides <code>msg.item</code>.
 
-*Output messages (2 channels):*
+*Output messages:*
 
-Channel 1:
 - <code>msg.item</code>: the name of the item
 - <code>msg.topic</code>: <kbd>StateEvent</kbd>
 - <code>msg.payload</code>: the new state of the selected item
-
-Channel 2:
-- <code>msg.item</code>: the name of the item
-- <code>msg.topic</code>: <kbd>RawEvent</kbd>
-- <code>msg.payload</code>:  raw (unprocessed) event for the selected item
+- <code>msg.type</code>: the type of the value, e.g. String
+- <code>msg.raw_event</code>: the incoming event from OpenHAB along with name, full_name and concept.
 
 ### openhab4-health
 
@@ -52,19 +49,15 @@ Monitors the health and status of the openHAB4 controller connection.
 - Name: the node name (default empty)
 - Controller: the openHAB controller
 
-*Output messages (3 channels):*
+*Output messages (2 channels):*
 
 Channel 1:
 - <code>msg.topic</code> : <kbd>ConnectionStatus</kbd>
-- <code>msg.payload</code> : connection status (<kbd>ON</kbd> or <kbd>OFF</kbd>)
+- <code>msg.payload</code> : OpenHAB connection status (<kbd>ON</kbd> = online, <kbd>OFF</kbd> = offline).
 
 Channel 2:
 - <code>msg.topic</code> : <kbd>ConnectionError</kbd>
 - <code>msg.payload</code> : error message
-
-Channel 3:
-- <code>msg.topic</code> : <kbd>RawEvent</kbd>
-- <code>msg.payload</code> :  raw (unprocessed) event for all items
 
 ### openhab4-out
 
@@ -80,7 +73,7 @@ Sends commands or state updates to a selected openHAB Item.
 
 *Output messages(1 channel):*
 
-Channel 1: if output is successful, the input message is copied to this channel.
+If output to OpenHAB is successful, the input message is copied to the output channel.
 
 ### openhab4-get
 
@@ -90,7 +83,6 @@ Gets an openHAB item (i.e. fetch on demand).
 - Name: the name of the node instance (default empty, then takes over the item name) 
 - Controller: the openHAB controller
 - Filter Items: the filter applied to the dropdown. Empty means no filter.
-
 - Item Name: the item to get. Overrides <code>msg.item</code>.
 
 *Output messages (1 channel):*
@@ -99,6 +91,7 @@ Channel 1:
 The input message with addition of:
 - <code>msg.payload</code> : the item object (name, label, state, ...)
 - <code>msg.payload_in</code> : copy of incoming message payload.
+- <code>msg.raw_response</code> : the incoming response
 
 ## Test flow
 
@@ -157,8 +150,11 @@ See [DEVELOPMENT.md](DEVELOPMENT.md).
 - Dependency fixes, added example for localhost.
 
 ### v0.9.5
-- fixed bug in item retrieval for in/out/get node definition (eliminated duplicates).
+- Fixed bug in item retrieval for in/out/get node definition (eliminated duplicates).
 
+### v0.10.14
+- Major overhaul to support OpenHAB 2 and allow other concepts besides items. Breaking change: in node now only has one output channel.
+ 
 ## Dependency restrictions
 
 As this is a commonjs project, chai needs to stay at version 4, and node-fetch at version 2. Newer versions do not support commonjs.

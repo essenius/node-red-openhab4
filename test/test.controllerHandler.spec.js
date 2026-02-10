@@ -76,7 +76,7 @@ describe("controllerHandler.setupControllerHandler", function () {
         OpenhabConnectionStub = sinon.stub();
 
         // Stub OpenhabConnection so no real connection is made
-        setupOpenhabConnectionWithGetItems({ ok: true, data: [{ name: "Item1", state: SWITCH_STATUS.ON }] });
+        setupOpenhabConnectionWithGetItems({ ok: true, data: [{ name: "Item1", type: "Switch", state: SWITCH_STATUS.ON }] });
 
         mockNode = createMockNode();
 
@@ -87,17 +87,17 @@ describe("controllerHandler.setupControllerHandler", function () {
         }));
 
         config = {
-            host: "localhost",
-            protocol: "http",
-            port: 8080
+            url: "http://localhost:8080"
         };
     });
 
     it("should log connection info and create OpenhabConnection", function () {
         const mockNode = createMockNode();
         new ControllerHandler(mockNode, config, bus).setupNode();
-        expect(mockNode.log.calledWithMatch("OpenHAB Controller connecting to: http://localhost:8080"), "connecting message").to.be.true;
-        expect(mockNode.log.calledWithMatch("OpenHAB is ready, starting EventSource connection..."), "connected message").to.be.true;
+
+        const logArgs = mockNode.log.getCalls().map(call => call.args[0]);
+        expect(logArgs, "connecting message").to.include("OpenHAB Controller connecting to: http://localhost:8080");
+        expect(logArgs, "connected message").to.include("OpenHAB is ready, starting EventSource connection...");
         expect(OpenhabConnectionStub.calledOnce).to.be.true;
     });
 
@@ -108,7 +108,7 @@ describe("controllerHandler.setupControllerHandler", function () {
         controllerHandler._onClose(() => { }, () => { });
 
         // Should call log, publish, and set connection to null
-        expect(mockNode.log.calledWithMatch("CONTROLLER CLOSE EVENT")).to.be.true;
+        expect(mockNode.log.calledWithMatch("Closing controller")).to.be.true;
         expect(publishSpy.calledOnceWithExactly(EVENT_TAGS.CONNECTION_STATUS, SWITCH_STATUS.OFF)).to.be.true;
         expect(controllerHandler.connection).to.be.null;
     });
@@ -140,12 +140,16 @@ describe("controllerHandler.setupControllerHandler", function () {
         expect(startEventSourceStub.calledOnce, "EventSource should be started").to.be.true;
         expect(mockNode.log.calledWithMatch("Getting state of all items"), "Getting items").to.be.true;
         expect(publishSpy.calledWithMatch(EVENT_TAGS.CONNECTION_STATUS, SWITCH_STATUS.ON), "Connection status ON published").to.be.true;
-        expect(publishSpy.calledWithMatch('items/Item1', sinon.match({ name: 'Item1', state: SWITCH_STATUS.ON, event: EVENT_TYPES.ITEM_STATE })), "Item published").to.be.true;
+
+        const calls = publishSpy.getCalls();
+
+        const matchingCall2 = calls.find(call => call.args[0] === 'items/Item1');
+        expect(matchingCall2, "publish called with topic").to.exist;
+        expect(matchingCall2.args[1], "Item published").to.deep.include(
+            { name: 'Item1', type: EVENT_TYPES.ITEM_STATE, payload: { type: "Switch", value: SWITCH_STATUS.ON } });
 
         // TODO: extract to separate test
-        let clientNode = {
-            emit: sinon.spy()
-        };
+        let clientNode = { emit: sinon.spy() };
 
         publishSpy.resetHistory();
 
@@ -217,7 +221,6 @@ describe("controllerHandler.setupControllerHandler", function () {
         await testErrorEvent("Service Unavailable", "The service is unavailable right now", "Service Unavailable", "The service is unavailable right now");
     });
 
-
     it("should not emit a connection error on Error event if short message is empty", async function () {
         await testErrorEvent("", "The service is unavailable right now", false, "The service is unavailable right now");
     });
@@ -253,7 +256,7 @@ describe("controllerHandler.setupControllerHandler", function () {
             controllerHandler._handleMessage(message);
             expect(publishSpy.calledWith(
                 "items/Item1",
-                sinon.match({ topic: "openhab/items/Item1/StateEvent", name: "Item1", fullName: "items/Item1", payload: { value: "ON" } })
+                sinon.match({ topic: "openhab/items/Item1/StateEvent", name: "Item1", full_name: "items/Item1", payload: { value: "ON" } })
             ),
                 "Item Event emitted").to.be.true;
         });
@@ -301,7 +304,7 @@ describe("controllerHandler.setupControllerHandler", function () {
             console.log(publishSpy.args);
             expect(publishSpy.callCount).to.equal(0);
         });
-        
+
         const testCases =
             [
                 {

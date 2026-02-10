@@ -50,7 +50,7 @@ describe("openhab4-in node", function () {
             helperNode.on("input", function (msg) {
                 try {
                     expect(msg).to.deep.include({payload: SWITCH_STATUS.OFF, type: "OnOff", name: "TestItem", item: "TestItem", topic: "ItemStateEvent", 
-                      rawEvent: { type: EVENT_TYPES.ITEM_STATE, name: 'TestItem', payload: { value: SWITCH_STATUS.OFF, type: "OnOff"}}}, "Right message sent");                  
+                      raw_event: { type: EVENT_TYPES.ITEM_STATE, name: 'TestItem', payload: { value: SWITCH_STATUS.OFF, type: "OnOff"}}}, "Right message sent");                  
                     done();
                 } catch (err) {
                     done(err); 

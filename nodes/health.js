@@ -11,13 +11,13 @@
 
 "use strict";
 
-const { setupHealthNode } = require("../lib/healthNodeHandler");
+const { setupHealthNodeHandler } = require("../lib/healthNodeHandler");
 
 function registerOpenHabHealthNode(RED) {
 	function createHealthNode(config) {
 		RED.nodes.createNode(this, config);
 		const controller = RED.nodes.getNode(config.controller);
-		setupHealthNode(this, config, controller, { generateId: RED.util.generateId });
+		setupHealthNodeHandler(this, config, controller, { generateId: RED.util.generateId });
 	}
 	
 	RED.nodes.registerType("openhab4-health", createHealthNode);

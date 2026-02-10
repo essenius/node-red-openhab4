@@ -311,8 +311,6 @@
     "type": "openhab4-controller",
     "z": "test-flow-tab",
     "name": "openhab4",
-    "protocol": "http",
-    "host": "localhost",
-    "port": "8080"
+    "url": "http://localhost:8080"
   }
 ]

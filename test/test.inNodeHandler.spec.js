@@ -35,7 +35,7 @@ describe("inNodeHandler", function () {
                 get: (key) => contextStore[key]
             })
         };
-        const config = { itemName: "testItem" };
+        const config = { itemName: "testItem", changesOnly: true };
 
         const eventBus = {
             publish: sinon.spy(),
@@ -73,6 +73,12 @@ describe("inNodeHandler", function () {
 
         inNodeHandler._processEvent({ name: "testItem", type: EVENT_TYPES.ITEM_STATE, payload: { value: SWITCH_STATUS.OFF, type: "OnOff" }});
         expect(node.send.firstCall.args[0]).to.deep.include({ payload:  SWITCH_STATUS.OFF, topic: EVENT_TYPES.ITEM_STATE, name: "testItem", item: "testItem", type: "OnOff" }, "Message with different value does get sent");
+
+        node.send.resetHistory();
+        inNodeHandler.config.changesOnly = false;
+        inNodeHandler._processEvent({ name: "testItem", type: EVENT_TYPES.ITEM_STATE, payload: { value: SWITCH_STATUS.OFF, type: "OnOff" }});
+        expect(node.send.firstCall.args[0]).to.deep.include({ payload:  SWITCH_STATUS.OFF, topic: EVENT_TYPES.ITEM_STATE, name: "testItem", item: "testItem", type: "OnOff" }, "Send called again on same payload if changes only is false");
+
 
         eventBus.unsubscribe.resetHistory();
         inNodeHandler.cleanup();

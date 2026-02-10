@@ -16,13 +16,13 @@
         <label for="node-config-input-name"><i class="fa fa-tag"></i> Name</label>
         <input type="text" id="node-config-input-name" placeholder="Name">
     </div>
+
     <div class="form-row">
-        <label for="node-config-input-protocol"><i class="fa fa-unlock-alt"></i> Protocol</label>
-    	<select id="node-config-input-protocol" name="node-config-input-protocol">
-			<option value="http">http</option>
-			<option value="https">https</option>
-    	</select>
+        <label for="node-config-input-url"><i class="fa fa-link"></i> URL</label>
+        <input type="text" id="node-config-input-url">
+        <div id="url-warning" style="color: #d9534f; font-size: 0.9em; display: none;"></div>
     </div>
+
     <div class="form-row" style="display: flex; align-items: center; flex-wrap: nowrap;">
         <label for="node-config-input-allowSelfSigned" style="margin: 0; white-space: nowrap;"><i class="fa fa-certificate"></i> Certificates</label>
         <div style="margin-left: 1em; display: flex; align-items: center; white-space: nowrap;">
@@ -30,22 +30,13 @@
             <span>Allow self signed</span>
         </div>
     </div>
+
     <div class="form-row">
-        <label for="node-config-input-host"><i class="fa fa-globe"></i> Host</label>
-        <input type="text" id="node-config-input-host">
-    </div>
-    <div class="form-row">
-        <label for="node-config-input-port"><i class="fa fa-plug"></i> Port</label>
-        <input type="number" id="node-config-input-port">
-    </div>
-    <div class="form-row">
-        <label for="node-config-input-eventFilter"><i class="fa fa-filter"></i> Event Filter</label>
-        <input type="text" id="node-config-input-eventFilter">
-        <p class="form-tips">comma separated topics, e.g. */items/* for all item events.</p>
-    </div>
-    <div class="form-row">
-        <label for="node-config-input-path"><i class="fa fa-random"></i> Base Path</label>
-        <input type="text" id="node-config-input-path">
+        <label for="node-config-input-token"><i class="fa fa-user"></i> Token</label>
+        <input type="password" id="node-config-input-token">
+        <div id="token-warning" style="color: #d9534f; font-size: 0.9em; display: none;">
+            ⚠ Bearer token requires HTTPS. Token has been cleared.
+        </div>
     </div>
     <div class="form-row">
         <label for="node-config-input-username"><i class="fa fa-user"></i> User name</label>
@@ -55,6 +46,13 @@
         <label for="node-config-input-password"><i class="fa fa-user-secret"></i> Password</label>
         <input type="password" id="node-config-input-password">
     </div>
+
+    <div class="form-row">
+        <label for="node-config-input-eventFilter"><i class="fa fa-filter"></i> Event Filter</label>
+        <input type="text" id="node-config-input-eventFilter">
+        <p class="form-tips">comma separated topics, e.g. */items/* for all item events.</p>
+    </div>
+
     <div class="form-row">
         <label for="node-config-input-retryTimeout"><i class="fa fa-clock-o"></i> Retry timeout</label>
         <input type="number" id="node-config-input-retryTimeout">
@@ -67,25 +65,21 @@
     <h3>Configuration</h3>
     <dl class="message-properties">
         <dt>Name <span class="property-type">string</span></dt>
-        <dd>Name for the configuration node (mandatory - referenced by other nodes)</dd>
-        <dt>Protocol <span class="property-type">string</span></dt>
-        <dd>Connection protocol: <code>http</code> or <code>https</code></dd>
-        <dt>Allow self-signed certificates <span class="property-type">boolean</span></dt>
+        <dd>Name for the configuration node (referenced by other nodes)</dd>
+        <dt>URL <span class="property-type">string</span></dt>
+        <dd>Base URL for the OpenHAB server, e.g. <code>https://myopenhab:8443</code></dd>
+        <dt>Certificates / Allow self signed <span class="property-type">boolean</span></dt>
         <dd>Switch off certificate checking to support self-signed certificates for HTTPS connections (default: <code>false</code>)</dd>
-        <dt>Host <span class="property-type">string</span></dt>
-        <dd>The hostname or IP address of the openHAB server (default: <code>localhost</code>)</dd>
-        <dt>Port <span class="property-type">number</span></dt>
-        <dd>The port number for the openHAB REST API (default: <code>8080</code>)</dd>
+        <dt>Token <span class="property-type">string</span> (optional)</dt>
+        <dd>Token in case bearer authentication is used (requires https).</dd>
+        <dt>User name (optional)<span class="property-type">string</span></dt>
+        <dd>Username for HTTP Basic Authentication (legacy)</dd>
+        <dt>Password (optional)<span class="property-type">string</span></dt>
+        <dd>Password for HTTP Basic Authentication (legacy)</dd>
         <dt>Event filter <span class="property-type">string</span></dt>
-        <dd>The matching filter for the event source topic (default: <code>*</code>)</dd>
-        <dt>Base Path <span class="property-type">string</span></dt>
-        <dd>Additional base path if openHAB is served from a subdirectory (optional)</dd>
-        <dt>User name <span class="property-type">string</span></dt>
-        <dd>Username for HTTP Basic Authentication (optional)</dd>
-        <dt>Password <span class="property-type">string</span></dt>
-        <dd>Password for HTTP Basic Authentication (optional)</dd>
+        <dd>The matching filter for the event source topic (default: <code>*</code> for no filtering)</dd>
         <dt>Retry timeout<span class="property-type">number</span></dt>
-        <dd>Elapsed time after which an HTTP call fails (default Infinity: retrying forever)</dd>
+        <dd>Elapsed time after which an HTTP call fails (empty: retrying forever)</dd>
     </dl>
 
     <h3>Details</h3>
@@ -93,10 +87,10 @@
     It is referenced by all other openHAB4 nodes in your flows.</p>
     
     <p><strong>Connection URLs:</strong> The node constructs URLs in the format:</p>
-    <code>{protocol}://{host}:{port}{/basepath}/rest/</code>
+    <code>{URL}/rest/</code>
     
-    <p><strong>Authentication:</strong> If username is provided, 
-    HTTP Basic Authentication will be used for all requests to the openHAB server.</p>
+    <p><strong>Authentication:</strong> If a token is provided, bearer authentication will be used.
+    If a username is provided, HTTP Basic Authentication will be used. If both are empty, no authentication is used.</p>
     
     <p><strong>Event Stream:</strong> The controller also manages the Server-Sent Events (SSE) 
     connection for real-time event monitoring used by events and health nodes. 
@@ -111,19 +105,35 @@
 <script src="openhab4/ui-constants.js"></script>
 
 <script type="text/javascript">
+
+    function isValidUrl(urlString) {
+        try {
+            new URL(urlString);
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
+    function setDisabled(field, disabled) {
+        field.disabled = disabled;
+        const row = field.closest(".form-row");
+        if (row) {
+            row.classList.toggle("disabled", disabled);
+        }
+    }
+
     RED.nodes.registerType('openhab4-controller', {
         category: 'config',
         defaults: {
             name: { value: "", required: true },
-            protocol: { value: "http", required: true },
+            url: { value: "https://localhost:8443/", required: true },
             allowSelfSigned: { value: false, required: true },
-            host: { value: "localhost", required: true },
-            port: { value: 8080, required: true },
             eventFilter: { value: "*", required: true },
-            path: { value: "", required: false },
             retryTimeout: { value: "", required: false }
         },
         credentials: {
+            token: { type: "password" },
             username: { type: "text" },
             password: { type: "password" }
         },
@@ -132,6 +142,54 @@
             return this.name;
         },
         oneditprepare: function () {
+
+            const urlField = document.getElementById("node-config-input-url");
+            const urlWarning = document.getElementById("url-warning");
+            const tokenField = document.getElementById("node-config-input-token");
+            const tokenWarning = document.getElementById("token-warning");
+            const userField = document.getElementById("node-config-input-username");
+            const passwordField = document.getElementById("node-config-input-password");
+            const allowSelfSignedField = document.getElementById("node-config-input-allowSelfSigned");
+
+            function updateAuthFields() {
+                const url = urlField.value.trim();
+                const isHttps = url.toLowerCase().startsWith("https://");
+                setDisabled(allowSelfSignedField, !isHttps);
+                const hasToken = !!tokenField.value;
+                const hasUser = !!userField.value;
+
+                if (hasToken) {
+                    if (isHttps) {
+                        tokenWarning.style.display = "none";
+                    } else {
+                        tokenField.value = "";
+                        tokenWarning.style.display = "block";
+                    }
+                    setDisabled(tokenField, !isHttps);
+                    setDisabled(userField, isHttps);
+                    setDisabled(passwordField, isHttps);
+                } else {
+                    setDisabled(tokenField, hasUser || !isHttps);
+                    setDisabled(userField, false);
+                    setDisabled(passwordField, false);
+                }
+            }
+
+            function checkUrl() {
+                if (urlField.value.trim() === "" || isValidUrl(urlField.value.trim())) {
+                    urlWarning.style.display = "none";
+                    return;
+                }
+                urlWarning.textContent = "⚠ Invalid URL";
+                urlWarning.style.display = "block";
+            }
+
+            urlField.addEventListener("input", updateAuthFields);
+            urlField.addEventListener("input", checkUrl);
+            tokenField.addEventListener("input", updateAuthFields);
+            userField.addEventListener("input", updateAuthFields);
+
+            updateAuthFields();
         }
     });
 </script>

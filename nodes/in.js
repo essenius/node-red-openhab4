@@ -11,13 +11,13 @@
 
 "use strict";
 
-const { setupInNode } = require('../lib/inNodeHandler');
+const { setupInNodeHandler } = require('../lib/inNodeHandler');
 
 function registerOpenHabInNode(RED) {
     function createInNode(config) {
         RED.nodes.createNode(this, config);
         const controller = RED.nodes.getNode(config.controller);
-        setupInNode(this, config, controller, { generateId: RED.util.generateId });
+        setupInNodeHandler(this, config, controller, { generateId: RED.util.generateId });
     }
 
     RED.nodes.registerType("openhab4-in", createInNode);

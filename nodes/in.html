@@ -25,16 +25,19 @@
     </div>
     <div class="form-row">
         <label for="node-input-item-filter"><i class="fa fa-filter"></i> Filter Items</label>
-        <input type="text" id="node-input-item-filter" placeholder="Type to filter...">
+        <input type="text" id="node-input-item-filter" placeholder="Type to filter below item name list...">
     </div>
     <div class="form-row">
         <label for="node-input-itemName"><i class="fa fa-crosshairs"></i> Item Name</label>
     	<select id="node-input-itemName" name="node-input-itemName">
     	</select>
     </div>
-        <div class="form-row">
-        <label for="node-input-changesOnly"><i class="fa fa-refresh"></i> Changes only</label>
-    	<input type="checkbox" id="node-input-changesOnly" name="node-input-changesOnly">
+    <div class="form-row" style="display: flex; align-items: center; flex-wrap: nowrap;">
+        <label for="node-input-changesOnly"><i class="fa fa-refresh"></i> Filter Events</label>
+        <div style="margin-left: 1em; display: flex; align-items: center; white-space: nowrap;">
+            <input type="checkbox" id="node-input-changesOnly" name="node-input-changesOnly" style="margin-right: 0.5em;">
+            <span>State changes only</span>
+        </div>
     	</select>
     </div>
 </script>
@@ -53,11 +56,11 @@
         <dt>Controller <span class="property-type">openhab4-controller</span></dt>
         <dd>The openHAB4 controller to connect to</dd>
         <dt>Filter Items <span class="property-type">string</span></dt>
-        <dd>Text to filter the list of items with. Leave empty to show all items.</dd>
+        <dd>Text to filter the list of item names with. Leave empty to show all items.</dd>
         <dt>Item <span class="property-type">string</span></dt>
-        <dd>The name of the item to listen to. Overrides <code>msg.item</code></dd>
-        <dt>Changes only <span class="property-type">bool</span></dt>
-        <dd>Checked: only send item state changes. Unchecked: send all item events</dd>
+        <dd>The name of the item to listen to.</dd>
+        <dt>Filter Events<span class="property-type">bool</span></dt>
+        <dd>Checked: only pass events that change the stored state. Unchecked: send all item events</dd>
     </dl>
 
     <h3>Outputs</h3>
@@ -66,12 +69,14 @@
             <dl class="message-properties">
                 <dt>payload <span class="property-type">string</span></dt>
                 <dd>The new state of the selected item</dd>
-                <dt>item <span class="property-type">string</span></dt>
+                <dt>name <span class="property-type">string</span></dt>
                 <dd>The name of the item</dd>
+                <dt>type <span class="property-type">string</span></dt>
+                <dd>The item type</dd>
                 <dt>event <span class="property-type">string</span></dt>
                 <dd>the event type: 'StateChangedEvent' if changes only was set, the incoming event type if not.</dd>
                 <dt>rawEvent <span class="property-type">object</span></dt>
-                <dd>Unprocessed event data for the item.</dd>
+                <dd>The event that came in from OpenHAB. Added are concept, name, full_name and event (deconstructed from topic).</dd>
             </dl>
         </li>
     </ol>
@@ -87,7 +92,7 @@
         category: 'home automation',
         color: globalThis.OPENHAB4.NODE_COLOR,
         defaults: {
-            name: { value: "", required: false },
+            name: { value: "", required: false }, // we don't need node name
             controller: { value: "", type: "openhab4-controller", required: true },
             itemName: { value: "", required: true },
             changesOnly: { value: true, required: true }

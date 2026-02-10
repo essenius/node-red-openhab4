@@ -26,28 +26,18 @@
 
         let allItemNames = [];
 
-        async function updateItemNameDropdown(controllerConfig, selectedValue) {
+        async function updateItemNameDropdown(controllerId, selectedValue) {
             itemNameInput.innerHTML = "";
 
-            if (!controllerConfig) {
+            if (!controllerId) {
                 return itemNameInput.append(
                     $("<option disabled>").text("Select a controller first")
                 );
             }
 
-            // build your query params from controllerConfig…
-            const params = {
-                name: controllerConfig.name,
-                protocol: controllerConfig.protocol,
-                host: controllerConfig.host,
-                port: controllerConfig.port,
-                path: controllerConfig.path,
-                username: controllerConfig.credentials?.username,
-                password: controllerConfig.credentials?.password
-            };
-
             try {
-                const items = await $.getJSON("openhab4/items", params);
+                // pass on the controller Id for server side fetching of config
+                const items = await $.getJSON("openhab4/items", { controller: controllerId });
                 items.sort((a, b) => a.name.localeCompare(b.name));
                 allItemNames = items.map(item => item.name); // Store all names for filtering
                 let specialOption = { value: "", text: emptyText };
@@ -77,13 +67,13 @@
 
         const controllerNode = RED.nodes.node(node.controller);
         if (controllerNode) {
-            updateItemNameDropdown(controllerNode, node.itemName);
+            updateItemNameDropdown(controllerNode.id, node.itemName);
         }
 
         // reload when controller dropdown changes
         controllerInput.addEventListener("change", () => {
             const newController = RED.nodes.node(controllerInput.value);
-            updateItemNameDropdown(newController, node.itemName);
+            updateItemNameDropdown(newController?.id, node.itemName);
         });
     }
 
@@ -129,4 +119,4 @@
 
     globalThis.openhabEditPrepare = openhabEditPrepare;
     globalThis.makeFilterableDropdown = makeFilterableDropdown;
-})(window);
+})(globalThis);

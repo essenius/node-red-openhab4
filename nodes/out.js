@@ -11,13 +11,13 @@
 
 "use strict";
 
-const { setupOutNode } = require('../lib/outNodeHandler');
+const { setupOutNodeHandler } = require('../lib/outNodeHandler');
 
 function registerOpenHabOutNode(RED) {
   function createOutNode(config) {
     RED.nodes.createNode(this, config);
     const controller = RED.nodes.getNode(config.controller);
-    setupOutNode(this, config, controller);
+    setupOutNodeHandler(this, config, controller);
   }
 
   RED.nodes.registerType("openhab4-out", createOutNode);

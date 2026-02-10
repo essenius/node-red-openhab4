@@ -62,7 +62,7 @@ describe("healthNodeHandler", function () {
         expect(subscribe.getCall(2).args[0]).to.equal('ConnectionStatus');
         expect(subscribe.getCall(3).args[0]).to.equal('GlobalError');
 
-        healthNodeHandler._onConnectionStatus("ON");
+        healthNodeHandler._onConnectionStatus2("ON");
 
         let sendArgs = node.send.getCall(0).args[0]; // The array passed to node.send
         expect(sendArgs[0], "First channel provides the status").to.include({ payload: 'ON', topic: 'ConnectionStatus' }); 
@@ -72,7 +72,7 @@ describe("healthNodeHandler", function () {
         expect(node.status.getCall(1).args[0], "Status cleared").to.deep.equal({ });
 
         node.send.resetHistory();
-        healthNodeHandler._onConnectionStatus("ON");
+        healthNodeHandler._onConnectionStatus2("ON");
         expect(node.send.notCalled, "send not called again").to.be.true;
 
         healthNodeHandler._onGlobalError("Connection error");

@@ -11,13 +11,13 @@
 
 "use strict";
 
-const { setupGetNode } = require('../lib/getNodeHandler');
+const { setupGetNodeHandler } = require('../lib/getNodeHandler');
 
 function registerOpenHabGetNode(RED) {
   function createGetNode(config) {
     RED.nodes.createNode(this, config);
     const controller = RED.nodes.getNode(config.controller);
-    setupGetNode(this, config, controller);
+    setupGetNodeHandler(this, config, controller);
   }
 
   RED.nodes.registerType("openhab4-get", createGetNode);

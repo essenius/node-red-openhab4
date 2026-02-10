@@ -68,13 +68,13 @@ describe("connectionUtils.httpRequest", function () {
     // Import the httpRequest function from connectionUtils.js, using proxyquire to stub out node-fetch
     // This allows us to control the behavior of fetch without making actual HTTP requests.
 
-    let fetchStub, httpRequest, originalFetch;
+    let fetchStub, httpRequest, originalFetch, setDefaults;
 
     beforeEach(() => {
         originalFetch = globalThis.fetch;
         fetchStub = sinon.stub();
         globalThis.fetch = fetchStub;
-        ({ httpRequest } = proxyquire("../lib/connectionUtils", {
+        ({ httpRequest, setDefaults } = proxyquire("../lib/connectionUtils", {
             "node-fetch": fetchStub
         }));
     });
@@ -189,14 +189,16 @@ describe("connectionUtils.httpRequest", function () {
     for (const { testId, config, fetchResponse, authRequired, authFailed, retry, status, message } of errorTestCases) {
         it(`should report an error for ${testId} as expected`, async function () {
             fetchStub.resolves(createFakeResponse(fetchResponse));
-            const conf = config ?? {};
+            let conf = config ?? {};
+            conf.url = "http://mocked";
+            conf = setDefaults(conf);
             const result = await httpRequest("http://test", conf, {});
             expect(result.ok, "Result not ok").to.be.false;
             if (retry !== undefined) expect(!!result.retry, "retry test").to.equal(retry);
-            if (authRequired !== undefined) expect(!!result.authRequired, "authRequired test").to.equal(authRequired);
-            if (authFailed !== undefined) expect(!!result.authFailed, "autFailed test").to.equal(authFailed);
-            if (status !== undefined) expect(result.status, "status test").to.equal(status);
-            if (message !== undefined) expect(result.message, "message test").to.equal(message);
+            if (authRequired !== undefined) expect(!!result.authRequired, `authRequired test for ${testId}`).to.equal(authRequired);
+            if (authFailed !== undefined) expect(!!result.authFailed, `autFailed test for ${testId}`).to.equal(authFailed);
+            if (status !== undefined) expect(result.status, `status test for ${testId}`).to.equal(status);
+            if (message !== undefined) expect(result.message, `message test for ${testId}`).to.equal(message);
         });
     };
 
@@ -245,7 +247,7 @@ describe("connectionUtils.httpRequest", function () {
 
 });
 
-function setConfig(username, password) {
+/*function setConfig(username, password) {
     return {
         protocol: "https",
         host: "openhab.local",
@@ -257,15 +259,13 @@ function setConfig(username, password) {
 }
 
 
-describe("connectionUtils.getConnectionString", function () {
+ describe("connectionUtils.getConnectionString", function () {
 
     const { getConnectionString } = require("../lib/connectionUtils");
 
     it("should build a URL without credentials", function () {
         const config = {
-            protocol: "http",
-            host: "localhost",
-            port: 8080,
+            url: "http://localhost:8080",
             path: "rest"
         };
         const url = getConnectionString(config);
@@ -292,7 +292,7 @@ describe("connectionUtils.getConnectionString", function () {
         const url = getConnectionString(config);
         expect(url).to.equal("undefined://undefined:undefined");
     });
-});
+}); */
 
 describe("connectionUtils.isPhantomError", function () {
 
@@ -345,35 +345,33 @@ describe("connectionUtils.setDefaultsTest", function () {
     const { setDefaults } = require("../lib/connectionUtils");
 
     it("should provide all defaults", function () {
-        const config = {};
+        const config = { url: "http://localhost"};
         setDefaults(config);
-        expect(config.protocol).to.equal("http", "Protocol OK");
-        expect(config.host).to.equal("localhost", "Host OK");
-        expect(config.port).to.equal(8080, "Port OK");
-        expect(config.path).to.equal("", "Path empty");
+        expect(config.url).to.equal("http://localhost", "url OK");
+        expect(config.token).to.equal("", "token empty");
         expect(config.username).to.equal("", "username empty");
         expect(config.password).to.equal("", "password empty");
+        expect(config.retryTimeout).to.equal(Infinity, "retryTimeout infinite")
     });
 
     it("should default https to 8443 and trim values correctly", function () {
         const config = {
-            protocol: "   https  ",
-            host: " 192.168.1.1  ",
-            port: Number.NaN,
-            path: " /  ",
+
+            url: "   https://server:8443/   ",
+            token: "  ",
             username: "    abc",
-            password: "  def  "
+            password: "  def  ",
+            retryTimeout: " 10000 "
         }
         setDefaults(config);
-        expect(config.protocol).to.equal("https", "Protocol trimmed");
-        expect(config.host).to.equal("192.168.1.1", "Host trimmed");
-        expect(config.port).to.equal(8443, "Port OK");
-        expect(config.path).to.equal("", "Path empty");
+        expect(config.url).to.equal("https://server:8443", "url trimmed and slash removed");
+        expect(config.token).to.equal("", "token empty");
         expect(config.username).to.equal("abc", "username trimmed");
         expect(config.password).to.equal("  def  ", "password preserves leading/trailing spaces");
+        expect(config.retryTimeout).to.equal(10000, "retryTimeout trimmed and converted to a number");
     });
 
-    it("should not override port if specified", function () {
+    /*it("should not override port if specified", function () {
         const config = {
             protocol: "http",
             host: "a",
@@ -388,6 +386,6 @@ describe("connectionUtils.setDefaultsTest", function () {
         expect(config.path).to.equal("root", "Path ok");
         expect(config.username).to.equal("", "username ok");
 
-    });
+    });*/
 });
 

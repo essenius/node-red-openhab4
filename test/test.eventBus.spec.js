@@ -80,12 +80,7 @@ describe("eventBus single tag subscribe", function () {
         expect(regexCallback1.calledWith("Payload5"), "regex node 1 notified").to.be.true;
     });
 
-    function testMultipleSubscriptions(eventBus, {
-        pattern,
-        baseCallback,
-        payload,
-        label
-    }) {
+    function testMultipleSubscriptions(eventBus, { pattern, baseCallback, payload, label }) {
         const extraCallback = sinon.spy();
 
         eventBus.subscribe(pattern, extraCallback);

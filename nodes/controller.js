@@ -11,49 +11,74 @@
 
 "use strict";
 
-const { httpRequest, getConnectionString, setDefaults } = require("../lib/connectionUtils");
-const { setupController } = require('../lib/controllerHandler');
+const { httpRequest, setDefaults } = require("../lib/connectionUtils");
+const { setupControllerHandler } = require('../lib/controllerHandler');
 const { ENDPOINTS } = require("../lib/constants");
+const { registerOpenHabAdminSite } = require("./admin");
 
 /** Handler for the httpAdmin request to get all OpenHAB items. This is used to populate the dropdowns in the controller and other nodes */
-function createItemsHandler() {
-    return async function (request, response) {
-        // request.query also contains the credentials, so we can use it to fetch items
-        const config = setDefaults(request.query);
-        const url = getConnectionString(config) + ENDPOINTS.ITEMS;
-            const result = await httpRequest(url, config);
-            if (!result.ok) {
-                // if we get an error, we return the error message and status code. 
-                // We need to make sure the errors are valid, so we replace negative numbers by 500.
-                const status = !result.status || result.status < 0 ? 500 : result.status;
-                return response.status(status).send(result.message);
-            }
-            if (result.data) {
-                response.send(result.data); // implicitly returns 200 OK
-                return;
-            }
-            response.sendStatus(204); // No content. This is not expected, but we handle it nonetheless
+function createItemsHandler(RED, httpRequestFn = httpRequest) {
+    return async function(req, res) {
+        const controller = RED.nodes.getNode(req.query.controller);
+
+        if (!controller) return res.status(404).send("Controller not found");
+
+        // grab the config from the controller handler
+        const config = controller.handler.config;
+        const result = await _fetchItems(config, httpRequestFn);
+
+        if (result.status !== 200) return res.status(result.status).send(result.message);
+
+        res.send(result.data);
     };
+}
+
+async function _fetchItems(config, httpRequestFn) {
+    const url = config.url + ENDPOINTS.ITEMS;
+    const result = await httpRequestFn(url, config);
+
+    if (!result.ok) {
+        // if we get an error, we return the error message and status code. 
+        // We need to make sure the errors are valid, so we replace negative numbers by 500.
+        return {
+            status: !result.status || result.status < 0 ? 500 : result.status,
+            message: result.message
+        };
+    }
+
+    return {
+        // no data is not expected, but we handle it nonetheless
+        status: result.data ? 200 : 204,
+        data: result.data
+    };
+}
+
+function stripProtocol(url) {
+    return url.replace(/^https?:\/\//i, '');
 }
 
 /** Controller module for OpenHAB, which sets up the controller node and handles the items request */
 function controllerModule(RED) {
-    const maybeFn = require("./admin");
-    maybeFn(RED);
+    registerOpenHabAdminSite(RED);
 
     // start a web service for enabling the node configuration ui to retrieve the available openHAB items
 
-    RED.httpAdmin.get("/openhab4/items", createItemsHandler());
+    RED.httpAdmin.get("/openhab4/items", createItemsHandler(RED));
 
     function createControllerNode(config) {
         RED.nodes.createNode(this, config);
+        console.log("CreateControllerNode credentials", this.credentials);
+
         const mergedConfig = setDefaults({ ...config, ...(this.credentials) });
-        this.name = config.name || `${mergedConfig.host}:${mergedConfig.port}`;
-        this.controller = setupController(this, mergedConfig);
+        console.log("CreateControllerNode merged config", mergedConfig);
+
+        this.name = config.name || stripProtocol(mergedConfig.url);
+        this.handler = setupControllerHandler(this, mergedConfig);
     }
 
     RED.nodes.registerType("openhab4-controller", createControllerNode, {
         credentials: {
+            token: { type: "password" },
             username: { type: "text" },
             password: { type: "password" }
         }

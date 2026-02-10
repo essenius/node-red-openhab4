@@ -24,4 +24,4 @@ function registerOpenHabAdminSite(RED) {
   // any other admin‐side setup…  
 };
 
-module.exports = registerOpenHabAdminSite;
+module.exports = { registerOpenHabAdminSite };
