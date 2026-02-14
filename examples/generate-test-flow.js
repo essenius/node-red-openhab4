@@ -42,7 +42,8 @@ const testFlow = [
         "z": "test-flow-tab",
         "name": "",
         "controller": "controller-node",
-        "itemName": config.testItem,
+        "concept": "items",
+        "identifier": config.testItem,
         "changesOnly": true,
         "x": 100,
         "y": 200,
@@ -56,7 +57,8 @@ const testFlow = [
         "z": "test-flow-tab",
         "name": "",
         "controller": "controller-node",
-        "itemName": config.testItem,
+        "concept": "items",
+        "identifier": config.testItem,
         "x": 290,
         "y": 300,
         "wires": [
@@ -68,7 +70,8 @@ const testFlow = [
         "type": "openhab4-out",
         "z": "test-flow-tab",
         "controller": "controller-node",
-        "itemName": config.testItem,
+        "concept": "items",
+        "identifier": config.testItem,
         "topic": "",
         "payload": "",
         "x": 350,
@@ -134,15 +137,15 @@ const testFlow = [
                 "p": "payload"
             },
             {
-                "p": "topic",
-                "vt": "str"
+                "p": "openhabControl",
+                "v": "{ \"operation\": \"command\" }",
+                "vt": "json"
             }
         ],
         "repeat": "",
         "crontab": "",
         "once": false,
         "onceDelay": 0.1,
-        "topic": "ItemCommand",
         "payload": "ON",
         "payloadType": "str",
         "x": 130,
@@ -161,15 +164,15 @@ const testFlow = [
                 "p": "payload"
             },
             {
-                "p": "topic",
-                "vt": "str"
+                "p": "openhabControl",
+                "v": "{ \"operation\": \"update\" }",
+                "vt": "json"
             }
         ],
         "repeat": "",
         "crontab": "",
         "once": false,
         "onceDelay": 0.1,
-        "topic": "ItemUpdate",
         "payload": "OFF",
         "payloadType": "str",
         "x": 120,

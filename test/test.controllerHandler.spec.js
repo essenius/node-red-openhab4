@@ -14,7 +14,7 @@
 const { expect } = require('chai');
 const sinon = require('sinon');
 const proxyquire = require('proxyquire');
-const { ERROR_TYPES, EVENT_TAGS, EVENT_TYPES, SWITCH_STATUS } = require('../lib/constants');
+const { CONCEPTS, ERROR_TYPES, EVENT_TAGS, OPERATION, SWITCH_STATUS } = require('../lib/constants');
 const { EventBus } = require('../lib/eventBus');
 const { EventEmitter } = require('node:events');
 
@@ -28,55 +28,47 @@ function createMockNode() {
 }
 
 describe("controllerHandler.setupControllerHandler", function () {
-    let controlItemStub, startEventSourceStub, testIfLiveStub, OpenhabConnectionStub, config;
-    let bus, mockNode, ControllerHandler, nodeErrorHandlerSpy, globalErrorHandlerSpy, connectionStatusSpy;
+    let sendRequestStub, startEventSourceStub, testIfLiveStub, OpenhabConnectionStub, config;
+    let bus, mockNode, ControllerHandler, globalErrorHandlerSpy, connectionStatusSpy, simulateError;
 
 
-
-    function setupOpenhabConnectionWithGetItems(getItemsResult, callErrorHandler = false) {
-        const getItemsStub = sinon.stub().callsFake(async (errorHandler) => {
-            if (callErrorHandler && errorHandler) {
-                errorHandler(getItemsResult);
-            }
-            return getItemsResult;
-        });
-
-        const fakeConnection = {
-            getItems: getItemsStub,
-            startEventSource: startEventSourceStub,
-            controlItem: controlItemStub,
-            close: sinon.stub(),
-            testIfLive: testIfLiveStub
-        };
-        OpenhabConnectionStub.returns(fakeConnection);
-        return getItemsStub;
-    }
 
     beforeEach(() => {
         bus = new EventBus();
 
-        nodeErrorHandlerSpy = sinon.spy();
-        bus.subscribe(EVENT_TAGS.NODE_ERROR, nodeErrorHandlerSpy);
         globalErrorHandlerSpy = sinon.spy();
         bus.subscribe(EVENT_TAGS.GLOBAL_ERROR, globalErrorHandlerSpy);
         connectionStatusSpy = sinon.spy();
         bus.subscribe(EVENT_TAGS.CONNECTION_STATUS, connectionStatusSpy);
 
-        controlItemStub = sinon.stub().callsFake(async (_itemName, topic, _payload, handler) => {
-            if (topic === "error") {
+        simulateError = false;
+        sendRequestStub = sinon.stub().callsFake(async (endPoint, verb, payload, handler) => {
+            if (simulateError) {
                 const result = { ok: false, retry: false, type: ERROR_TYPES.NETWORK, message: "Simulated error" };
                 handler(result);
                 return result;
             }
-            return { ok: true, data: { name: "test", state: SWITCH_STATUS.OFF } };
+
+            if (endPoint.endsWith("/things") && verb === "GET") 
+                return { ok: true, data: [{ UID: "Thing1", statusInfo:{status:"ONLINE"} }] };
+
+            if (endPoint.endsWith("/items") && verb === "GET") 
+                return { ok: true, data: [{ name: "Item1", state: SWITCH_STATUS.OFF, type: "Switch" }] };
+
+            return { ok: true, data: { name: "item1", state: SWITCH_STATUS.OFF, type: "OnOff" } };
         });
 
         startEventSourceStub = sinon.stub();
         testIfLiveStub = sinon.stub().resolves(true);
-        OpenhabConnectionStub = sinon.stub();
 
-        // Stub OpenhabConnection so no real connection is made
-        setupOpenhabConnectionWithGetItems({ ok: true, data: [{ name: "Item1", type: "Switch", state: SWITCH_STATUS.ON }] });
+        const fakeConnection = {
+            startEventSource: startEventSourceStub,
+            sendRequest: sendRequestStub,
+            close: sinon.stub(),
+            testIfLive: testIfLiveStub
+        };
+
+        OpenhabConnectionStub = sinon.stub().returns(fakeConnection);
 
         mockNode = createMockNode();
 
@@ -138,78 +130,75 @@ describe("controllerHandler.setupControllerHandler", function () {
         await runEventSourceOnOpenCallback();
         expect(mockNode.log.calledWithMatch("EventSource connection established"), "Connected to event source").to.be.true;
         expect(startEventSourceStub.calledOnce, "EventSource should be started").to.be.true;
-        expect(mockNode.log.calledWithMatch("Getting state of all items"), "Getting items").to.be.true;
+        expect(mockNode.log.calledWithMatch("Getting statuses of all things..."), "Getting things").to.be.true;
         expect(publishSpy.calledWithMatch(EVENT_TAGS.CONNECTION_STATUS, SWITCH_STATUS.ON), "Connection status ON published").to.be.true;
 
         const calls = publishSpy.getCalls();
 
         const matchingCall2 = calls.find(call => call.args[0] === 'items/Item1');
         expect(matchingCall2, "publish called with topic").to.exist;
+        console.log(matchingCall2.args[1]);
         expect(matchingCall2.args[1], "Item published").to.deep.include(
-            { name: 'Item1', type: EVENT_TYPES.ITEM_STATE, payload: { type: "Switch", value: SWITCH_STATUS.ON } });
-
-        // TODO: extract to separate test
-        let clientNode = { emit: sinon.spy() };
+            {
+                topic: "items/Item1",
+                payload: SWITCH_STATUS.OFF,
+                payloadType: "Switch",
+                eventType: "ItemStateEvent",
+                openhab: { name: 'Item1', state: SWITCH_STATUS.OFF, type: "Switch" }
+            });
 
         publishSpy.resetHistory();
 
         // call the control function to simulate a control command
-        let result = await controllerHandler.control(clientNode, "Item1", "command", "OFF");
+        let result = await controllerHandler.control(CONCEPTS[CONCEPTS.ITEMS], "Item1", OPERATION.COMMAND, SWITCH_STATUS.OFF);
 
-        expect(result).to.deep.equal({ ok: true, data: { name: "test", state: "OFF" } }, "Result 1 is ok as expected");
-        expect(clientNode.emit.neverCalled, "No emits to the client done");
-        result = await controllerHandler.control(clientNode, "Item1", "error", "OFF");
+        expect(result).to.deep.equal({ 
+            ok: true, 
+            data: { 
+                topic: "items/item1", 
+                payload: SWITCH_STATUS.OFF, 
+                payloadType: "OnOff", 
+                openhab: { name: 'item1', state: SWITCH_STATUS.OFF, type: "OnOff" } 
+            } 
+        }, "Result 1 is ok as expected");
+        expect(publishSpy.notCalled, "No events published for error").to.be.true;
+
+        simulateError = true;
+        result = await controllerHandler.control(CONCEPTS[CONCEPTS.ITEMS], "Item1", OPERATION.ERROR, SWITCH_STATUS.OFF);
         expect(result).to.deep.equal({ ok: false, retry: false, type: "network", message: "Simulated error" }, "Result 2 is error as expected");
-        expect(clientNode.emit.calledWithMatch('NodeError', 'Simulated error'), "Correct error sent to client").to.be.true;
-
         expect(publishSpy.calledWithMatch('GlobalError', 'Simulated error'), "Error event raised").to.be.true;
     });
 
-    it("should handle error in getItems appropriately", async function () {
-
-        const errorGetItemsResult = { ok: false, retry: false, message: "Fake Error" };
-        bus.subscribe(EVENT_TAGS.NODE_ERROR, nodeErrorHandlerSpy);
+    it("should handle error in _getAll appropriately", async function () {
+        simulateError = true;
+        const controllerHandler = new ControllerHandler(mockNode, config, bus).setupNode();
         bus.subscribe(EVENT_TAGS.GLOBAL_ERROR, globalErrorHandlerSpy);
         bus.subscribe(EVENT_TAGS.CONNECTION_STATUS, connectionStatusSpy);
 
-        const getItemsStub = setupOpenhabConnectionWithGetItems(errorGetItemsResult, true);
-
-        const controllerHandler = new ControllerHandler(mockNode, config, bus).setupNode();
-
-        await controllerHandler.connection.getItems();
-        expect(getItemsStub.calledOnce, "GetItems called").to.be.true;
-
-        await runEventSourceOnOpenCallback();
+        await runEventSourceOnOpenCallback(); // which should call _getAll and thus trigger the error
 
         controllerHandler._onClose(false, () => { });
         expect(connectionStatusSpy.calledOnceWithExactly('OFF'));
-        expect(nodeErrorHandlerSpy.calledOnceWithMatch("Fake Error"), "NodeError emitted").to.be.true;
-        expect(globalErrorHandlerSpy.calledOnceWithMatch("Fake Error"), "GlobalError emitted").to.be.true;
+        expect(globalErrorHandlerSpy.calledOnceWithMatch("Simulated error"), "GlobalError emitted").to.be.true;
     });
 
-    async function runEventSourceOnErrorCallback(message, shortMessage) {
+    async function runEventSourceOnErrorCallback(message) {
         // Manually trigger the onError callback        
         const startEventSourceArgs = startEventSourceStub.getCall(0).args[0];
         if (startEventSourceArgs && typeof startEventSourceArgs.onError === "function") {
-            await startEventSourceArgs.onError(message, shortMessage);
+            await startEventSourceArgs.onError(message);
         }
         // Wait for any async error handling to finish
         await new Promise(resolve => setImmediate(resolve));
     }
 
-    async function testErrorEvent(shortMessage, longMessage, expectedNodeError, expectedGlobalError) {
+    async function testErrorEvent(shortMessage, longMessage, expectedGlobalError) {
         const publishSpy = sinon.spy(bus, 'publish');
 
         new ControllerHandler(mockNode, config, bus).setupNode();
         await new Promise(resolve => setImmediate(resolve));
 
-        await runEventSourceOnErrorCallback(longMessage, shortMessage);
-
-        if (expectedNodeError === false) {
-            expect(publishSpy.calledWith("NodeError", sinon.match.any), "NodeError should not be emitted").to.be.false;
-        } else {
-            expect(publishSpy.calledWith("NodeError", expectedNodeError), "NodeError emitted").to.be.true;
-        }
+        await runEventSourceOnErrorCallback(longMessage);
 
         expect(publishSpy.calledWith("GlobalError", expectedGlobalError), "GlobalError emitted").to.be.true;
         expect(publishSpy.calledWithMatch("ConnectionStatus", "OFF"), "ConnectionStatus emitted").to.be.true;
@@ -218,15 +207,15 @@ describe("controllerHandler.setupControllerHandler", function () {
     }
 
     it("should emit a connection error on Error event if short message is not empty", async function () {
-        await testErrorEvent("Service Unavailable", "The service is unavailable right now", "Service Unavailable", "The service is unavailable right now");
+        await testErrorEvent("Service Unavailable", "The service is unavailable right now", "The service is unavailable right now");
     });
 
     it("should not emit a connection error on Error event if short message is empty", async function () {
-        await testErrorEvent("", "The service is unavailable right now", false, "The service is unavailable right now");
+        await testErrorEvent("", "The service is unavailable right now", "The service is unavailable right now");
     });
 
     it("should use long error on Error event if short message is null or undefined", async function () {
-        await testErrorEvent(undefined, "The service is unavailable right now", "The service is unavailable right now", "The service is unavailable right now");
+        await testErrorEvent(undefined, "The service is unavailable right now", "The service is unavailable right now");
     });
 
     describe("Message handling tests", function () {
@@ -252,13 +241,14 @@ describe("controllerHandler.setupControllerHandler", function () {
                     payload: JSON.stringify({ value: 'ON' })
                 })
             };
-
+            publishSpy.resetHistory();
             controllerHandler._handleMessage(message);
-            expect(publishSpy.calledWith(
-                "items/Item1",
-                sinon.match({ topic: "openhab/items/Item1/StateEvent", name: "Item1", full_name: "items/Item1", payload: { value: "ON" } })
-            ),
-                "Item Event emitted").to.be.true;
+            expect(publishSpy.firstCall.args[1]).to.deep.include(
+                {
+                    payload:"ON",
+                    topic: "items/Item1",
+                    eventType: "ItemStateEvent"
+                }, "Item Event emitted");
         });
 
         it("should not emit empty message", function () {
@@ -329,13 +319,13 @@ describe("controllerHandler.setupControllerHandler", function () {
                 const message = {
                     data: JSON.stringify({
                         type: "RawEvent",
-                        topic: "openhab/custom/message/event",
+                        topic: "openhab/items/message/event",
                         payload: testCase.payload
                     })
                 };
                 publishSpy.resetHistory();
                 controllerHandler._handleMessage(message);
-                expect(publishSpy.calledWithMatch("custom/message", sinon.match.any), `Item published for ${testCase.desc}`).to.be.true;
+                expect(publishSpy.calledWithMatch("items/message", sinon.match.any), `Item published for ${testCase.desc}`).to.be.true;
             });
         }
 

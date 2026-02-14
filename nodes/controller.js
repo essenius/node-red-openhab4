@@ -13,19 +13,20 @@
 
 const { httpRequest, setDefaults } = require("../lib/connectionUtils");
 const { setupControllerHandler } = require('../lib/controllerHandler');
-const { ENDPOINTS } = require("../lib/constants");
+const { CONCEPTS } = require("../lib/constants");
 const { registerOpenHabAdminSite } = require("./admin");
 
 /** Handler for the httpAdmin request to get all OpenHAB items. This is used to populate the dropdowns in the controller and other nodes */
-function createItemsHandler(RED, httpRequestFn = httpRequest) {
+function createResourceHandler(RED, endpoint, httpRequestFn = httpRequest) {
     return async function(req, res) {
+        console.log("Query: ", req.query);
         const controller = RED.nodes.getNode(req.query.controller);
 
-        if (!controller) return res.status(404).send("Controller not found");
+        if (!controller) return res.status(404).send(`Controller '${req.query.controller}' not found`);
 
         // grab the config from the controller handler
         const config = controller.handler.config;
-        const result = await _fetchItems(config, httpRequestFn);
+        const result = await _fetchResources(config, endpoint, httpRequestFn);
 
         if (result.status !== 200) return res.status(result.status).send(result.message);
 
@@ -33,8 +34,8 @@ function createItemsHandler(RED, httpRequestFn = httpRequest) {
     };
 }
 
-async function _fetchItems(config, httpRequestFn) {
-    const url = config.url + ENDPOINTS.ITEMS;
+async function _fetchResources(config, endpoint, httpRequestFn) {
+    const url = config.url + endpoint;
     const result = await httpRequestFn(url, config);
 
     if (!result.ok) {
@@ -63,7 +64,8 @@ function controllerModule(RED) {
 
     // start a web service for enabling the node configuration ui to retrieve the available openHAB items
 
-    RED.httpAdmin.get("/openhab4/items", createItemsHandler(RED));
+    RED.httpAdmin.get(CONCEPTS.adminUrl(CONCEPTS.ITEMS), createResourceHandler(RED, CONCEPTS.baseUrl(CONCEPTS.ITEMS)));
+    RED.httpAdmin.get(CONCEPTS.adminUrl(CONCEPTS.THINGS), createResourceHandler(RED, CONCEPTS.baseUrl(CONCEPTS.THINGS)));
 
     function createControllerNode(config) {
         RED.nodes.createNode(this, config);
@@ -85,5 +87,5 @@ function controllerModule(RED) {
     });
 }
 
-controllerModule.createItemsHandler = createItemsHandler;
+controllerModule.createResourceHandler = createResourceHandler;
 module.exports = controllerModule;

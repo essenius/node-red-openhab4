@@ -11,6 +11,7 @@
 
 "use strict";
 
+const { CONCEPTS, OPERATION } = require("../lib/constants");
 const helper = require("node-red-node-test-helper");
 const outNode = require("../nodes/out.js");
 const { expect } = require("chai");
@@ -25,7 +26,7 @@ const controllerNode = function (RED) {
       unsubscribe: sinon.spy()
     };
     this.handler = {
-      control: sinon.spy((_itemName, _topic, _payload) => { return "OK"; })
+      control: sinon.spy((_itemName, _topic, _payload) => { return { ok: true }})
     };
     RED.nodes.createNode(this, config);
     // Spy/stub for the control method
@@ -72,9 +73,10 @@ describe("openhab4-out node", function () {
       const controller = helper.getNode("controller1");
       const out = helper.getNode("out1");
       // Send a message to the out node
+      
       out.receive({
-        item: "ub_Warning",
-        topic: "itemCommand",
+        topic: "items/ub_Warning",
+        openhabControl: { operation: "command" },
         payload: "test1"
       });
 
@@ -85,9 +87,9 @@ describe("openhab4-out node", function () {
           const control = controller.handler.control;
           expect(control.calledOnce, "control called once").to.be.true;
           const call = control.getCall(0);
-          expect(call.args[0]).to.equal(out.handler, "Item name should match");
+          expect(call.args[0].name).to.equal(CONCEPTS.ITEMS, "concept should match");
           expect(call.args[1]).to.equal("ub_Warning", "Item name should match");
-          expect(call.args[2]).to.equal("itemCommand", "Topic should match");
+          expect(call.args[2]).to.equal(OPERATION.COMMAND, "Operation should match");
           expect(call.args[3]).to.equal("test1", "Payload should match");
           done();
         } catch (err) {
@@ -106,17 +108,18 @@ describe("openhab4-out node", function () {
       const out = helper.getNode("out1");
       const controller = helper.getNode("controller1");
       out.receive({
-        item: "ub_Warning",
-        topic: "itemCommand",
+        topic: "items/ub_Warning",
+        openhabControl: { operation: "command" },
         payload: "incoming-payload"
       });
 
       setTimeout(() => {
         try {
           const control = controller.handler.control;
-          expect(control.calledOnce).to.be.true;
+          expect(control.calledOnce, "Control called once").to.be.true;
           const call = control.getCall(0);
-          expect(call.args[3]).to.equal("configured-payload"); // Should use the config value
+          expect(call.args[3]).to.equal("incoming-payload", "Should use the incoming payload, not the configured one");
+
           done();
         } catch (err) {
           done(err);

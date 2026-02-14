@@ -17,12 +17,13 @@
      */
     function openhabEditPrepare(node, emptyText) {
         // Fix existing array data
-        if (Array.isArray(node.itemName)) {
-            node.itemName = node.itemName[0] || "";
+        if (Array.isArray(node.identifier)) {
+            node.identifier = node.identifier[0] || "";
         }
 
         const controllerInput = document.getElementById("node-input-controller");
-        const itemNameInput = document.getElementById("node-input-itemName");
+        const itemNameInput = document.getElementById("node-input-identifier");
+        const conceptInput = document.getElementById("node-input-concept");
 
         let allItemNames = [];
 
@@ -37,14 +38,18 @@
 
             try {
                 // pass on the controller Id for server side fetching of config
-                const items = await $.getJSON("openhab4/items", { controller: controllerId });
-                items.sort((a, b) => a.name.localeCompare(b.name));
-                allItemNames = items.map(item => item.name); // Store all names for filtering
+                const concept = conceptInput?.value ?? "items";
+                console.log(`getting openhab4/${concept} with controller ${controllerId}`);
+                const items = await $.getJSON(`openhab4/${concept}`, { controller: controllerId });
+                console.log("Items:", items);
+                const nameKey = concept === "things" ? "UID" : "name";
+                items.sort((a, b) => a[nameKey].localeCompare(b[nameKey]));
+                allItemNames = items.map(item => item[nameKey]); // Store all names for filtering
                 let specialOption = { value: "", text: emptyText };
-                if (document.getElementById('node-input-item-filter')) {
+                if (document.getElementById('node-input-list-filter')) {
                     const makeDropdownParams = {
-                        filterInputId: 'node-input-item-filter',
-                        selectId: 'node-input-itemName',
+                        filterInputId: 'node-input-list-filter',
+                        selectId: 'node-input-identifier',
                         allOptions: allItemNames,
                         specialOption: specialOption,
                         selectedValue: selectedValue
@@ -53,28 +58,29 @@
                 }
             }
             catch (err) {
-                console.warn("Failed loading items", err);
+                console.log("Failed loading resources", err);
                 itemNameInput.innerHTML = ""; 
 
                 const option = document.createElement("option");
                 option.disabled = true;
-                option.textContent = "⚠️ Failed to load items";
+                option.textContent = "⚠️ Failed to load resources";
                 itemNameInput.appendChild(option);
             }
         }
 
-        // initial load
 
-        const controllerNode = RED.nodes.node(node.controller);
-        if (controllerNode) {
-            updateItemNameDropdown(controllerNode.id, node.itemName);
+        function refreshDropdown(topic) {
+            const controllerNode = RED.nodes.node(node.controller);
+            if (controllerNode) updateItemNameDropdown(controllerNode.id, topic);
         }
 
-        // reload when controller dropdown changes
-        controllerInput.addEventListener("change", () => {
-            const newController = RED.nodes.node(controllerInput.value);
-            updateItemNameDropdown(newController?.id, node.itemName);
-        });
+        // reload when controller or concept dropdown changes
+        controllerInput.addEventListener("change", () => { refreshDropdown(node.identifier); });
+        conceptInput?.addEventListener("change", () => { refreshDropdown(node.identifier); });
+
+        // initial load
+
+        refreshDropdown(node.identifier);
     }
 
     /**

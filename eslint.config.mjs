@@ -4,12 +4,12 @@ import json from "@eslint/json";
 import markdown from "@eslint/markdown";
 import css from "@eslint/css";
 import { defineConfig } from "eslint/config";
-
+import importPlugin from "eslint-plugin-import";
 
 export default defineConfig([
   {
     files: ["**/*.{js,mjs,cjs}"],
-    plugins: { js },
+    plugins: { js, import: importPlugin },
     extends: ["js/recommended"],
     rules: {
       "no-undef": "error",
@@ -17,7 +17,8 @@ export default defineConfig([
         "argsIgnorePattern": "^_",
         "varsIgnorePattern": "^_",
         "caughtErrorsIgnorePattern": "^_"
-      }]
+      }],
+      "import/named": "error"
     }
   },
   { files: ["**/*.js"], languageOptions: { sourceType: "commonjs" } },

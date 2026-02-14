@@ -35,7 +35,7 @@ describe("inNodeHandler", function () {
                 get: (key) => contextStore[key]
             })
         };
-        const config = { itemName: "testItem", changesOnly: true };
+        const config = { concept: "items", identifier: "testItem", changesOnly: true };
 
         const eventBus = {
             publish: sinon.spy(),
@@ -53,8 +53,8 @@ describe("inNodeHandler", function () {
 
         const inNodeHandler = new InNodeHandler(node, config, controller, { generateId: () => "123", generateTime: () => "12:34:56" });
 
-        expect(inNodeHandler.itemName).to.equal("testItem", "itemName is set correctly");
-        expect(inNodeHandler.itemTag).to.equal("items/testItem", "itemTag is correct")
+        expect(inNodeHandler.identifier).to.equal("testItem", "identifier is set correctly");
+        expect(inNodeHandler.resourceTag).to.equal("items/testItem", "resourceTag is correct")
         expect(inNodeHandler.getNodeType(), "node type is in").to.equal("In");
 
         inNodeHandler.setupNode();
@@ -62,23 +62,22 @@ describe("inNodeHandler", function () {
         // node.on called for close
         expect(node.on.calledOnce, "node.on called once").to.be.true;
         // subscribe called for ConnectionStatus, NodeError, items/TestItem (no input)
-        expect(eventBus.subscribe.callCount).to.equal(3, "Subscribe called 3 times");
+        expect(eventBus.subscribe.callCount).to.equal(2, "Subscribe called 3 times");
 
-        inNodeHandler._processEvent({ name: "testItem", type: EVENT_TYPES.ITEM_STATE, payload: { value: SWITCH_STATUS.ON }});
-        expect(node.send.firstCall.args[0]).to.deep.include({ payload: SWITCH_STATUS.ON, topic: EVENT_TYPES.ITEM_STATE, name: "testItem", item: "testItem" }, "First incoming message sent out");
+        inNodeHandler._processEvent({ topic: "items/testItem", eventType: EVENT_TYPES.ITEM_STATE, payload: SWITCH_STATUS.ON });
+        expect(node.send.firstCall.args[0]).to.deep.include({ payload: SWITCH_STATUS.ON, eventType: EVENT_TYPES.ITEM_STATE, topic: "items/testItem" }, "First incoming message sent out");
 
         node.send.resetHistory();
-        inNodeHandler._processEvent({ name: "testItem", type: EVENT_TYPES.ITEM_STATE, payload: { value: SWITCH_STATUS.ON, type: "OnOff" }});
+        inNodeHandler._processEvent({ topic: "items/testItem", eventType: EVENT_TYPES.ITEM_STATE, payload: SWITCH_STATUS.ON, payloadType: "OnOff" });
         expect(node.send.notCalled, "send not called again when payload not changed (despite type is now sent too)").to.be.true;
 
-        inNodeHandler._processEvent({ name: "testItem", type: EVENT_TYPES.ITEM_STATE, payload: { value: SWITCH_STATUS.OFF, type: "OnOff" }});
-        expect(node.send.firstCall.args[0]).to.deep.include({ payload:  SWITCH_STATUS.OFF, topic: EVENT_TYPES.ITEM_STATE, name: "testItem", item: "testItem", type: "OnOff" }, "Message with different value does get sent");
+        inNodeHandler._processEvent({ topic: "items/testItem", eventType: EVENT_TYPES.ITEM_STATE, payload: SWITCH_STATUS.OFF, payloadType: "OnOff" });
+        expect(node.send.firstCall.args[0]).to.deep.include({ payload:  SWITCH_STATUS.OFF,  payloadType: "OnOff", eventType: EVENT_TYPES.ITEM_STATE, topic: "items/testItem" }, "Message with different value does get sent");
 
         node.send.resetHistory();
         inNodeHandler.config.changesOnly = false;
-        inNodeHandler._processEvent({ name: "testItem", type: EVENT_TYPES.ITEM_STATE, payload: { value: SWITCH_STATUS.OFF, type: "OnOff" }});
-        expect(node.send.firstCall.args[0]).to.deep.include({ payload:  SWITCH_STATUS.OFF, topic: EVENT_TYPES.ITEM_STATE, name: "testItem", item: "testItem", type: "OnOff" }, "Send called again on same payload if changes only is false");
-
+        inNodeHandler._processEvent({ topic: "items/testItem", eventType: EVENT_TYPES.ITEM_STATE, payload: SWITCH_STATUS.OFF, payloadType: "OnOff" });
+        expect(node.send.firstCall.args[0]).to.deep.include({ payload:  SWITCH_STATUS.OFF, eventType: EVENT_TYPES.ITEM_STATE, topic: "items/testItem", payloadType: "OnOff" }, "Send called again on same payload if changes only is false");
 
         eventBus.unsubscribe.resetHistory();
         inNodeHandler.cleanup();

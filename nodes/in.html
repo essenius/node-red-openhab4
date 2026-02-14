@@ -23,13 +23,22 @@
         <label for="node-input-controller"><i class="fa fa-cogs"></i> Controller</label>
         <input type="text" id="node-input-controller">
     </div>
+
     <div class="form-row">
-        <label for="node-input-item-filter"><i class="fa fa-filter"></i> Filter Items</label>
-        <input type="text" id="node-input-item-filter" placeholder="Type to filter below item name list...">
+        <label for="node-input-concept"><i class="fa fa-sitemap"></i> Concept</label>
+    	<select id="node-input-concept" name="node-input-concept">
+			<option value="items">Items</option>
+			<option value="things">Things</option>
+    	</select>
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-list-filter"><i class="fa fa-filter"></i> List Filter</label>
+        <input type="text" id="node-input-list-filter" placeholder="Type to filter below resource list...">
     </div>
     <div class="form-row">
-        <label for="node-input-itemName"><i class="fa fa-crosshairs"></i> Item Name</label>
-    	<select id="node-input-itemName" name="node-input-itemName">
+        <label for="node-input-identifier"><i class="fa fa-crosshairs"></i> Resource</label>
+    	<select id="node-input-identifier" name="node-input-identifier">
     	</select>
     </div>
     <div class="form-row" style="display: flex; align-items: center; flex-wrap: nowrap;">
@@ -55,12 +64,14 @@
         <dd>Optional name for the node (auto-generated from item name if empty)</dd>
         <dt>Controller <span class="property-type">openhab4-controller</span></dt>
         <dd>The openHAB4 controller to connect to</dd>
-        <dt>Filter Items <span class="property-type">string</span></dt>
-        <dd>Text to filter the list of item names with. Leave empty to show all items.</dd>
-        <dt>Item <span class="property-type">string</span></dt>
-        <dd>The name of the item to listen to.</dd>
+        <dt>Concept <span class="property-type">string</span></dt>
+        <dd>The openHAB4 concept that a resource represents (e.g. items, things)</dd>
+        <dt>List Filter <span class="property-type">string</span></dt>
+        <dd>Text to filter the resource list with. Leave empty to show all.</dd>
+        <dt>Resource <span class="property-type">string</span></dt>
+        <dd>The name of the resource to listen to.</dd>
         <dt>Filter Events<span class="property-type">bool</span></dt>
-        <dd>Checked: only pass events that change the stored state. Unchecked: send all item events</dd>
+        <dd>Checked: only pass events that change the stored state. Unchecked: send all events</dd>
     </dl>
 
     <h3>Outputs</h3>
@@ -69,13 +80,13 @@
             <dl class="message-properties">
                 <dt>payload <span class="property-type">string</span></dt>
                 <dd>The new state of the selected item</dd>
-                <dt>name <span class="property-type">string</span></dt>
-                <dd>The name of the item</dd>
-                <dt>type <span class="property-type">string</span></dt>
-                <dd>The item type</dd>
-                <dt>event <span class="property-type">string</span></dt>
-                <dd>the event type: 'StateChangedEvent' if changes only was set, the incoming event type if not.</dd>
-                <dt>rawEvent <span class="property-type">object</span></dt>
+                <dt>topic <span class="property-type">string</span></dt>
+                <dd>The resource's address (e.g. items/itemName)</dd>
+                <dt>payloadType <span class="property-type">string</span></dt>
+                <dd>The type of the payload (e.g. 'string')</dd>
+                <dt>eventType <span class="property-type">string</span></dt>
+                <dd>the incoming event type if not.</dd>
+                <dt>openhab <span class="property-type">object</span></dt>
                 <dd>The event that came in from OpenHAB. Added are concept, name, full_name and event (deconstructed from topic).</dd>
             </dl>
         </li>
@@ -94,7 +105,8 @@
         defaults: {
             name: { value: "", required: false }, // we don't need node name
             controller: { value: "", type: "openhab4-controller", required: true },
-            itemName: { value: "", required: true },
+            concept: { value: "items", required: true },
+            identifier: { value: "", required: true },
             changesOnly: { value: true, required: true }
         },
         inputs: 0,
@@ -103,7 +115,7 @@
         icon: "openhab4-logo-in.svg",
         paletteLabel: "openhab4-in",
         label: function () {
-            return globalThis.OPENHAB4.generateNodeName('in', this.name, this.itemName);
+            return globalThis.OPENHAB4.generateNodeName('in', this.name, this.identifier);
         },
         oneditprepare: function () {
             openhabEditPrepare(this, "Select item...");

@@ -56,15 +56,14 @@ describe("healthNodeHandler", function () {
         expect(node.on.firstCall.args[0]).to.equal('close');
 
         const subscribe = controller.handler.eventBus.subscribe;
-        expect(subscribe.callCount, "subscribe called 4 times").to.equal(4);
+        expect(subscribe.callCount, "subscribe called twice").to.equal(2);
         expect(subscribe.getCall(0).args[0]).to.equal('ConnectionStatus');
-        expect(subscribe.getCall(1).args[0]).to.equal('NodeError');
-        expect(subscribe.getCall(2).args[0]).to.equal('ConnectionStatus');
-        expect(subscribe.getCall(3).args[0]).to.equal('GlobalError');
+        expect(subscribe.getCall(1).args[0]).to.equal('GlobalError');
 
-        healthNodeHandler._onConnectionStatus2("ON");
+        // this is called by the parent node when the connection status changes, but we can call it directly to test the logic
+        healthNodeHandler._afterConnectionStatus("ON");
 
-        let sendArgs = node.send.getCall(0).args[0]; // The array passed to node.send
+        let sendArgs = node.send.getCall(0).args[0];
         expect(sendArgs[0], "First channel provides the status").to.include({ payload: 'ON', topic: 'ConnectionStatus' }); 
         expect(sendArgs[1], "Second channel is null").to.be.null;
 
@@ -72,7 +71,8 @@ describe("healthNodeHandler", function () {
         expect(node.status.getCall(1).args[0], "Status cleared").to.deep.equal({ });
 
         node.send.resetHistory();
-        healthNodeHandler._onConnectionStatus2("ON");
+
+        healthNodeHandler._afterConnectionStatus("ON");
         expect(node.send.notCalled, "send not called again").to.be.true;
 
         healthNodeHandler._onGlobalError("Connection error");
@@ -82,10 +82,8 @@ describe("healthNodeHandler", function () {
         
         healthNodeHandler.cleanup();
         const unsubscribe = controller.handler.eventBus.unsubscribe;
-        expect(unsubscribe.callCount, "controller.off called 2 times").to.equal(2);
+        expect(unsubscribe.callCount, "controller.off called once").to.equal(1);
         expect(unsubscribe.getCall(0).args[0]).to.equal('GlobalError');
-        expect(unsubscribe.getCall(1).args[0]).to.equal('ConnectionStatus');
-
         expect(healthNodeHandler._lastStatus, "_lastStatus is null after cleanup").to.be.null;
     });
 

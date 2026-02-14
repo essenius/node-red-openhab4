@@ -29,13 +29,22 @@
         <label for="node-input-controller"><i class="fa fa-cogs"></i> Controller</label>
         <input type="text" id="node-input-controller">
     </div>
+
     <div class="form-row">
-        <label for="node-input-item-filter"><i class="fa fa-filter"></i> Filter Items</label>
-        <input type="text" id="node-input-item-filter" placeholder="Type to filter below item name list...">
+        <label for="node-input-concept"><i class="fa fa-sitemap"></i> Concept</label>
+    	<select id="node-input-concept" name="node-input-concept">
+			<option value="items">Items</option>
+			<option value="things">Things</option>
+    	</select>
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-list-filter"><i class="fa fa-filter"></i> List Filter</label>
+        <input type="text" id="node-input-list-filter" placeholder="Type to filter below item name list...">
     </div>
     <div class="form-row">
-        <label for="node-input-itemName"><i class="fa fa-crosshairs"></i> Item Name</label>
-        <select id="node-input-itemName" name="node-input-itemName" style="width: 70%; height: auto; appearance: menulist;"></select>
+        <label for="node-input-identifier"><i class="fa fa-crosshairs"></i> Resource</label>
+        <select id="node-input-identifier" name="node-input-identifier" style="width: 70%; height: auto; appearance: menulist;"></select>
     </div>
 </script>
 
@@ -49,33 +58,38 @@
     <h3>Configuration</h3>
     <dl class="message-properties">
         <dt>Name <span class="property-type">string</span></dt>
-        <dd>Optional name for the node (auto-generated from item name if empty)</dd>
+        <dd>Optional name for the node (auto-generated from resource name if empty)</dd>
         <dt>Controller <span class="property-type">openhab4-controller</span></dt>
         <dd>The openHAB4 controller to use</dd>
-        <dt>Filter Items <span class="property-type">string</span></dt>
-        <dd>Text to filter the list of items with. Leave empty to show all items.</dd>
-        <dt>Item Name <span class="property-type">string</span></dt>
-        <dd>The openHAB item to retrieve. Overrides <code>msg.item</code></dd>
+        <dt>Concept <span class="property-type">string</span></dt>
+        <dd>The openHAB4 concept to use (e.g. items, things). Overridden by <code>msg.topic</code></dd>
+
+        <dt>List Filter <span class="property-type">string</span></dt>
+        <dd>Text to filter the list of resources with. Leave empty to show all resources.</dd>
+        <dt>Resource <span class="property-type">string</span></dt>
+        <dd>The openHAB resource to retrieve. Overridden by <code>msg.topic</code></dd>
     </dl>
 
     <h3>Inputs</h3>
     <dl class="message-properties">
-        <dt>item <span class="property-type">string</span></dt>
-        <dd>The name of the item to retrieve (optional if configured in the node)</dd>
-        <dt>payload <span class="property-type">any</span></dt>
-        <dd>Any payload - will be preserved as <code>msg.payload_in</code> in the output</dd>
+        <dt>topic <span class="property-type">string</span></dt>
+        <dd>The address (e.g. items/itemName) of the resource to retrieve (optional if configured in the node)</dd>
     </dl>
 
     <h3>Outputs</h3>
     <ol class="node-ports">
         <li>Item State
             <dl class="message-properties">
+                <dt>topic <span class="property-type">string</span></dt>
+                <dd>The address (e.g. items/itemName) of the resource that was queried</dd>
                 <dt>payload <span class="property-type">object</span></dt>
-                <dd>The item's complete state object from openHAB</dd>
-                <dt>payload_in <span class="property-type">any</span></dt>
-                <dd>The original incoming message payload</dd>
-                <dt>item <span class="property-type">string</span></dt>
-                <dd>The name of the item that was queried</dd>
+                <dd>The retrieved resource value</dd>
+                <dt>payloadType <span class="property-type">string</span></dt>
+                <dd>The retrieved resource type (e.g., string)</dd>
+                <dt>input <span class="property-type">Object</span></dt>
+                <dd>The incoming message</dd>
+                <dt>openhab <span class="property-type">Object</span></dt>
+                <dd>The retrieved resource data from openHAB</dd>
             </dl>
         </li>
     </ol>
@@ -89,7 +103,7 @@
     </ul>
     
     <p>The item name can be specified either in the node configuration or in the <code>msg.item</code> property. 
-    The node configuration takes precedence if both are provided.</p>
+    The message content takes precedence if both are provided.</p>
     
     <p>Use this node when you need to fetch the current state of an item as part of a flow, 
     rather than continuously monitoring for changes (use the events node for that).</p>
@@ -105,7 +119,8 @@
         defaults: {
             name: { value: "", required: false },
             controller: { value: "", type: "openhab4-controller", required: true },
-            itemName: { value: "", required: false }
+            concept: {value: "items", required: true },
+            identifier: { value: "", required: false }
         },
         inputs: 1,
         outputs: 1,
@@ -113,7 +128,7 @@
         icon: "openhab4-logo-get.svg",
         paletteLabel: "openhab4-get",
         label: function () {
-            return globalThis.OPENHAB4.generateNodeName('get', this.name, this.itemName);
+            return globalThis.OPENHAB4.generateNodeName('get', this.name, this.identifier);
         },
         oneditprepare: function () {
             openhabEditPrepare(this, "[Test Connection]");

@@ -29,17 +29,18 @@ Listens to state changes of a selected openHAB Item.
 *Configuration:*
 - Name: the name of the node instance (default empty, then takes over the item name)
 - Controller: the openHAB controller
-- Filter Events / State changes only: only pass on events that changed the value
-- Filter Items: the filter applied to the dropdown. Empty means no filter.
-- Item Name: the name of the item to listen to. Overrides <code>msg.item</code>.
+- Concept: the OpenHAB concept (Things, Items)
+- List Filter: the filter applied to the resource dropdown. Empty means no filter.
+- Resource: the name of the item to listen to.
+- Filter Events / State changes only: only pass on events that changed the value.
 
 *Output messages:*
 
-- <code>msg.item</code>: the name of the item
-- <code>msg.topic</code>: <kbd>StateEvent</kbd>
+- <code>msg.topic</code>: concept/resource, e.g.<kbd>items/myItem</kbd>
 - <code>msg.payload</code>: the new state of the selected item
-- <code>msg.type</code>: the type of the value, e.g. String
-- <code>msg.raw_event</code>: the incoming event from OpenHAB along with name, full_name and concept.
+- <code>msg.payloadType</code>: the type of the value, e.g. String
+- <code>msg.eventType</code>: the type of the value, e.g. String
+- <code>msg.openhab</code>: the incoming event from OpenHAB along with name, full_name and concept.
 
 ### openhab4-health
 
@@ -57,7 +58,7 @@ Channel 1:
 
 Channel 2:
 - <code>msg.topic</code> : <kbd>ConnectionError</kbd>
-- <code>msg.payload</code> : error message
+- <code>msg.payload</code> : the error message
 
 ### openhab4-out
 
@@ -67,13 +68,14 @@ Sends commands or state updates to a selected openHAB Item.
 - Name: name of the node instance (default empty, then takes over the item name)
 - Controller: the openHAB controller
 - Filter Items: the filter applied to the dropdown. Empty means no filter. 
-- Item Name: the item to set. overrides <code>msg.item</code>.
-- Topic: <code>ItemCommand</code> or <code>ItemUpdate</code>. Overrides <code>msg.topic</code>.
-- Payload : The command or update value to send to the selected item. Overrides <code>msg.payload</code>.
+- Item Name: the item to set. overridden by <code>msg.topic</code>.
+- Operation: <code>command</code> or <code>update</code>. Overriden by<code>msg.openhabControl.operation</code>.
+- Payload : The value to send to the selected item. Overriden by <code>msg.payload</code>.
 
 *Output messages(1 channel):*
 
-If output to OpenHAB is successful, the input message is copied to the output channel.
+If output to OpenHAB is successful, the input message is copied to the output channel, augmented with the used parameters.
+The input message is copied into <kbd>inputMessage</kbd>.
 
 ### openhab4-get
 
@@ -82,16 +84,16 @@ Gets an openHAB item (i.e. fetch on demand).
 *Configuration:*
 - Name: the name of the node instance (default empty, then takes over the item name) 
 - Controller: the openHAB controller
-- Filter Items: the filter applied to the dropdown. Empty means no filter.
-- Item Name: the item to get. Overrides <code>msg.item</code>.
+- Concept: the OpenHAB concept (e.g. Things/Items)
+- List Filter: the filter applied to the dropdown. Empty means no filter.
+- Resource: the name of the resource to get. Overridden by <code>msg.topic</code>.
 
 *Output messages (1 channel):*
 
 Channel 1:
-The input message with addition of:
-- <code>msg.payload</code> : the item object (name, label, state, ...)
-- <code>msg.payload_in</code> : copy of incoming message payload.
-- <code>msg.raw_response</code> : the incoming response
+The input message, augmented with the parameters actually used, and:
+- <code>msg.openhab</code> : the response received from OpenHAB
+- <code>msg.inputMessage</code> : copy of incoming message payload.
 
 ## Test flow
 

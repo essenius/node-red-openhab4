@@ -25,16 +25,16 @@
         <input type="text" id="node-input-item-filter" placeholder="Type to filter below item name list...">
     </div>
     <div class="form-row">
-        <label for="node-input-itemName"><i class="fa fa-crosshairs"></i> Item Name</label>
-    	<select id="node-input-itemName" name="node-input-itemName">
+        <label for="node-input-identifier"><i class="fa fa-crosshairs"></i> Item Name</label>
+    	<select id="node-input-identifier" name="node-input-identifier">
     	</select>
     </div>
     <div class="form-row">
-        <label for="node-input-topic"><i class="fa fa-tasks"></i> Topic</label>
-    	<select id="node-input-topic" name="node-input-topic" style="width: 250px;">
+        <label for="node-input-operation"><i class="fa fa-tasks"></i> Operation</label>
+    	<select id="node-input-operation" name="node-input-operation" style="width: 250px;">
 			<option value=""></option>
-			<option value="ItemCommand">ItemCommand</option>
-			<option value="ItemUpdate">ItemUpdate</option>
+			<option value="command">Command</option>
+			<option value="update">Update</option>
     	</select>
     </div>
     <div class="form-row">
@@ -59,21 +59,21 @@
         <dt>Filter List <span class="property-type">string</span></dt>
         <dd>Text to filter the list of items with. Leave empty to show all items.</dd>
         <dt>Item Name <span class="property-type">string</span></dt>
-        <dd>The openHAB item to send commands/updates to. Overrides <code>msg.item</code></dd>
-        <dt>Topic <span class="property-type">string</span></dt>
-        <dd>The type of operation: <code>ItemCommand</code> or <code>ItemUpdate</code>. Overrides <code>msg.topic</code></dd>
+        <dd>The openHAB item to send commands/updates to. Overridden by <code>msg.topic</code></dd>
+        <dt>Operation <span class="property-type">string</span></dt>
+        <dd>The type of operation: <code>ItemCommand</code> or <code>ItemUpdate</code>. Overridden by <code>msg.openhabControl.operation</code></dd>
         <dt>Payload <span class="property-type">string</span></dt>
-        <dd>The command or update value to send. Overrides <code>msg.payload</code></dd>
+        <dd>The command or update value to send. Overridden by <code>msg.payload</code></dd>
     </dl>
 
     <h3>Inputs</h3>
     <dl class="message-properties">
         <dt>payload <span class="property-type">string | object</span></dt>
-        <dd>The command or update value to send to the item</dd>
-        <dt>item <span class="property-type">string</span></dt>
-        <dd>The name of the item to send the command/update to (optional if configured)</dd>
+        <dd>The value to send to the item</dd>
         <dt>topic <span class="property-type">string</span></dt>
-        <dd>The type of operation: <code>ItemCommand</code> or <code>ItemUpdate</code> (optional if configured)</dd>
+        <dd>The address of the item to send the command/update to (e.g. items/myItem). Only items are supported. Overrides the item configured in the node.</dd>
+        <dt>openhabControl.operation <span class="property-type">string</span></dt>
+        <dd>The type of operation: <code>Command</code> or <code>Update</code>. Overrides the operation configured in the node.</dd>
     </dl>
 
     <h3>Outputs</h3>
@@ -81,11 +81,13 @@
         <li>Sent Message
             <dl class="message-properties">
                 <dt>payload <span class="property-type">string | object</span></dt>
-                <dd>Copy of the original payload that was sent</dd>
-                <dt>item <span class="property-type">string</span></dt>
-                <dd>The name of the item that received the command/update</dd>
+                <dd>The payload that was sent</dd>
                 <dt>topic <span class="property-type">string</span></dt>
+                <dd>The address (items/itemName) of the item that received the command/update</dd>
+                <dt>openhabControl.operation <span class="property-type">string</span></dt>
                 <dd>The type of operation that was performed</dd>
+                dt>input <span class="property-type">object</span></dt>
+                <dd>The original input message that triggered the command/update</dd>
             </dl>
         </li>
     </ol>
@@ -93,14 +95,14 @@
     <h3>Details</h3>
     <p>This node sends commands or state updates to openHAB items:</p>
     <ul>
-        <li><strong>ItemCommand:</strong> Sends a command to an item (e.g., turn a switch ON/OFF)</li>
-        <li><strong>ItemUpdate:</strong> Updates the state of an item directly</li>
+        <li><strong>Command:</strong> Sends a command to an item (e.g., turn a switch ON/OFF)</li>
+        <li><strong>Update:</strong> Updates the state of an item directly</li>
     </ul>
     
-    <p>Configuration values in the node take precedence over message properties. 
+    <p>Message properties take precedence over node configuration. 
     If no item is specified in either the configuration or message, an error will be generated.</p>
     
-    <p>The node will output a copy of the input message if the command/update is sent successfully.</p>
+    <p>The node will only generate output if the command/update was sent successfully.</p>
 </script>
 
 <script src="openhab4/ui-constants.js"></script>
@@ -113,8 +115,9 @@
         defaults: {
             name: { value: "" },
             controller: { value: "", type: "openhab4-controller", required: true },
-            itemName: { value: "", required: false },
-            topic: { value: "ItemUpdate", required: false },
+            concept: { value: "items", required: true },
+            identifier: { value: "", required: false },
+            operation: { value: "update", required: false },
             payload: { value: "", required: false }
         },
         inputs: 1,
@@ -123,7 +126,7 @@
         icon: "openhab4-logo-out.svg",
         paletteLabel: "openhab4-out",
         label: function () {
-            return globalThis.OPENHAB4.generateNodeName('out', this.name, this.itemName);
+            return globalThis.OPENHAB4.generateNodeName('out', this.name, this.identifier);
         },
         oneditprepare: function () {
             openhabEditPrepare(this, "[No Item]");

@@ -25,9 +25,9 @@ const controllerNode = function (RED) {
       unsubscribe: sinon.spy()
     };
     this.handler = {
-      control: sinon.stub().callsFake(async (_consumer, item, _topic, _payload) => {
+      control: sinon.stub().callsFake(async (_concept, item, _options) => {
         if (item === "TestItem") {
-          return { ok: true, data: "MockValue" };
+          return { ok: true, data: {topic: "items/TestItem", payload: "MockValue"} };
         }
         return null;
       })
@@ -104,7 +104,7 @@ describe("openhab4-get node", function () {
         }
       });
       // Trigger the get node
-      get.receive({ item: "TestItem" });
+      get.receive({ topic: "items/TestItem" });
     });
   });
 });

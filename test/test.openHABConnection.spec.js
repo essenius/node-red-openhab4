@@ -15,6 +15,7 @@ const { expect } = require("chai");
 const sinon = require("sinon");
 const proxyquire = require("proxyquire");
 const { setDefaults } = require("../lib/connectionUtils");
+const { CONCEPTS } = require("../lib/constants");
 
 function createNotFoundResponse(jsonBody) {
     return {
@@ -56,7 +57,7 @@ describe("openhabConnection real", function () {
             retryTimeout: 0
         });
         const item = "ub_warning";
-        let result = await connection.getItems();
+        let result = await connection.sendRequest("/rest/items");
         if (result.ok) {
             expect(result.data).to.include(item, "Item should be in the list of items");
         } else {
@@ -99,13 +100,13 @@ describe("openhabConnection with mocked fetch", function () {
             globalThis.fetch = originalFetch;
         }
     });
-    describe("controlItem tests", function () {
+    describe("sendRequest tests", function () {
         it("should return error details on fetch failure", async function () {
             const cause = new Error("Network failure");
             cause.code = "ECONNREFUSED";
             const err = new TypeError("fetch failed", { cause });
             fetchStub.rejects(err);
-            const response = await connection.controlItem("TestItem");
+            const response = await connection.sendRequest("/rest/items/TestItem");
 
             expect(response).to.deep.equal({ attempts: 1, ok: false, retry: true, type: "network", message: "ECONNREFUSED" });
         });
@@ -114,7 +115,8 @@ describe("openhabConnection with mocked fetch", function () {
             fetchStub.resolves(createNotFoundResponse(
                 JSON.stringify({ error: { message: "Item TestItem does not exist!", "http-code": 404 } })
             ));
-            const response = await connection.controlItem("TestItem");
+            const response = await connection.sendRequest("/rest/items/TestItem");
+
 
             expect(fetchStub.calledOnce).to.be.true;
             expect(response.status).to.equal(404);
@@ -123,13 +125,12 @@ describe("openhabConnection with mocked fetch", function () {
 
         it("should return error details from http if no body", async function () {
             fetchStub.resolves(createNotFoundResponse(""));
-            const result = await connection.controlItem("TestItem");
+            const result = await connection.sendRequest("/rest/items/TestItem");
 
             expect(fetchStub.calledOnce).to.be.true;
             expect(result.status).to.equal(404);
             expect(result.message).to.include("Not Found");
         });
-
 
         it("should return value if all goes well", async function () {
             fetchStub.resolves(createOkFetchResponse(
@@ -138,41 +139,24 @@ describe("openhabConnection with mocked fetch", function () {
                 editable:false, type:"String", name:"ub_warning", label:"Warning",
                 tags:[], groupNames:["Indoor"]}
             ));            
-            const response = await connection.controlItem("ub_warning");
+            const response = await connection.sendRequest("/rest/items/ub_warning");
 
             expect(fetchStub.calledOnce).to.be.true;
             expect(response.data.name).to.equal("ub_warning");
             expect(response.data.state).to.equal("123");
         });
 
-        it("should return v4 metadata if name is empty", async function () {
-            fetchStub.resolves(createOkFetchResponse(
-                {version:"8", locale:"en_NL", measurementSystem:"SI",
-                runtimeInfo:{version:"4.3.5", buildString:"Release Build"}, links: []})
-            );
-            const response = await connection.controlItem("");
-
-            expect(fetchStub.calledOnce).to.be.true;
-            expect(response.data.version).to.equal("8");
-            expect(response.data.runtimeInfo.version).to.equal("4.3.5");
-            expect(response.data.measurementSystem).to.equal("SI");
-            expect(response.links).to.be.undefined;
-        });
-        
-        it("should return v2 metadata if name is empty", async function () {
+        it("should not break if runtimeInfo does not exist", async function () {
             fetchStub.resolves(createOkFetchResponse({version:"3",links: []}));
-            const response = await connection.controlItem("");
-
+            const response = await connection.sendRequest("/rest");
             expect(fetchStub.calledOnce).to.be.true;
             expect(response.data.version).to.equal("3");
-            expect(response.data.runtimeInfo.version).to.equal("2.x");
-            expect(response.links).to.be.undefined;
         });        
     });
 
-    it("should handle getItems() successfully", async function () {
+    it("should handle multiple results successfully", async function () {
         fetchStub.resolves(createOkFetchResponse(["item1", "item2"]));
-        const items = await connection.getItems();
+        const items = await connection.sendRequest("/rest/items");
 
         expect(fetchStub.calledOnce).to.be.true;
         expect(items.ok, "OK response").to.be.true;
@@ -186,7 +170,7 @@ describe("openhabConnection StartEventSource real", function () {
         const { OpenhabConnection } = require('../lib/openhabConnection');
         const config = { url: "http://localhost:8080", token: "", username: "", password: "", allowSelfSigned: true };
         const connection = new OpenhabConnection(config);
-        connection.startEventSource({ onOpen: {}, onMessage: {}, onError: {} });
+        connection.startEventSource({ onOpen: {}, onMessage: {}, onError: {}, endPoint: "/rest/events" });
 
         if (connection.eventSource && connection.eventSource.close) {
             connection.eventSource.close();
@@ -226,7 +210,7 @@ describe("openhabConnection StartEventSource", function () {
         const openSpy = sinon.spy();
         const messageSpy = sinon.spy();
         const errorSpy = sinon.spy();
-        connection.startEventSource({ onOpen: openSpy, onMessage: messageSpy, onError: errorSpy });
+        connection.startEventSource({ onOpen: openSpy, onMessage: messageSpy, onError: errorSpy, endPoint: "/rest/events" });
         expect(connection.eventSource.options.https).to.deep.equal({ rejectUnauthorized: false }, "https options set for self-signed certs");
         expect(connection.eventSource, "instance of MockEventSource").to.be.an.instanceof(MockEventSource);
         expect(connection.eventSource.url, "URL ok").to.include("https://localhost:8080/rest/events");
@@ -254,7 +238,7 @@ describe("openhabConnection StartEventSource", function () {
         connection.eventSource.onerror({ message: "No response" });
         expect(errorSpy.calledOnce).to.be.true;
         const errorArgs = errorSpy.lastCall.args;
-        expect(errorArgs, "Right message").to.deep.equal(["No response (Retry #1 in 2.5 s)", "Retry #1 in 2.5 s"]);
+        expect(errorArgs, "Right message").to.deep.equal(["No response (Retry #1 in 2.5 s)"]);
         expect(fakeSetTimeout.calledOnce, "setTimeout called").to.be.true;
         expect(connection.retryTimer, "retryTimer set").to.not.be.null;
     });
@@ -265,9 +249,9 @@ describe("openhabConnection StartEventSource", function () {
 
         const errorSpy = sinon.spy();
         const warningSpy = sinon.spy();
-        connection.startEventSource({ onError: errorSpy, onWarning: warningSpy, topics: "first-topic" });
+        connection.startEventSource({ onError: errorSpy, onWarning: warningSpy, endPoint: "/rest/events" });
 
-        expect(connection.eventSource.url, "URL ok").to.include("http://localhost:8080/rest/events?topics=first-topic");
+        expect(connection.eventSource.url, "URL ok").to.include("http://localhost:8080/rest/events");
         expect(connection.eventSource.options.https).to.be.undefined;
         connection.eventSource.onopen();
 
@@ -281,7 +265,7 @@ describe("openhabConnection StartEventSource", function () {
             connection.eventSource.onerror({ message: "ERRCONREFUSED" });
             const errorArgs = errorSpy.lastCall.args;
             expect(errorArgs, `onError #${index} called with right parameters`)
-                .to.deep.equal([`ERRCONREFUSED (Retry #${index} in ${delay} s)`, `Retry #${index} in ${delay} s`]);
+                .to.deep.equal([`ERRCONREFUSED (Retry #${index} in ${delay} s)`]);
 
             expect(fakeSetTimeout.calledOnce, "setTimeout called").to.be.true;
             expect(connection.retryTimer, "retryTimer set").to.not.be.null;
@@ -309,12 +293,12 @@ describe("openhabConnection StartEventSource", function () {
 
         // start the EventSource again to get it back in good shape.
         fakeClearTimeout.resetHistory();
-        connection.startEventSource({ topics: "second-topic" });
+        connection.startEventSource({ endPoint: "/rest/events?topics=third-topic" });
         expect(fakeClearTimeout.calledOnce, "clearTimeout called (when calling close()").to.be.true;
         expect(connection.eventSource, "EventSource not null").to.not.be.null;
 
         // start the EventSource again with different options. This should clear the existing one first.
-        connection.startEventSource({ topics: "third-topic" });
+        connection.startEventSource({ endPoint: "/rest/events?topics=third-topic" });
         expect(connection.eventSource.url, "URL ok").to.include("http://localhost:8080/rest/events?topics=third-topic");
         expect(!connection.retryTimer, "retryTimer reset").to.be.true;
         expect(connection.eventSource, "EventSource re-initialized after close()").to.not.be.null;

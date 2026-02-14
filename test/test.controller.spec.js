@@ -14,6 +14,7 @@
 const sinon = require("sinon");
 const { expect } = require("chai");
 const proxyquire = require("proxyquire");
+const { CONCEPTS } = require("../lib/constants");
 
 const controllerModule = require("../nodes/controller.js");
 
@@ -50,7 +51,6 @@ function createNodeThis() {
         log: sinon.spy(),
         on: sinon.spy(),
         warn: sinon.spy(),
-        emit: sinon.spy(),
         status: sinon.spy(),
         error: sinon.spy(),
         setStatus: sinon.spy()
@@ -84,8 +84,7 @@ describe("openhab4-controller /openhab4/items handler", function () {
     it("should create the right URL and return items from mocked httpRequest", async function () {
         const mockHttpRequest = sinon.stub().resolves({ ok: true, data: ["item1", "item2"] });
         const RED = createMockRED();
-        const handler = controllerModule.createItemsHandler(RED, mockHttpRequest);
-        //const { handler, mockHttpRequest } = getHandler({ ok: true, data: ["item1", "item2"] });
+        const handler = controllerModule.createResourceHandler(RED, CONCEPTS.baseUrl(CONCEPTS.ITEMS), mockHttpRequest);
         const response = createMockResponse();
 
         await handler(createMockRequest(), response);
@@ -100,8 +99,7 @@ describe("openhab4-controller /openhab4/items handler", function () {
     it("should propagate status and error message when httpRequest does not return data", async function () {
         const mockHttpRequest = sinon.stub().resolves({ ok: false, retry: true, status: 503, message: "Service Unavailable" });
         const RED = createMockRED();
-        const handler = controllerModule.createItemsHandler(RED, mockHttpRequest);
-        //const { handler } = getHandler({ ok: false, retry: true, status: 503, message: "Service Unavailable" });
+        const handler = controllerModule.createResourceHandler(RED, CONCEPTS.baseUrl(CONCEPTS.ITEMS), mockHttpRequest);
         const response = createMockResponse();
         await handler(createMockRequest(), response);
         expect(response.status.calledOnceWith(503), "Response.status must be 503").to.be.true;

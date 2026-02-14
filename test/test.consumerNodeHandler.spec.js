@@ -14,7 +14,7 @@
 const path = require('node:path');
 const { expect } = require('chai');
 const sinon = require('sinon');
-const { STATE, EVENT_TAGS, SWITCH_STATUS } = require('../lib/constants');
+const { STATE, SWITCH_STATUS } = require('../lib/constants');
 
 describe('consumerNodeHandler', function () {
     let mockNode, mockHandler, mockBus, mockController, nodeHandler;
@@ -63,16 +63,6 @@ describe('consumerNodeHandler', function () {
 
     it('lets createMessage throw on missing payload or topic', function () {
         expect(() => nodeHandler.createMessage({ payload: 'bogus' })).to.throw('createMessage requires either a message property, or payload and topic properties')
-    });
-
-    it('registers the meta events', function () {
-        nodeHandler.createMessage = () => { };
-        nodeHandler._setupMetaEvents();
-
-        const subscribe = nodeHandler.eventBus.subscribe;
-        expect(subscribe.callCount).to.equal(2);
-        expect(subscribe.firstCall.args).to.deep.equal([EVENT_TAGS.CONNECTION_STATUS, nodeHandler._onConnectionStatus]);
-        expect(subscribe.secondCall.args).to.deep.equal([EVENT_TAGS.NODE_ERROR, nodeHandler._onError]);
     });
 
     it('handles a connection error adequately', function () {
@@ -151,8 +141,8 @@ describe('consumerNodeHandler', function () {
     ];
 
     for (const { input, expected } of testCases) {
-        it(`should handle setItemStatus correctly for input: ${JSON.stringify(input)}`, function () {
-            nodeHandler.setItemStatus(input);
+        it(`should handle setValueStatus correctly for input: ${JSON.stringify(input)}`, function () {
+            nodeHandler.setValueStatus(input);
             expect(mockNode.status.calledOnce, "called once").to.be.true;
             expect(mockNode.status.firstCall.args[0]).to.deep.equal(expected, "Content correct");
         });

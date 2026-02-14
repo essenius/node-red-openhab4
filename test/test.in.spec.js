@@ -23,7 +23,7 @@ const controllerNode = function (RED) {
   function ControllerNode(config) {
     RED.nodes.createNode(this, config);
     this.handler = {
-      control: sinon.spy((_itemName, _topic, _payload) => { return "OK"; }),
+      //control: sinon.spy((_itemName, _topic, _payload) => { return { ok: true, data: { payload: SWITCH_STATUS.OFF } }} ),
       eventBus: eventBus,
     };
   }
@@ -39,7 +39,7 @@ describe("openhab4-in node", function () {
     it("should emit a message when an openHAB event is received", function (done) {
         const flow = [
             { id: "controller1", type: "openhab4-controller", name: "Test Controller" },
-            { id: "in1", type: "openhab4-in", controller: "controller1", itemName: "TestItem", wires: [["helper1"]] },
+            { id: "in1", type: "openhab4-in", controller: "controller1", concept: "items", identifier: "TestItem", wires: [["helper1"]] },
             { id: "helper1", type: "helper" }
         ];
 
@@ -49,15 +49,14 @@ describe("openhab4-in node", function () {
 
             helperNode.on("input", function (msg) {
                 try {
-                    expect(msg).to.deep.include({payload: SWITCH_STATUS.OFF, type: "OnOff", name: "TestItem", item: "TestItem", topic: "ItemStateEvent", 
-                      raw_event: { type: EVENT_TYPES.ITEM_STATE, name: 'TestItem', payload: { value: SWITCH_STATUS.OFF, type: "OnOff"}}}, "Right message sent");                  
+                    expect(msg).to.deep.include({ topic: "items/TestItem", payload: "OFF", payloadType: "OnOff", eventType: "ItemStateEvent" }, "Right message sent");                  
                     done();
                 } catch (err) {
                     done(err); 
                 }
             });
 
-            controller.handler.eventBus.publish("items/TestItem", { type: "ItemStateEvent", name: "TestItem", payload: { value: "OFF", type: "OnOff" } });
+            controller.handler.eventBus.publish("items/TestItem", { topic: "items/TestItem", payload: "OFF", payloadType: "OnOff", eventType: "ItemStateEvent" });
         });
 
     });
