@@ -14,7 +14,7 @@
 const { expect } = require('chai');
 const sinon = require('sinon');
 const proxyquire = require('proxyquire');
-const { CONCEPTS, ERROR_TYPES, EVENT_TAGS, OPERATION, SWITCH_STATUS } = require('../lib/constants');
+const { CONCEPTS, ERROR_TYPES, EVENT_TAGS, OPERATION, SWITCH_STATUS, HTTP_METHODS } = require('../lib/constants');
 const { EventBus } = require('../lib/eventBus');
 const { EventEmitter } = require('node:events');
 
@@ -29,9 +29,17 @@ function createMockNode() {
 
 describe("controllerHandler.setupControllerHandler", function () {
     let sendRequestStub, startEventSourceStub, testIfLiveStub, OpenhabConnectionStub, config;
-    let bus, mockNode, ControllerHandler, globalErrorHandlerSpy, connectionStatusSpy, simulateError;
+    let bus, mockNode, ControllerHandler, globalErrorHandlerSpy, connectionStatusSpy, simulateError, simulateOldVersion;
 
-
+    async function runEventSourceOnOpenCallback() {
+        // Manually trigger the onOpen callback
+        const startEventSourceArgs = startEventSourceStub.getCall(0).args[0];
+        if (startEventSourceArgs && typeof startEventSourceArgs.onOpen === "function") {
+            await startEventSourceArgs.onOpen();
+        }
+        // Wait for getStateOfItems to finish
+        await new Promise(resolve => setImmediate(resolve));
+    }
 
     beforeEach(() => {
         bus = new EventBus();
@@ -42,6 +50,7 @@ describe("controllerHandler.setupControllerHandler", function () {
         bus.subscribe(EVENT_TAGS.CONNECTION_STATUS, connectionStatusSpy);
 
         simulateError = false;
+        simulateOldVersion = false;
         sendRequestStub = sinon.stub().callsFake(async (endPoint, verb, payload, handler) => {
             if (simulateError) {
                 const result = { ok: false, retry: false, type: ERROR_TYPES.NETWORK, message: "Simulated error" };
@@ -49,13 +58,24 @@ describe("controllerHandler.setupControllerHandler", function () {
                 return result;
             }
 
-            if (endPoint.endsWith("/things") && verb === "GET") 
-                return { ok: true, data: [{ UID: "Thing1", statusInfo:{status:"ONLINE"} }] };
+            if (verb === HTTP_METHODS.GET) {
+                if (endPoint.endsWith("/things"))
+                    return { ok: true, data: [{ UID: "Thing1", statusInfo: { status: "ONLINE" } }] };
 
-            if (endPoint.endsWith("/items") && verb === "GET") 
-                return { ok: true, data: [{ name: "Item1", state: SWITCH_STATUS.OFF, type: "Switch" }] };
+                if (endPoint.endsWith("/items"))
+                    return { ok: true, data: [{ name: "Item1", state: SWITCH_STATUS.OFF, type: "Switch" }] };
 
-            return { ok: true, data: { name: "item1", state: SWITCH_STATUS.OFF, type: "OnOff" } };
+                if (endPoint === CONCEPTS.ROOT_URL) {
+                    const data = simulateOldVersion ? {} : { runtimeInfo: { version: "4.0.1" } };
+                    return { ok: true, data };
+                }
+
+                if (endPoint.includes("items/"))
+                    return { ok: true, data: { name: "item1", state: SWITCH_STATUS.OFF, type: "OnOff" } };
+
+                return { ok:true, data: {UID: "Thing2", statusInfo: { status: "OFFLINE" } } };
+            }
+            return { ok: true, data: null };
         });
 
         startEventSourceStub = sinon.stub();
@@ -78,9 +98,7 @@ describe("controllerHandler.setupControllerHandler", function () {
             "./openhabConnection": { OpenhabConnection: OpenhabConnectionStub },
         }));
 
-        config = {
-            url: "http://localhost:8080"
-        };
+        config = { url: "http://localhost:8080" };
     });
 
     it("should log connection info and create OpenhabConnection", function () {
@@ -94,6 +112,7 @@ describe("controllerHandler.setupControllerHandler", function () {
     });
 
     it("should clean up adequately after calling _onClose()", function () {
+        config.eventFilter = "items/*";
         const controllerHandler = new ControllerHandler(mockNode, config, bus).setupNode();
         const publishSpy = sinon.spy(bus, 'publish');
 
@@ -105,81 +124,144 @@ describe("controllerHandler.setupControllerHandler", function () {
         expect(controllerHandler.connection).to.be.null;
     });
 
-    async function runEventSourceOnOpenCallback() {
-        // Manually trigger the onOpen callback
-        const startEventSourceArgs = startEventSourceStub.getCall(0).args[0];
-        if (startEventSourceArgs && typeof startEventSourceArgs.onOpen === "function") {
-            await startEventSourceArgs.onOpen();
-        }
-        // Wait for getStateOfItems to finish
-        await new Promise(resolve => setImmediate(resolve));
-    }
+    describe('retrieval tests', function () {
 
-    it("should start EventSource and get state of items when openHAB is ready (happy path)", async function () {
+        let controllerHandler, publishSpy;
 
-        const controllerHandler = new ControllerHandler(mockNode, config, bus);
-        const publishSpy = sinon.spy(bus, 'publish');
-        controllerHandler.setupNode();
+        beforeEach(async function () {
+            publishSpy = sinon.spy(bus, 'publish');
+            controllerHandler = new ControllerHandler(mockNode, config, bus).setupNode();
+            // Wait for async code to run
+            await new Promise(resolve => setImmediate(resolve));
+            this.startEventSourceArgs = startEventSourceStub.getCall(0).args[0];
+        });
 
-        // Wait for async code to run
-        await new Promise(resolve => setImmediate(resolve));
-        // simulate OnOpen
-        expect(publishSpy.calledWithMatch(EVENT_TAGS.CONNECTION_STATUS, SWITCH_STATUS.OFF), "Connection status OFF published").to.be.true;
-        publishSpy.resetHistory();
+        this.afterEach(function () {
+            controllerHandler._onClose(false, () => { });
+            publishSpy.restore();
+        });
 
-        await runEventSourceOnOpenCallback();
-        expect(mockNode.log.calledWithMatch("EventSource connection established"), "Connected to event source").to.be.true;
-        expect(startEventSourceStub.calledOnce, "EventSource should be started").to.be.true;
-        expect(mockNode.log.calledWithMatch("Getting statuses of all things..."), "Getting things").to.be.true;
-        expect(publishSpy.calledWithMatch(EVENT_TAGS.CONNECTION_STATUS, SWITCH_STATUS.ON), "Connection status ON published").to.be.true;
+        it("should start EventSource and get state of items when openHAB is ready (happy path)", async function () {
 
-        const calls = publishSpy.getCalls();
+            expect(publishSpy.calledWithMatch(EVENT_TAGS.CONNECTION_STATUS, SWITCH_STATUS.OFF), "Connection status OFF published").to.be.true;
+            publishSpy.resetHistory();
 
-        const matchingCall2 = calls.find(call => call.args[0] === 'items/Item1');
-        expect(matchingCall2, "publish called with topic").to.exist;
-        console.log(matchingCall2.args[1]);
-        expect(matchingCall2.args[1], "Item published").to.deep.include(
-            {
-                topic: "items/Item1",
-                payload: SWITCH_STATUS.OFF,
-                payloadType: "Switch",
-                eventType: "ItemStateEvent",
-                openhab: { name: 'Item1', state: SWITCH_STATUS.OFF, type: "Switch" }
-            });
+            // simulate OnOpen
+            await runEventSourceOnOpenCallback();
+            expect(mockNode.log.calledWithMatch("EventSource connection established"), "Connected to event source").to.be.true;
+            expect(startEventSourceStub.calledOnce, "EventSource should be started").to.be.true;
+            expect(mockNode.log.calledWithMatch("Getting statuses of all things..."), "Getting things").to.be.true;
+            expect(publishSpy.calledWithMatch(EVENT_TAGS.CONNECTION_STATUS, SWITCH_STATUS.ON), "Connection status ON published").to.be.true;
 
-        publishSpy.resetHistory();
+            const calls = publishSpy.getCalls();
 
-        // call the control function to simulate a control command
-        let result = await controllerHandler.control(CONCEPTS[CONCEPTS.ITEMS], "Item1", OPERATION.COMMAND, SWITCH_STATUS.OFF);
+            const matchingCall2 = calls.find(call => call.args[0] === 'items/Item1');
+            expect(matchingCall2, "publish called with topic").to.exist;
+            console.log(matchingCall2.args[1]);
+            expect(matchingCall2.args[1], "Item published").to.deep.include(
+                {
+                    topic: "items/Item1",
+                    payload: SWITCH_STATUS.OFF,
+                    payloadType: "Switch",
+                    eventType: "ItemStateEvent",
+                    openhab: { name: 'Item1', state: SWITCH_STATUS.OFF, type: "Switch" }
+                });
+        });
 
-        expect(result).to.deep.equal({ 
-            ok: true, 
-            data: { 
-                topic: "items/item1", 
-                payload: SWITCH_STATUS.OFF, 
-                payloadType: "OnOff", 
-                openhab: { name: 'item1', state: SWITCH_STATUS.OFF, type: "OnOff" } 
-            } 
-        }, "Result 1 is ok as expected");
-        expect(publishSpy.notCalled, "No events published for error").to.be.true;
+        it("should call control for a get and return a response", async function () {
+            publishSpy.resetHistory();
 
-        simulateError = true;
-        result = await controllerHandler.control(CONCEPTS[CONCEPTS.ITEMS], "Item1", OPERATION.ERROR, SWITCH_STATUS.OFF);
-        expect(result).to.deep.equal({ ok: false, retry: false, type: "network", message: "Simulated error" }, "Result 2 is error as expected");
-        expect(publishSpy.calledWithMatch('GlobalError', 'Simulated error'), "Error event raised").to.be.true;
-    });
+            const result = await controllerHandler.control(CONCEPTS[CONCEPTS.ITEMS], "Item1", OPERATION.GET);
 
-    it("should handle error in _getAll appropriately", async function () {
-        simulateError = true;
-        const controllerHandler = new ControllerHandler(mockNode, config, bus).setupNode();
-        bus.subscribe(EVENT_TAGS.GLOBAL_ERROR, globalErrorHandlerSpy);
-        bus.subscribe(EVENT_TAGS.CONNECTION_STATUS, connectionStatusSpy);
+            expect(result).to.deep.equal({
+                ok: true,
+                data: {
+                    topic: "items/item1",
+                    payload: SWITCH_STATUS.OFF,
+                    payloadType: "OnOff",
+                    openhab: { name: 'item1', state: SWITCH_STATUS.OFF, type: "OnOff" }
+                }
+            }, "Result 1 is ok as expected");
+            expect(publishSpy.notCalled, "No events published for error").to.be.true;
+        });
 
-        await runEventSourceOnOpenCallback(); // which should call _getAll and thus trigger the error
+        it("should call control for a command and return no response", async function () {
+            const result = await controllerHandler.control(CONCEPTS[CONCEPTS.ITEMS], "Item1", OPERATION.COMMAND, SWITCH_STATUS.ON);
+            expect(result).to.deep.equal({ ok: true, data: null }, "Result 1 is ok as expected");
+            expect(sendRequestStub.calledWithMatch("/rest/items/Item1", HTTP_METHODS.POST, SWITCH_STATUS.ON), "sendRequest called with correct args").to.be.true;
+        });
 
-        controllerHandler._onClose(false, () => { });
-        expect(connectionStatusSpy.calledOnceWithExactly('OFF'));
-        expect(globalErrorHandlerSpy.calledOnceWithMatch("Simulated error"), "GlobalError emitted").to.be.true;
+        it("should call control for an update and return no response", async function () {
+            const result = await controllerHandler.control(CONCEPTS[CONCEPTS.ITEMS], "Item1", OPERATION.UPDATE, SWITCH_STATUS.ON);
+            expect(result).to.deep.equal({ ok: true, data: null }, "Result 1 is ok as expected");
+            expect(sendRequestStub.calledWithMatch("/rest/items/Item1/state", HTTP_METHODS.PUT, SWITCH_STATUS.ON), "sendRequest called with correct args").to.be.true;
+        });
+
+        it("should return thing info when called with thing concept", async function () {
+            const result = await controllerHandler.control(CONCEPTS[CONCEPTS.THINGS], "Thing1");
+            expect(result).to.deep.equal({
+                ok: true,
+                data: {
+                    topic: "things/Thing2",
+                    payload: "OFFLINE",
+                    payloadType: "Status",
+                    openhab: { UID: "Thing2", statusInfo: { status: "OFFLINE" } }
+                }
+            }, "Ping request returns the right data");
+        });
+
+
+        it("should return version data when called with system concept", async function () {
+            const result = await controllerHandler.control(CONCEPTS[CONCEPTS.SYSTEM], "any");
+            expect(result).to.deep.equal({
+                ok: true,
+                data: {
+                    topic: "system",
+                    payload: "4.0.1",
+                    payloadType: "Version",
+                    openhab: { runtimeInfo: { version: "4.0.1" } }
+                }
+            }, "Ping request on newer openHAB returns the right data");
+        });
+
+
+        it("should return default version data when called with system concept", async function () {
+            simulateOldVersion = true;
+            const result = await controllerHandler.control(CONCEPTS[CONCEPTS.SYSTEM], "old");
+            expect(result).to.deep.equal({
+                ok: true,
+                data: {
+                    topic: "system",
+                    payload: "2.x",
+                    payloadType: "Version",
+                    openhab: { }
+                }
+            }, "Ping request on older openHAB returns the right data");
+
+            simulateOldVersion = false; // reset for other tests
+        });
+
+        it("should handle errors in control and publish a GlobalError", async function () {
+            publishSpy.resetHistory();
+
+            simulateError = true;
+            const result = await controllerHandler.control(CONCEPTS[CONCEPTS.ITEMS], "Item1", OPERATION.ERROR, SWITCH_STATUS.OFF);
+            expect(result).to.deep.equal({ ok: false, retry: false, type: "network", message: "Simulated error" }, "Result 2 is error as expected");
+            expect(publishSpy.calledWithMatch('GlobalError', 'Simulated error'), "Error event raised").to.be.true;
+        });
+
+        it("should handle error in _getAll appropriately", async function () {
+            simulateError = true;
+            const controllerHandler = new ControllerHandler(mockNode, config, bus).setupNode();
+            bus.subscribe(EVENT_TAGS.GLOBAL_ERROR, globalErrorHandlerSpy);
+            bus.subscribe(EVENT_TAGS.CONNECTION_STATUS, connectionStatusSpy);
+
+            await runEventSourceOnOpenCallback(); // which should call _getAll and thus trigger the error
+
+            controllerHandler._onClose(false, () => { });
+            expect(connectionStatusSpy.calledOnceWithExactly('OFF'));
+                expect(globalErrorHandlerSpy.calledOnceWithMatch("Simulated error"), "GlobalError emitted").to.be.true;
+        });
     });
 
     async function runEventSourceOnErrorCallback(message) {
@@ -245,7 +327,7 @@ describe("controllerHandler.setupControllerHandler", function () {
             controllerHandler._handleMessage(message);
             expect(publishSpy.firstCall.args[1]).to.deep.include(
                 {
-                    payload:"ON",
+                    payload: "ON",
                     topic: "items/Item1",
                     eventType: "ItemStateEvent"
                 }, "Item Event emitted");
@@ -268,31 +350,29 @@ describe("controllerHandler.setupControllerHandler", function () {
             expect(publishSpy.calledWith("GlobalError", "Failed to parse event as JSON: This is not a valid JSON string"));
         });
 
+        function expectIgnoredMessage(message) {
+            publishSpy.resetHistory();
+            controllerHandler._handleMessage(message);
+            expect(publishSpy.callCount).to.equal(0);
+        }
+
         it("should ignore messages not starting with openhab or smarthome", function () {
-            const message = {
+            expectIgnoredMessage({
                 data: JSON.stringify({
                     type: "ItemStateEvent",
                     topic: "bogus/items/Item1/StateEvent",
                     payload: JSON.stringify({ value: 'ON' })
                 })
-            };
-            publishSpy.resetHistory();
-            controllerHandler._handleMessage(message);
-            console.log(publishSpy.args);
-            expect(publishSpy.callCount).to.equal(0);
+            });
         });
 
         it("should ignore messages not having all of type, topic and payload", function () {
-            const message = {
+            expectIgnoredMessage({
                 data: JSON.stringify({
                     topic: "bogus/items/Item1/state",
                     payload: JSON.stringify({ value: 'ON' })
                 })
-            };
-            publishSpy.resetHistory();
-            controllerHandler._handleMessage(message);
-            console.log(publishSpy.args);
-            expect(publishSpy.callCount).to.equal(0);
+            });
         });
 
         const testCases =

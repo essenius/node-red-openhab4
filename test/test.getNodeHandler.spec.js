@@ -85,6 +85,13 @@ describe("getNodeHandler handleInput", function () {
         expect(node.send.notCalled, "No message sent").to.be.true;
     });
 
+        it("should show an error if incoming data uses a wrong concept", async function () {
+        const { node, getNodeHandler } = createGetNodeHandler({ controlResult: { ok: true, data: null } });
+        await getNodeHandler.handleInput({ topic: "wrong/concept", payload: "test" });
+        expect(node.status.getCall(2).args[0], "requesting status called").to.deep.equal({ fill: 'blue', shape: 'ring', text: 'requesting... @ 12:34:56' });
+        expect(node.status.getCall(3).args[0], "Error shown").to.deep.equal({ fill: 'red', shape: 'ring', text: 'wrong: unknown concept @ 12:34:56' });
+        expect(node.send.notCalled, "No message sent").to.be.true;
+    });
     it("should show waiting and then value if an item is specified", async function () {
         const { node, getNodeHandler } = createGetNodeHandler({ controlResult: { ok: true, data: { payload: "ON" } } });
         const msg = { topic: "items/testItem", payload: "test" };

@@ -136,7 +136,7 @@ describe('consumerNodeHandler', function () {
         },
         {
             input: "very long text that exceeds the maximum length",
-            expected: { fill: "green", shape: "dot", text: "very long text that exceeds..." },
+            expected: { fill: "green", shape: "dot", text: "very long text that exceeds the ..." },
         }
     ];
 

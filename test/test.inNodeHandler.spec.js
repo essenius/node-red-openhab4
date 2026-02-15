@@ -87,7 +87,7 @@ describe("inNodeHandler", function () {
 
     it("should not setup logic if error is set", async function () {
         const node = { status: sinon.spy(), send: sinon.spy(), on: sinon.spy(), off: sinon.spy(), log: sinon.spy() };
-        const config = {};
+        const config = { concept: "items" };
 
         // force an error by having no controller
         const inNodeHandler = new InNodeHandler(node, config, null, { generateTime: () => "12:34:56" });
