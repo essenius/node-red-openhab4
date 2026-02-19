@@ -46,6 +46,13 @@
         <label for="node-input-identifier"><i class="fa fa-crosshairs"></i> Resource</label>
         <select id="node-input-identifier" name="node-input-identifier" style="width: 70%; height: auto; appearance: menulist;"></select>
     </div>
+    <div class="form-row">
+        <label for="node-input-priority"><i class="fa fa-crosshairs"></i> Priority</label>
+        <select id="node-input-priority" name="node-input-priority" style="width: 70%; height: auto; appearance: menulist;">
+			<option value="config">Configuration first</option>
+            <option value="message">Message first</option>
+        </select>
+    </div>
 </script>
 
 <script type="text/x-red" data-help-name="openhab4-get">
@@ -68,6 +75,8 @@
         <dd>Text to filter the list of resources with. Leave empty to show all resources.</dd>
         <dt>Resource <span class="property-type">string</span></dt>
         <dd>The openHAB resource to retrieve. Overridden by <code>msg.topic</code></dd>
+        <dt>Priority <span class="property-type">string</span></dt>
+        <dd>Whether message properties override config properties or or vice versa.</dd>
     </dl>
 
     <h3>Inputs</h3>
@@ -95,18 +104,11 @@
     </ol>
 
     <h3>Details</h3>
-    <p>This node fetches the current state of an openHAB item when triggered:</p>
-    <ul>
-        <li><strong>On-demand retrieval:</strong> Only fetches item state when a message is received</li>
-        <li><strong>Complete state:</strong> Returns the full item object including state, metadata, and type information</li>
-        <li><strong>Payload preservation:</strong> The original input payload is preserved in <code>msg.payload_in</code></li>
-    </ul>
-    
-    <p>The item name can be specified either in the node configuration or in the <code>msg.item</code> property. 
-    The message content takes precedence if both are provided.</p>
-    
+    <p>This node fetches the current state of an openHAB item or thing.
+    The item name can be specified either in the node configuration or in the <code>msg.item</code> property. 
+    The priority setting determines which takes precedence if both are provided.</p>
     <p>Use this node when you need to fetch the current state of an item as part of a flow, 
-    rather than continuously monitoring for changes (use the events node for that).</p>
+    rather than continuously monitoring for changes (use the in node or events node for that).</p>
 </script>
 
 <script src="openhab4/ui-constants.js"></script>
@@ -120,7 +122,8 @@
             name: { value: "", required: false },
             controller: { value: "", type: "openhab4-controller", required: true },
             concept: {value: "items", required: true },
-            identifier: { value: "", required: false }
+            identifier: { value: "", required: false },
+            priority: { value: "config", required: true }
         },
         inputs: 1,
         outputs: 1,
@@ -129,6 +132,9 @@
         paletteLabel: "openhab4-get",
         label: function () {
             return globalThis.OPENHAB4.generateNodeName('get', this.name, this.identifier);
+        },
+        labelStyle: function() {
+            return this.name ? "node_label_italic" : "";
         },
         oneditprepare: function () {
             openhabEditPrepare(this, "[Test Connection]");

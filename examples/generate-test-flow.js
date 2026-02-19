@@ -59,6 +59,7 @@ const testFlow = [
         "controller": "controller-node",
         "concept": "items",
         "identifier": config.testItem,
+        "priority": "message",
         "x": 290,
         "y": 300,
         "wires": [
@@ -72,8 +73,10 @@ const testFlow = [
         "controller": "controller-node",
         "concept": "items",
         "identifier": config.testItem,
+        "operation": "command",
         "topic": "",
         "payload": "",
+        "priority": "config",
         "x": 350,
         "y": 500,
         "wires": [

@@ -37,8 +37,9 @@
             }
 
             try {
-                // pass on the controller Id for server side fetching of config
+                // if there is no concept input (e.g. with out), we default to "items" as concept
                 const concept = conceptInput?.value ?? "items";
+                // pass on the controller Id for server side fetching of config
                 console.log(`getting openhab4/${concept} with controller ${controllerId}`);
                 const items = await $.getJSON(`openhab4/${concept}`, { controller: controllerId });
                 console.log("Items:", items);

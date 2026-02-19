@@ -117,6 +117,10 @@
         label: function () {
             return globalThis.OPENHAB4.generateNodeName('in', this.name, this.identifier);
         },
+        labelStyle: function() {
+            return this.name ? "node_label_italic" : "";
+        },
+
         oneditprepare: function () {
             openhabEditPrepare(this, "Select item...");
         }

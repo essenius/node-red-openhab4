@@ -19,7 +19,6 @@ const { registerOpenHabAdminSite } = require("./admin");
 /** Handler for the httpAdmin request to get all OpenHAB items. This is used to populate the dropdowns in the controller and other nodes */
 function createResourceHandler(RED, endpoint, httpRequestFn = httpRequest) {
     return async function(req, res) {
-        console.log("Query: ", req.query);
         const controller = RED.nodes.getNode(req.query.controller);
 
         if (!controller) return res.status(404).send(`Controller '${req.query.controller}' not found`);
@@ -69,10 +68,8 @@ function controllerModule(RED) {
 
     function createControllerNode(config) {
         RED.nodes.createNode(this, config);
-        console.log("CreateControllerNode credentials", this.credentials);
 
         const mergedConfig = setDefaults({ ...config, ...(this.credentials) });
-        console.log("CreateControllerNode merged config", mergedConfig);
 
         this.name = config.name || stripProtocol(mergedConfig.url);
         this.handler = setupControllerHandler(this, mergedConfig);

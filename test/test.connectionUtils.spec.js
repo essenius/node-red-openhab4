@@ -134,18 +134,11 @@ describe("connectionUtils.httpRequest", function () {
             message: "Access denied" 
         },        
         {
-            testId: "404 with body - no retry",
+            testId: "404 - no retry",
             fetchResponse: { status: 404, statusText: "Not Found", text: '{"error":{"message":"Item q does not exist!","http-code":404}}' },
             retry: false,
             status: 404,
             message: "Item q does not exist!"
-        },
-        {
-            testId: "404 without body - retry",
-            fetchResponse: { status: 404, statusText: "Not Found" },
-            retry: true,
-            status: 404,
-            message: "Not Found"
         },
         {
             testId: "401 without credentials - authRequired - no text",
@@ -162,7 +155,7 @@ describe("connectionUtils.httpRequest", function () {
             message: "Authentication required"
         },
         {
-            testId: "401 with credentials - authFailed",
+            testId: "401 with username - authFailed",
             config: { username: "foo" },
             fetchResponse: { status: 401, text: '{"error":{"message":"Invalid credentials","http-code":401}}' },
             authFailed: true,
@@ -170,6 +163,13 @@ describe("connectionUtils.httpRequest", function () {
             message: "Invalid credentials"
         },
         {
+            testId: "401 with token - authFailed",
+            config: { token: "foo" },
+            fetchResponse: { status: 401, text: '{"error":{"message":"Invalid credentials","http-code":401}}' },
+            authFailed: true,
+            status: 401,
+            message: "Invalid credentials"
+        },        {
             testId: "No status, statusText",
             fetchResponse: { status: null, statusText: "Internal Server Error" },
             message: "Internal Server Error"
@@ -247,53 +247,6 @@ describe("connectionUtils.httpRequest", function () {
 
 });
 
-/*function setConfig(username, password) {
-    return {
-        protocol: "https",
-        host: "openhab.local",
-        port: 8443,
-        path: "api",
-        username: username,
-        password: password
-    };
-}
-
-
- describe("connectionUtils.getConnectionString", function () {
-
-    const { getConnectionString } = require("../lib/connectionUtils");
-
-    it("should build a URL without credentials", function () {
-        const config = {
-            url: "http://localhost:8080",
-            path: "rest"
-        };
-        const url = getConnectionString(config);
-        expect(url).to.equal("http://localhost:8080/rest");
-    });
-
-
-    it("should build a URL with credentials when includeCredentials is true, and pass empty password", function () {
-        const config = setConfig("user", "");
-        const url = getConnectionString(config, { includeCredentials: true });
-        expect(url).to.equal("https://user:@openhab.local:8443/api");
-    });
-
-    it("should encode credentials in the URL and pass non-empty password", function () {
-        const config = setConfig("user@domain.com", "p@ss word");
-        const url = getConnectionString(config, { includeCredentials: true });
-        expect(url).to.equal("https://user%40domain.com:p%40ss%20word@openhab.local:8443/api");
-    });
-
-    it("does require protocol, port and host, but does not require path, and does not include username if includeCredentials was not set", function () {
-        const config = {
-            username: "user"
-        };
-        const url = getConnectionString(config);
-        expect(url).to.equal("undefined://undefined:undefined");
-    });
-}); */
-
 describe("connectionUtils.isPhantomError", function () {
 
     const { isPhantomError } = require("../lib/connectionUtils");
@@ -351,7 +304,8 @@ describe("connectionUtils.setDefaultsTest", function () {
         expect(config.token).to.equal("", "token empty");
         expect(config.username).to.equal("", "username empty");
         expect(config.password).to.equal("", "password empty");
-        expect(config.retryTimeout).to.equal(Infinity, "retryTimeout infinite")
+        expect(config.retryTimeout).to.equal(Infinity, "retryTimeout infinite");
+        expect(config.authMethod).to.equal("", "authMethod None");
     });
 
     it("should default https to 8443 and trim values correctly", function () {
@@ -369,23 +323,18 @@ describe("connectionUtils.setDefaultsTest", function () {
         expect(config.username).to.equal("abc", "username trimmed");
         expect(config.password).to.equal("  def  ", "password preserves leading/trailing spaces");
         expect(config.retryTimeout).to.equal(10000, "retryTimeout trimmed and converted to a number");
+        expect(config.authMethod).to.equal("Basic", "authMethod Basic");
     });
 
-    /*it("should not override port if specified", function () {
+    it("should return authMethod Bearer if token is provided, even if username is also provided", function () {
         const config = {
-            protocol: "http",
-            host: "a",
-            port: 8443,
-            path: "/root/",
-            username: "    "
-        };
+            url: "https://server",
+            token: "    mytoken   ",
+            username: "    abc   "
+        }
         setDefaults(config);
-        expect(config.protocol).to.equal("http", "Protocol OK");
-        expect(config.host).to.equal("a", "Host OK");
-        expect(config.port).to.equal(8443, "Port OK");
-        expect(config.path).to.equal("root", "Path ok");
-        expect(config.username).to.equal("", "username ok");
+        expect(config.authMethod).to.equal("Bearer", "authMethod Bearer");
+    });
 
-    });*/
 });
 

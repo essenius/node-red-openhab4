@@ -69,17 +69,29 @@ describe("healthNodeHandler", function () {
 
         expect(node.status.getCall(0).args[0], "Initializing status called").to.deep.equal({ fill: 'grey', shape: 'ring', text: 'initializing... @ 12:34:56' });
         expect(node.status.getCall(1).args[0], "Status cleared").to.deep.equal({ });
+        expect(node.status.getCall(2).args[0], "Status set to online").to.deep.equal({ fill: 'green', shape: 'dot', text: 'online @ 12:34:56' });
 
         node.send.resetHistory();
 
         healthNodeHandler._afterConnectionStatus("ON");
         expect(node.send.notCalled, "send not called again").to.be.true;
 
-        healthNodeHandler._onGlobalError("Connection error");
+        node.status.resetHistory();
+
+        //simulate a typical error sequence
+        healthNodeHandler._afterConnectionStatus("OFF");
+        healthNodeHandler._onGlobalError({ payload: { message: "connection error" }} );
         sendArgs = node.send.getCall(0).args[0];
-        expect(sendArgs[0], "First channel is null").to.be.null; 
-        expect(sendArgs[1], "Second channel has the error message").to.include({ payload: 'Connection error', topic: 'GlobalError' });
-        
+        expect(sendArgs[0], "First channel provides the status").to.include({ payload: 'OFF', topic: 'ConnectionStatus' }); 
+        expect(sendArgs[1], "Second channel is null").to.be.null;
+
+        sendArgs = node.send.getCall(1).args[0];
+        expect(sendArgs[0], "First channel is null").to.be.null;
+        expect(sendArgs[1], "Second channel has the error message").to.deep.include({ payload: { message: 'connection error'} , topic: 'GlobalError' });
+
+        // this means that in production the offline message will immmediately be overwritten by the error message, which is ok (color and shape are the same).
+        expect(node.status.getCall(0).args[0], "Status set to offline").to.deep.equal({ fill: 'red', shape: 'ring', text: 'offline @ 12:34:56' });
+        expect(node.status.getCall(1).args[0], "Status set to error").to.deep.equal({ fill: 'red', shape: 'ring', text: 'connection error @ 12:34:56' });
         healthNodeHandler.cleanup();
         const unsubscribe = controller.handler.eventBus.unsubscribe;
         expect(unsubscribe.callCount, "controller.off called once").to.equal(1);

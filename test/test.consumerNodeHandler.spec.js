@@ -136,7 +136,7 @@ describe('consumerNodeHandler', function () {
         },
         {
             input: "very long text that exceeds the maximum length",
-            expected: { fill: "green", shape: "dot", text: "very long text that exceeds the ..." },
+            expected: { fill: "green", shape: "dot", text: "very long text that exceeds the maxim..." },
         }
     ];
 
@@ -147,4 +147,33 @@ describe('consumerNodeHandler', function () {
             expect(mockNode.status.firstCall.args[0]).to.deep.equal(expected, "Content correct");
         });
     }
+
+    describe("ParseTopic tests", function () {
+        it("should parse topic with slash", function () {
+            const result = nodeHandler.parseTopic("items/testItem");
+            expect(result).to.deep.equal({ concept: "items", identifier: "testItem" });
+        });
+
+        it("should parse topic without slash as item", function () {
+            const result = nodeHandler.parseTopic("item");
+            expect(result).to.deep.equal({ concept: "items", identifier: "item" });
+        });
+
+        it("should handle topic with leading/trailing spaces", function () {
+            const result = nodeHandler.parseTopic("  things/testThing  ");
+            expect(result).to.deep.equal({ concept: "things", identifier: "testThing" });
+        });
+
+        it("should stringify non-string topics", function () {
+            const result = nodeHandler.parseTopic(123);
+            expect(result).to.deep.equal({ concept: "items", identifier: "123" });
+        });
+
+        it("should correctly identify empty topic", function () {
+            const emptyResult = nodeHandler.parseTopic("   ");
+            expect(emptyResult).to.be.null;
+            const onlySlashResult = nodeHandler.parseTopic("/  ");
+            expect(onlySlashResult).to.be.null;
+        }); 
+    });
 });

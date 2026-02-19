@@ -14,8 +14,28 @@
 const path = require('node:path');
 const { expect } = require('chai');
 const sinon = require('sinon');
+const { create } = require('node:domain');
 const eventsLogicPath = path.join(__dirname, '..', 'lib', 'eventsNodeHandler.js');
 const { EventsNodeHandler } = require(eventsLogicPath);
+
+function createController() {
+    const eventBus = {
+        publish: sinon.spy(),
+        subscribe: sinon.spy(),
+        unsubscribe: sinon.spy()
+    };
+
+    const handler = {
+        eventBus: eventBus
+    };
+
+    const controller = {
+        handler: handler,
+        on: sinon.spy(),
+        off: sinon.spy()
+    };
+    return controller;
+}
 
 describe("eventsNodeHandler", function () {
 
@@ -23,47 +43,35 @@ describe("eventsNodeHandler", function () {
 
         const node = {
             type: "openhab4-events",
-            status: sinon.spy(), 
-            send: sinon.spy(), 
+            status: sinon.spy(),
+            send: sinon.spy(),
             on: sinon.spy(),
             off: sinon.spy(),
             log: sinon.spy(),
         };
         const config = { filter: "items/*" };
 
-        const eventBus = {
-            publish: sinon.spy(),
-            subscribe: sinon.spy(),
-            unsubscribe: sinon.spy()
-        };
-
-        const handler = {
-            eventBus: eventBus
-        };
-
-        const controller = {
-            handler: handler,
-            on: sinon.spy(),
-            off: sinon.spy()
-        };
+        const controller = createController();
 
         // Setup and validate handler
         const eventsNodeHandler = new EventsNodeHandler(node, config, controller, { generateTime: () => "12:34:56" });
         expect(eventsNodeHandler.getNodeType(), "node type is events").to.equal("Events");
         eventsNodeHandler.setupNode();
-        
+
+        const eventBus = controller.handler.eventBus;
+
         // validate subscriptions are correct
         const subscribe = eventBus.subscribe;
         expect(subscribe.callCount, "subscribe called 3 times").to.equal(2);
-        expect(subscribe.calledWith('items/*', eventsNodeHandler._processIncomingEvent),"Subscribed to items/*").to.be.true;
+        expect(subscribe.calledWith('items/*', eventsNodeHandler._processIncomingEvent), "Subscribed to items/*").to.be.true;
 
         // bypass pub/sub as that is mocked, send message straight to the callback
 
-        const message = {topic: "openhab/items/ub_warning/state",  payload: { type: "String", value: "testValue" }, type: "ItemStateEvent" };
+        const message = { topic: "openhab/items/ub_warning/state", payload: { type: "String", value: "testValue" }, type: "ItemStateEvent" };
         eventsNodeHandler._processIncomingEvent(message);
 
         // check tha the node sends out the message.
-        expect(node.send.getCall(0).args[0], "Right message sent").to.deep.include(message); 
+        expect(node.send.getCall(0).args[0], "Right message sent").to.deep.include(message);
         eventsNodeHandler.cleanup();
         expect(eventBus.unsubscribe.callCount, "unsubscribe called once").to.equal(1);
     });
@@ -82,4 +90,27 @@ describe("eventsNodeHandler", function () {
 
         expect(eventsNodeHandler.cleanup(), "Cleanup should succeed despite having no eventBus").to.not.throw;
     });
+
+    it("should not fire a message within one second", async function () {
+        const node = { status: sinon.spy(), send: sinon.spy(), on: sinon.spy(), log: sinon.spy() };
+        const config = {};
+        const controller = createController();
+
+        let timestamp = 1767225600000; // fixed timestamp for testing (1-1-2026 00:00:00 UTC)
+        const eventsNodeHandler = new EventsNodeHandler(node, config, controller, {
+            generateTime: () => "12:34:56",
+            now: () => { timestamp += 500; return timestamp; }
+        });
+
+        eventsNodeHandler._processIncomingEvent({ topic: "test", payload: "value1" });
+        expect(node.status.getCall(0).args[0], "First message sent").to.deep.equal({ fill: 'green', shape: "dot", text: "event @ 12:34:56" });
+        node.status.resetHistory();
+        eventsNodeHandler._processIncomingEvent({ topic: "test", payload: "value2" });
+        expect(node.status.notCalled, "Second message not sent within one second").to.be.true;
+        node.status.resetHistory();
+        timestamp += 500; // move time forward to exceed one second
+        eventsNodeHandler._processIncomingEvent({ topic: "test", payload: "value3" });
+        expect(node.status.getCall(0).args[0], "Third message sent after one second").to.deep.equal({ fill: 'green', shape: "dot", text: "event @ 12:34:56" });
+    });
+
 });

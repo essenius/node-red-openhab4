@@ -17,7 +17,6 @@ const sinon = require('sinon');
 const outNodeHandlerPath = path.join(__dirname, '..', 'lib', 'outNodeHandler.js');
 const { OutNodeHandler } = require(outNodeHandlerPath);
 
-
 function createOutNodeHandler({
     controlResult = { ok: true, payload: {} },
     config = {},
@@ -44,18 +43,18 @@ describe("outNodeHandler", function () {
     });
 
     it("should set state and show error with handleInput on undefined items", async function () {
-        const { outNodeHandler, node } = createOutNodeHandler({ config: { concept: "items" } });
+        const { outNodeHandler, node } = createOutNodeHandler({ config: { concept: "items", operation: "command" } });
         const msg = { payload: "test" };
 
         await outNodeHandler.handleInput(msg);
-        expect(node.status.firstCall.args, "status called").to.deep.equal([{ fill: 'red', shape: 'ring', text: 'no item specified @ 12:34:56' }]);
+        expect(node.status.firstCall.args, "status called").to.deep.equal([{ fill: 'red', shape: 'ring', text: 'found no item @ 12:34:56' }]);
 
     });
 
     it ("should show an error if control fails", async function () {
         const { outNodeHandler, node } = createOutNodeHandler(
             { controlResult: {ok: false, retry: false, message: "Simulated error"}, 
-              config: { concept: "items", identifier: "testItem", operation: "update", payload: "testPayload" }});
+              config: { concept: "items", identifier: "testItem", operation: "update", payload: "testPayload", priority: "message" }});
 
         const msg = { payload: "test" }; // should override config
 
