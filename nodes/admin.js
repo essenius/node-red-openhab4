@@ -11,8 +11,8 @@
 
 "use strict";
 
-const path = require("node:path");
-const express = require("express");   // <— pull in express
+const path = require('node:path');
+const express = require('express');   // <— pull in express
 
 function registerOpenHabAdminSite(RED) {
   // 1) compute the folder that holds your JS (one level up into /static)

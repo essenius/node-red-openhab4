@@ -11,11 +11,11 @@
 
 "use strict";
 
-const helper = require("node-red-node-test-helper");
-const healthNode = require("../nodes/health.js");
-const { expect } = require("chai");
-const { EVENT_TAGS, SWITCH_STATUS } = require("../lib/constants.js");
-const { EventBus } = require("../lib/eventBus.js");
+const helper = require('node-red-node-test-helper');
+const healthNode = require('../nodes/health.js');
+const { expect } = require('chai');
+const { EVENT_TAGS, SWITCH_STATUS } = require('../lib/constants.js');
+const { EventBus } = require('../lib/eventBus.js');
 
 const eventBus = new EventBus();
 

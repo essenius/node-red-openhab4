@@ -12,8 +12,8 @@
 "use strict";
 
 const path = require('node:path');
-const { expect } = require("chai");
-const sinon = require("sinon");
+const { expect } = require('chai');
+const sinon = require('sinon');
 const healthNodeHandlerPath = path.join(__dirname, '..', 'lib', 'healthNodeHandler.js');
 const { HealthNodeHandler } = require(healthNodeHandlerPath);
 

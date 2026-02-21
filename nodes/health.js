@@ -11,7 +11,7 @@
 
 "use strict";
 
-const { setupHealthNodeHandler } = require("../lib/healthNodeHandler");
+const { setupHealthNodeHandler } = require('../lib/healthNodeHandler');
 
 function registerOpenHabHealthNode(RED) {
 	function createHealthNode(config) {

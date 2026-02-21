@@ -78,6 +78,7 @@ describe('Code validation', function () {
             '../lib/inNodeHandler',
             '../lib/openhabConnection',
             '../lib/outNodeHandler',
+            '../lib/payloadUtils',
         ];
 
         modulesToTest.forEach(modulePath => {

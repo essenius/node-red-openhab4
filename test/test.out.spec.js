@@ -11,11 +11,11 @@
 
 "use strict";
 
-const { CONCEPTS, OPERATION } = require("../lib/constants");
-const helper = require("node-red-node-test-helper");
-const outNode = require("../nodes/out.js");
-const { expect } = require("chai");
-const sinon = require("sinon");
+const { CONCEPTS, OPERATION } = require('../lib/constants');
+const helper = require('node-red-node-test-helper');
+const outNode = require('../nodes/out.js');
+const { expect } = require('chai');
+const sinon = require('sinon');
 
 // Enhanced mock controller node
 const controllerNode = function (RED) {

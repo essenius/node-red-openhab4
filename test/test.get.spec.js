@@ -11,10 +11,10 @@
 
 "use strict";
 
-const helper = require("node-red-node-test-helper");
-const getNode = require("../nodes/get.js");
-const { expect } = require("chai");
-const sinon = require("sinon");
+const helper = require('node-red-node-test-helper');
+const getNode = require('../nodes/get.js');
+const { expect } = require('chai');
+const sinon = require('sinon');
 
 // Enhanced mock controller node
 const controllerNode = function (RED) {

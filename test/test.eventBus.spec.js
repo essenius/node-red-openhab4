@@ -11,12 +11,12 @@
 
 "use strict";
 
-const { expect } = require("chai");
-const sinon = require("sinon");
+const { expect } = require('chai');
+const sinon = require('sinon');
 
 describe("eventBus single tag subscribe", function () {
 
-    const { EventBus } = require("../lib/eventBus");
+    const { EventBus } = require('../lib/eventBus');
 
     const exactMatchCallback1 = sinon.spy();
     const exactMatchCallback2 = sinon.spy();

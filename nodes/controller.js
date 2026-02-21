@@ -11,10 +11,10 @@
 
 "use strict";
 
-const { httpRequest, setDefaults } = require("../lib/connectionUtils");
+const { httpRequest, setDefaults } = require('../lib/connectionUtils');
 const { setupControllerHandler } = require('../lib/controllerHandler');
-const { CONCEPTS } = require("../lib/constants");
-const { registerOpenHabAdminSite } = require("./admin");
+const { CONCEPTS } = require('../lib/constants');
+const { registerOpenHabAdminSite } = require('./admin');
 
 /** Handler for the httpAdmin request to get all OpenHAB items. This is used to populate the dropdowns in the controller and other nodes */
 function createResourceHandler(RED, endpoint, httpRequestFn = httpRequest) {

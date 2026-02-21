@@ -11,12 +11,10 @@
 
 "use strict";
 
-const sinon = require("sinon");
-const { expect } = require("chai");
-const proxyquire = require("proxyquire");
-const { CONCEPTS } = require("../lib/constants");
-
-const controllerModule = require("../nodes/controller.js");
+const sinon = require('sinon');
+const { expect } = require('chai');
+const proxyquire = require('proxyquire');
+const { CONCEPTS } = require('../lib/constants');
 
 function createMockRequest() {
     return {
@@ -53,29 +51,51 @@ function createNodeThis() {
         warn: sinon.spy(),
         status: sinon.spy(),
         error: sinon.spy(),
-        setStatus: sinon.spy()
+        setStatus: sinon.spy(),
+        removeListener: sinon.spy()
     };
 }
 
 function testCreateControllerNode(nodeThis, config, expectedNamePart) {
     try {
         const RED = createMockRED();
+
+        // Stub ControllerHandler so that no real connections happen
+        const fakeHandler = {
+            setupNode: sinon.stub().returnsThis(),
+            control: sinon.stub(),
+            _onClose: sinon.stub(),
+            connection: { startEventSource: sinon.stub(), sendRequest: sinon.stub().resolves({ ok: true, data: [] }), close: sinon.stub() }
+        };
+
+        const ControllerHandlerStub = sinon.stub().returns(fakeHandler);
+
+        delete require.cache[require.resolve("../nodes/controller.js")];
+
+        // Load the module via proxyquire, injecting our stub
+        const controllerModule = proxyquire("../nodes/controller.js", {
+            '../lib/controllerHandler': { setupControllerHandler: ControllerHandlerStub }
+        });
+
         controllerModule(RED);
+
         const registerType = RED.nodes.registerType;
         const call = registerType.getCalls().find(c => c.args[0] === "openhab4-controller");
         expect(call).to.exist;
+
         const createControllerNode = call.args[1];
         RED.nodes.createNode = sinon.spy();
         createControllerNode.call(nodeThis, config);
+
         expect(RED.nodes.createNode.calledOnce, `Created node for test '${expectedNamePart}'`).to.be.true;
         expect(nodeThis.name, `name ${expectedNamePart} included`).to.include(expectedNamePart);
+
     } catch (error_) {
-        // ensure we don't leave the node in a bad state
         nodeThis.error("Error running testCreateControllerNode", error_);
     }
-    // the only handler set in createControllerNode is the close handler, so we can check that
+
+    // Call close handler if set, to ensure test cleanup
     if (nodeThis.on.callCount > 0) {
-        // if it was set, call the close handler to break out of waitForOpenHABReady
         nodeThis.on.getCall(0).args[1](false, () => { });
     }
 }
@@ -84,6 +104,9 @@ describe("openhab4-controller /openhab4/items handler", function () {
     it("should create the right URL and return items from mocked httpRequest", async function () {
         const mockHttpRequest = sinon.stub().resolves({ ok: true, data: ["item1", "item2"] });
         const RED = createMockRED();
+        const { createMockControllerModule } = require('./mockControllerModule');
+        const { controllerModule } = createMockControllerModule();
+
         const handler = controllerModule.createResourceHandler(RED, CONCEPTS.baseUrl(CONCEPTS.ITEMS), mockHttpRequest);
         const response = createMockResponse();
 
@@ -99,6 +122,9 @@ describe("openhab4-controller /openhab4/items handler", function () {
     it("should propagate status and error message when httpRequest does not return data", async function () {
         const mockHttpRequest = sinon.stub().resolves({ ok: false, retry: true, status: 503, message: "Service Unavailable" });
         const RED = createMockRED();
+        const { createMockControllerModule } = require('./mockControllerModule');
+        const { controllerModule } = createMockControllerModule();
+
         const handler = controllerModule.createResourceHandler(RED, CONCEPTS.baseUrl(CONCEPTS.ITEMS), mockHttpRequest);
         const response = createMockResponse();
         await handler(createMockRequest(), response);
@@ -106,12 +132,11 @@ describe("openhab4-controller /openhab4/items handler", function () {
         const message = response.send.firstCall.args[0];
         expect(message).to.include("Service Unavailable");
     });
-});
+}); 
 
 describe("openhab4-controller controllerModule", function () {
     it("should register the node type and HTTP endpoint", function () {
         // Arrange: create spies for RED methods
-        //const { RED, registerType, httpAdminGet } = createMockRED();
         const RED = createMockRED();
         const registerType = RED.nodes.registerType;
         const httpAdminGet = RED.httpAdmin.get;
@@ -121,9 +146,7 @@ describe("openhab4-controller controllerModule", function () {
         });
 
         controllerModule(RED);
-
         expect(httpAdminGet.calledWith("/openhab4/items")).to.be.true;
-
         expect(registerType.calledWith("openhab4-controller")).to.be.true;
     });
 
@@ -137,8 +160,11 @@ describe("openhab4-controller controllerModule", function () {
     it("should be ok with not having credentials", function () {
 
         const nodeThis = createNodeThis();
+        
         nodeThis.credentials = null;
         testCreateControllerNode(nodeThis, { url: "http://localhost:8080" }, "localhost:8080");
         expect(nodeThis.error.calledOnce).to.be.false;
-    });
+    }); 
 });
+
+

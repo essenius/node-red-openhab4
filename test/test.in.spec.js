@@ -9,13 +9,10 @@
 // distributed on an "AS IS" BASIS WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and limitations under the License.
 
-const helper = require("node-red-node-test-helper");
-const inNode = require("../nodes/in.js");
-const { EventBus } = require("../lib/eventBus.js");
-const { expect } = require("chai");
-const sinon = require("sinon");
-const { EVENT_TYPES, SWITCH_STATUS } = require("../lib/constants.js");
-
+const helper = require('node-red-node-test-helper');
+const inNode = require('../nodes/in.js');
+const { EventBus } = require('../lib/eventBus.js');
+const { expect } = require('chai');
 
 const eventBus = new EventBus();
 
@@ -23,7 +20,6 @@ const controllerNode = function (RED) {
   function ControllerNode(config) {
     RED.nodes.createNode(this, config);
     this.handler = {
-      //control: sinon.spy((_itemName, _topic, _payload) => { return { ok: true, data: { payload: SWITCH_STATUS.OFF } }} ),
       eventBus: eventBus,
     };
   }

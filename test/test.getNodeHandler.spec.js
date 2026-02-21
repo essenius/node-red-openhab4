@@ -27,7 +27,8 @@ function createGetNodeHandler({
     if (controlResult === null) {
         controller = null;
     } else {
-        const controllerHandler = { control: sinon.stub().resolves(controlResult) };
+        const eventBus = { publish: sinon.spy(), subscribe: sinon.spy() };
+        const controllerHandler = { control: sinon.stub().resolves(controlResult), eventBus };
         controller = { handler: controllerHandler, handleControllerError: sinon.spy() };
     }
     const utils = { generateTime: () => time, generateId: () => "123" };

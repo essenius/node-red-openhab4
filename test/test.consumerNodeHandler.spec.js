@@ -86,17 +86,17 @@ describe('consumerNodeHandler', function () {
 
     it('should set status to warning', function () {
         nodeHandler.setStatus(STATE.WARNING, "warning");
-        expect(mockNode.status.firstCall.args).to.deep.equal([{ fill: "yellow", shape: "dot", text: "warning @ 12:34:56" }], "Warning handled ok");
+        expect(mockNode.status.firstCall.args).to.deep.equal([{ fill: "yellow", shape: "ring", text: "warning @ 12:34:56" }], "Warning handled ok");
     });
 
     it('should replace unknown status by warning', function () {
         nodeHandler.setStatus("bogus");
-        expect(mockNode.status.firstCall.args).to.deep.equal([{ fill: "yellow", shape: "dot", text: "bogus @ 12:34:56" }], "Unknown handled ok");
+        expect(mockNode.status.firstCall.args).to.deep.equal([{ fill: "yellow", shape: "ring", text: "bogus @ 12:34:56" }], "Unknown handled ok");
     });
 
     it('should replace unknown status by warning and message', function () {
         nodeHandler.setStatus("bogus", "message");
-        expect(mockNode.status.firstCall.args).to.deep.equal([{ fill: "yellow", shape: "dot", text: "bogus: message @ 12:34:56" }], "Unknown handled ok");
+        expect(mockNode.status.firstCall.args).to.deep.equal([{ fill: "yellow", shape: "ring", text: "bogus: message @ 12:34:56" }], "Unknown handled ok");
     });
     it("should clear status", function () {
         nodeHandler.clearStatus();
@@ -132,7 +132,7 @@ describe('consumerNodeHandler', function () {
         },
         {
             input: null,
-            expected: { fill: "yellow", shape: "dot", text: "? @ 12:34:56" },
+            expected: { fill: "yellow", shape: "ring", text: "? @ 12:34:56" },
         },
         {
             input: "very long text that exceeds the maximum length",

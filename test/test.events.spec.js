@@ -11,10 +11,10 @@
 
 "use strict";
 
-const helper = require("node-red-node-test-helper");
-const { expect } = require("chai");
-const { EVENT_TYPES, SWITCH_STATUS } = require("../lib/constants.js");
-const { EventBus } = require("../lib/eventBus.js");
+const helper = require('node-red-node-test-helper');
+const { expect } = require('chai');
+const { EVENT_TYPES, SWITCH_STATUS } = require('../lib/constants.js');
+const { EventBus } = require('../lib/eventBus.js');
 
 // --- Stub EventSource before loading the node ---
 /* class FakeEventSource {
@@ -41,7 +41,7 @@ const eventsModule = proxyquire("../nodes/events.js", {
     }
 }); */
 
-const eventsModule = require("../nodes/events.js");
+const eventsModule = require('../nodes/events.js');
 
 const eventBus = new EventBus();
 

@@ -12,8 +12,8 @@
 "use strict";
 
 const path = require('node:path');
-const { expect } = require("chai");
-const sinon = require("sinon");
+const { expect } = require('chai');
+const sinon = require('sinon');
 const inNodeHandlerPath = path.join(__dirname, '..', 'lib', 'inNodeHandler.js');
 const { InNodeHandler } = require(inNodeHandlerPath);
 const {EVENT_TYPES, SWITCH_STATUS } = require('../lib/constants');

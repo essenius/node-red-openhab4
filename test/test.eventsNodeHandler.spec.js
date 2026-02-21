@@ -14,7 +14,7 @@
 const path = require('node:path');
 const { expect } = require('chai');
 const sinon = require('sinon');
-const { create } = require('node:domain');
+/* const { create } = require('node:domain'); */
 const eventsLogicPath = path.join(__dirname, '..', 'lib', 'eventsNodeHandler.js');
 const { EventsNodeHandler } = require(eventsLogicPath);
 
