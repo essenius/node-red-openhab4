@@ -11,23 +11,22 @@
 
 "use strict";
 
-const sinon = require('sinon');
-const proxyquire = require('proxyquire');
+const sinon = require("sinon");
 
-proxyquire.noCallThru();
+function createControllerDependencies({
+    handlerOverrides = {},
+    httpOverrides = {}
+} = {}) {
 
-function createMockControllerModule({ connectionOverrides = {}, handlerOverrides = {} } = {}) {
-
-    // Fake OpenhabConnection
     const fakeConnection = {
         startEventSource: sinon.stub(),
         sendRequest: sinon.stub().resolves({ ok: true, data: [] }),
         close: sinon.stub(),
-        ...connectionOverrides
+        ...handlerOverrides.connection
     };
 
-    // Fake ControllerHandler
     const fakeHandler = {
+        config: { url: "http://mocked" },
         setupNode: sinon.stub().returnsThis(),
         control: sinon.stub(),
         _onClose: sinon.stub(),
@@ -35,15 +34,22 @@ function createMockControllerModule({ connectionOverrides = {}, handlerOverrides
         ...handlerOverrides
     };
 
-    const ControllerHandlerStub = sinon.stub().returns(fakeHandler);
+    const setupHandlerStub = sinon.stub().returns(fakeHandler);
 
-    // Load controller.js with stub injected
-    const controllerModule = proxyquire("../nodes/controller.js", {
-        "../lib/controllerHandler": { setupControllerHandler: ControllerHandlerStub }
+    const httpRequestStub = sinon.stub().resolves({
+        ok: true,
+        data: []
     });
 
-    return { controllerModule, fakeHandler, fakeConnection, ControllerHandlerStub };
+    Object.assign(httpRequestStub, httpOverrides);
+
+    return {
+        setupHandlerStub,
+        httpRequestStub,
+        fakeHandler,
+        fakeConnection
+    };
 }
 
-module.exports = { createMockControllerModule };
+module.exports = { createControllerDependencies };
 

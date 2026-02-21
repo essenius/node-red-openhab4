@@ -119,6 +119,15 @@ describe("connectionUtils.httpRequest", function () {
         });
     };
 
+    it("should convert objects to json and set content type", async function() {
+        fetchStub.resolves(createFakeResponse({ text: "" }));
+            await httpRequest("http://test", {}, { body: { payload: 1 }});
+            expect(fetchStub.calledOnce, "Fetch called once").to.be.true;
+            const options = fetchStub.firstCall.args[1];
+            expect(options.body).to.equal("{\"payload\":1}", "payload stringified");
+            expect(options.headers["Content-Type"]).to.equal('application/json', "content type set");
+    });
+
     const errorTestCases = [
         {
             testId: "503 - retry",

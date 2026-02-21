@@ -38,4 +38,11 @@ function createNodeThis(name = "") {
     };
 }
 
-module.exports = { createMockRED, createNodeThis };
+function createMockResponse() {
+    return {
+        send: sinon.spy(),
+        status: sinon.stub().returnsThis()
+    };
+}
+
+module.exports = { createMockRED, createNodeThis, createMockResponse };

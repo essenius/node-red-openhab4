@@ -11,35 +11,17 @@
 
 "use strict";
 
-const { httpRequest, setDefaults } = require('../lib/connectionUtils');
-const { setupControllerHandler } = require('../lib/controllerHandler');
-const { CONCEPTS } = require('../lib/constants');
-const { registerOpenHabAdminSite } = require('./admin');
+const { httpRequest, setDefaults } = require("../lib/connectionUtils");
+const { setupControllerHandler } = require("../lib/controllerHandler");
+const { CONCEPTS } = require("../lib/constants");
+const { registerOpenHabAdminSite } = require("./admin");
 
-/** Handler for the httpAdmin request to get all OpenHAB items. This is used to populate the dropdowns in the controller and other nodes */
-function createResourceHandler(RED, endpoint, httpRequestFn = httpRequest) {
-    return async function(req, res) {
-        const controller = RED.nodes.getNode(req.query.controller);
 
-        if (!controller) return res.status(404).send(`Controller '${req.query.controller}' not found`);
-
-        // grab the config from the controller handler
-        const config = controller.handler.config;
-        const result = await _fetchResources(config, endpoint, httpRequestFn);
-
-        if (result.status !== 200) return res.status(result.status).send(result.message);
-
-        res.send(result.data);
-    };
-}
-
-async function _fetchResources(config, endpoint, httpRequestFn) {
+async function _fetchResources(config, endpoint, requestFn) {
     const url = config.url + endpoint;
-    const result = await httpRequestFn(url, config);
+    const result = await requestFn(url, config);
 
     if (!result.ok) {
-        // if we get an error, we return the error message and status code. 
-        // We need to make sure the errors are valid, so we replace negative numbers by 500.
         return {
             status: !result.status || result.status < 0 ? 500 : result.status,
             message: result.message
@@ -47,42 +29,84 @@ async function _fetchResources(config, endpoint, httpRequestFn) {
     }
 
     return {
-        // no data is not expected, but we handle it nonetheless
         status: result.data ? 200 : 204,
         data: result.data
     };
 }
 
-function stripProtocol(url) {
+function _stripProtocol(url) {
     return url.replace(/^https?:\/\//i, '');
 }
 
-/** Controller module for OpenHAB, which sets up the controller node and handles the items request */
-function controllerModule(RED) {
-    registerOpenHabAdminSite(RED);
 
-    // start a web service for enabling the node configuration ui to retrieve the available openHAB items
+/** Factory to create controller module with injectable dependencies */
+function createControllerModule({
+    setupHandler = setupControllerHandler,
+    httpRequestFn = httpRequest,
+    registerAdminSite = registerOpenHabAdminSite,
+    concepts = CONCEPTS
+} = {}) {
 
-    RED.httpAdmin.get(CONCEPTS.adminUrl(CONCEPTS.ITEMS), createResourceHandler(RED, CONCEPTS.baseUrl(CONCEPTS.ITEMS)));
-    RED.httpAdmin.get(CONCEPTS.adminUrl(CONCEPTS.THINGS), createResourceHandler(RED, CONCEPTS.baseUrl(CONCEPTS.THINGS)));
+    function createResourceHandler(RED, endpoint) {
+        return async function (req, res) {
+            const controller = RED.nodes.getNode(req.query.controller);
 
-    function createControllerNode(config) {
-        RED.nodes.createNode(this, config);
+            if (!controller) {
+                return res.status(404).send(`Controller '${req.query.controller}' not found`);
+            }
 
-        const mergedConfig = setDefaults({ ...config, ...(this.credentials) });
+            const config = controller.handler.config;
+            const result = await _fetchResources(config, endpoint, httpRequestFn);
 
-        this.name = config.name || stripProtocol(mergedConfig.url);
-        this.handler = setupControllerHandler(this, mergedConfig);
+            if (result.status !== 200) {
+                return res.status(result.status).send(result.message);
+            }
+
+            res.send(result.data);
+        };
     }
 
-    RED.nodes.registerType("openhab4-controller", createControllerNode, {
-        credentials: {
-            token: { type: "password" },
-            username: { type: "text" },
-            password: { type: "password" }
+    function controllerModule(RED) {
+
+        registerAdminSite(RED);
+
+        // start a web service for enabling the node configuration ui to retrieve the available openHAB items
+
+        RED.httpAdmin.get(
+            concepts.adminUrl(concepts.ITEMS),
+            createResourceHandler(RED, concepts.baseUrl(concepts.ITEMS))
+        );
+
+        RED.httpAdmin.get(
+            concepts.adminUrl(concepts.THINGS),
+            createResourceHandler(RED, concepts.baseUrl(concepts.THINGS))
+        );
+
+        function createControllerNode(config) {
+            RED.nodes.createNode(this, config);
+
+            const mergedConfig = setDefaults({ ...config, ...(this.credentials) });
+
+            this.name = config.name || _stripProtocol(mergedConfig.url);
+            this.handler = setupHandler(this, mergedConfig);
         }
-    });
+
+        RED.nodes.registerType("openhab4-controller", createControllerNode, {
+            credentials: {
+                token: { type: "password" },
+                username: { type: "text" },
+                password: { type: "password" }
+            }
+        });
+    }
+
+    controllerModule.createResourceHandler = createResourceHandler;
+
+    return controllerModule;
 }
 
-controllerModule.createResourceHandler = createResourceHandler;
-module.exports = controllerModule;
+/* Production export */
+module.exports = createControllerModule();
+
+/* Test factory export */
+module.exports._create = createControllerModule;
