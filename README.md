@@ -2,9 +2,9 @@
 
 ## Description
 
-Nodes facilitating integration of [openHAB 4](http://www.openhab.org) with [Node-RED](http://nodered.org), allowing for the use of Node Red as a rules engine for OpenHAB.
+Nodes facilitating integration of [openHAB 4](http://www.openhab.org) with [Node-RED](http://nodered.org) v4 and higher, allowing for the use of Node Red as a rules engine for OpenHAB.
 
-Inspired by https://github.com/pdmangel/node-red-contrib-openhab2. Largely rewritten and made to work with openHAB 4+, which has a different Rest API from openHAB 2.
+Inspired by https://github.com/pdmangel/node-red-contrib-openhab2. Largely rewritten and made to work with openHAB 4+, which has a different Rest API from openHAB 2 (e.g. now supports auth).
 
 ## Nodes
 
@@ -160,3 +160,4 @@ See [DEVELOPMENT.md](DEVELOPMENT.md).
 ## Dependency restrictions
 
 As this is a commonjs project, chai needs to stay at version 4, and node-fetch at version 2. Newer versions do not support commonjs.
+The dependency on eventsource 3 introduces a dependency on node 18, which causes this node to require at least Node Red 4.

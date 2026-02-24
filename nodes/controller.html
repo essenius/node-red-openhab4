@@ -15,6 +15,8 @@
     <div class="form-row">
         <label for="node-config-input-name"><i class="fa fa-tag"></i> Name</label>
         <input type="text" id="node-config-input-name" placeholder="Name">
+        <span style="font-size: 0.85em; color: #666;">If empty, the URL (without http(s)://) will be used</span>
+
     </div>
 
     <div class="form-row">
@@ -57,6 +59,8 @@
         <label for="node-config-input-retryTimeout"><i class="fa fa-clock-o"></i> Retry timeout</label>
         <input type="number" id="node-config-input-retryTimeout">
     </div>
+    <input type="hidden" id="node-config-input-hash" />
+
 </script>
 
 <script type="text/x-red" data-help-name="openhab4-controller">
@@ -106,6 +110,53 @@
 
 <script type="text/javascript">
 
+
+    function configField(name) {
+        return document.getElementById(`node-config-input-${name}`);
+    }
+
+    function getFields() {
+        const urlField = configField("url");
+        const urlWarning = document.getElementById("url-warning");
+        const tokenField = configField("token");
+        const tokenWarning = document.getElementById("token-warning");
+        const userField = configField("username");
+        const passwordField = configField("password");
+        const allowSelfSignedField = configField("allowSelfSigned");
+        const hashField = configField("hash");
+
+        return {
+            urlField, urlWarning, tokenField, tokenWarning,
+            userField, passwordField, allowSelfSignedField, hashField
+        };
+    }
+
+    // Simple 32-bit numeric hash for controller properties
+    function getHash(props) {
+
+        const str = props.join("|"); // simple delimiter
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            hash = ((hash << 5) - hash) + str.codePointAt(i);
+            hash = Math.trunc(hash); // Convert to 32-bit integer
+        }
+        return hash >>> 0; // Unsigned
+    }
+
+    function setControllerHash() {
+        const { urlField, tokenField, userField, passwordField, allowSelfSignedField, hashField } = getFields();
+        const controllerData = [
+            urlField.value,
+            tokenField.value || '',
+            userField.value || '',
+            passwordField.value || '',
+            allowSelfSignedField.value
+        ];
+        console.log("controllerData in setControllerHash", controllerData);
+        hashField.value = getHash(controllerData);
+        return hashField.value;
+    }
+
     function isValidUrl(urlString) {
         try {
             new URL(urlString);
@@ -123,6 +174,10 @@
         }
     }
 
+    function stripProtocol(url) {
+        return url.replace(/^https?:\/\//i, '');
+    }
+
     RED.nodes.registerType('openhab4-controller', {
         category: 'config',
         defaults: {
@@ -130,7 +185,8 @@
             url: { value: "https://localhost:8443/", required: true },
             allowSelfSigned: { value: false, required: true },
             eventFilter: { value: "*", required: true },
-            retryTimeout: { value: "", required: false }
+            retryTimeout: { value: "", required: false },
+            hash: { value: "" }
         },
         credentials: {
             token: { type: "password" },
@@ -138,21 +194,15 @@
             password: { type: "password" }
         },
         paletteLabel: "openhab4-controller",
-        label: function () {
-            return this.name;
-        },
-        labelStyle: function() {
-            return this.name ? "node_label_italic" : "";
+        label: function () { return this.name || stripProtocol(this.url); },
+        labelStyle: function () { return this.name ? "node_label_italic" : ""; },
+        oneditsave: function () {
+            this.hash = setControllerHash();
+            console.log("Set hash:", configField("hash").value);
         },
         oneditprepare: function () {
-
-            const urlField = document.getElementById("node-config-input-url");
-            const urlWarning = document.getElementById("url-warning");
-            const tokenField = document.getElementById("node-config-input-token");
-            const tokenWarning = document.getElementById("token-warning");
-            const userField = document.getElementById("node-config-input-username");
-            const passwordField = document.getElementById("node-config-input-password");
-            const allowSelfSignedField = document.getElementById("node-config-input-allowSelfSigned");
+            const { urlField, urlWarning, tokenField, tokenWarning,
+                userField, passwordField, allowSelfSignedField } = getFields();
 
             function updateAuthFields() {
                 const url = urlField.value.trim();

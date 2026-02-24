@@ -35,6 +35,26 @@ const controllerNode = function (RED) {
   RED.nodes.registerType("openhab4-controller", ControllerNode);
 };
 
+// Skeleton flow for reuse
+function getFlow() {
+  return [
+    {
+      id: "controller1",
+      type: "openhab4-controller",
+      name: "Test Controller"
+    },
+    {
+      id: "out1",
+      type: "openhab4-out",
+      name: "Test Out",
+      controller: "controller1",
+      priority: "config",
+      operation: "command",
+      wires: [[]]
+    }
+  ];
+}
+
 describe("openhab4-out node", function () {
   before(function (done) {
     helper.startServer(done);
@@ -47,26 +67,6 @@ describe("openhab4-out node", function () {
   afterEach(function () {
     return helper.unload();
   });
-
-  // Skeleton flow for reuse
-  function getFlow() {
-    return [
-      {
-        id: "controller1",
-        type: "openhab4-controller",
-        name: "Test Controller"
-      },
-      {
-        id: "out1",
-        type: "openhab4-out",
-        name: "Test Out",
-        controller: "controller1",
-        priority: "config",
-        operation: "command",
-        wires: [[]]
-      }
-    ];
-  }
 
   it("should send a command to the controller with correct arguments", function (done) {
     const flow = getFlow();
@@ -119,7 +119,7 @@ describe("openhab4-out node", function () {
           const control = controller.handler.control;
           expect(control.calledOnce, "Control called once").to.be.true;
           const call = control.getCall(0);
-          expect(call.args[0]).to.deep.equal({ concept: CONCEPTS.ITEMS, identifier: "ub_Warning"}, "should get resource from message");
+          expect(call.args[0]).to.deep.equal({ concept: CONCEPTS.ITEMS, identifier: "ub_Warning" }, "should get resource from message");
           expect(call.args[1]).to.equal(OPERATION.UPDATE, "Should get operation from message");
           expect(call.args[2]).to.equal("incoming-payload", "Should get payload from message");
 

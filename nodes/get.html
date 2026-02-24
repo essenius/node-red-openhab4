@@ -21,38 +21,39 @@
             width: 100% !important;
         }
     </style>-->
-    <div class="form-row">
-        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
-        <input type="text" id="node-input-name" placeholder="Name">
-    </div>
-    <div class="form-row">
-        <label for="node-input-controller"><i class="fa fa-cogs"></i> Controller</label>
-        <input type="text" id="node-input-controller">
-    </div>
+<div class="form-row">
+    <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+    <input type="text" id="node-input-name" placeholder="Name">
+</div>
+<div class="form-row">
+    <label for="node-input-controller"><i class="fa fa-cogs"></i> Controller</label>
+    <input type="text" id="node-input-controller">
+</div>
 
-    <div class="form-row">
-        <label for="node-input-concept"><i class="fa fa-sitemap"></i> Concept</label>
-    	<select id="node-input-concept" name="node-input-concept">
-			<option value="items">Items</option>
-			<option value="things">Things</option>
-    	</select>
-    </div>
+<div class="form-row">
+    <label for="node-input-concept"><i class="fa fa-sitemap"></i> Concept</label>
+    <select id="node-input-concept" name="node-input-concept">
+        <option value="items">Items</option>
+        <option value="things">Things</option>
+    </select>
+</div>
 
-    <div class="form-row">
-        <label for="node-input-list-filter"><i class="fa fa-filter"></i> List Filter</label>
-        <input type="text" id="node-input-list-filter" placeholder="Type to filter below item name list...">
-    </div>
-    <div class="form-row">
-        <label for="node-input-identifier"><i class="fa fa-crosshairs"></i> Resource</label>
-        <select id="node-input-identifier" name="node-input-identifier" style="width: 70%; height: auto; appearance: menulist;"></select>
-    </div>
-    <div class="form-row">
-        <label for="node-input-priority"><i class="fa fa-sort"></i> Priority</label>
-        <select id="node-input-priority" name="node-input-priority" style="width: 70%; height: auto; appearance: menulist;">
-			<option value="config">Configuration first</option>
-            <option value="message">Message first</option>
-        </select>
-    </div>
+<div class="form-row">
+    <label for="node-input-list-filter"><i class="fa fa-filter"></i> List Filter</label>
+    <input type="text" id="node-input-list-filter" placeholder="Type to filter below item name list...">
+</div>
+<div class="form-row">
+    <label for="node-input-identifier"><i class="fa fa-crosshairs"></i> Resource</label>
+    <select id="node-input-identifier" name="node-input-identifier"
+        style="width: 70%; height: auto; appearance: menulist;"></select>
+</div>
+<div class="form-row">
+    <label for="node-input-priority"><i class="fa fa-sort"></i> Priority</label>
+    <select id="node-input-priority" name="node-input-priority" style="width: 70%; height: auto; appearance: menulist;">
+        <option value="config">Configuration first</option>
+        <option value="message">Message first</option>
+    </select>
+</div>
 </script>
 
 <script type="text/x-red" data-help-name="openhab4-get">
@@ -121,7 +122,7 @@
         defaults: {
             name: { value: "", required: false },
             controller: { value: "", type: "openhab4-controller", required: true },
-            concept: {value: "items", required: true },
+            concept: { value: "items", required: true },
             identifier: { value: "", required: false },
             priority: { value: "config", required: true }
         },
@@ -133,11 +134,14 @@
         label: function () {
             return globalThis.OPENHAB4.generateNodeName('get', this.name, this.identifier);
         },
-        labelStyle: function() {
+        labelStyle: function () {
             return this.name ? "node_label_italic" : "";
         },
-        oneditprepare: function () {
-            openhabEditPrepare(this, "[None]");
-        }
+
+
+        oneditsave: function () { openhabEditSave(RED, this); },
+        oneditprepare: function () { openhabEditPrepare(RED, this, "[None]"); },
+        oneditcancel: function () { openhabEditCancel(RED, this); }
+
     });
 </script>

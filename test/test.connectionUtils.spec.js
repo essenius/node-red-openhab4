@@ -256,54 +256,6 @@ describe("connectionUtils.httpRequest", function () {
 
 });
 
-/*
-describe("connectionUtils.isPhantomError", function () {
-
-    const { isPhantomError } = require('../lib/connectionUtils');
-
-    it("shouldreturn false for undefined", function () {
-        expect(isPhantomError(undefined)).to.be.false;
-    });
-
-    it("should return false for null", function () {
-        expect(isPhantomError(null)).to.be.false;
-    });
-
-    it("should return false for non-object types", function () {
-        expect(isPhantomError("error")).to.be.false;
-        expect(isPhantomError(42)).to.be.false;
-        expect(isPhantomError(true)).to.be.false;
-    });
-
-    it("should return false for an object without type", function () {
-        expect(isPhantomError({ message: "fail" })).to.be.false;
-    });
-
-    it("should return true for an object with empty type property", function () {
-        expect(isPhantomError({ type: {} })).to.be.true;
-    });
-
-    it("should return false for an object with non-empty type property", function () {
-        expect(isPhantomError({ type: { code: 123 } })).to.be.false;
-    });
-});
-
-describe("connectionUtils.retryable", function () {
-    it("should retry", async function () {
-        const { retryable } = require('../lib/connectionUtils');
-
-        let callCount = 0;
-        const mockAsync = sinon.stub().callsFake(async () => {
-            return { ok: callCount++ > 0, retry: true };
-        });
-        const result = await retryable(mockAsync, { retryTimeout: 1, startInterval: 1 });
-        expect(result.ok).to.be.true;
-        expect(callCount).to.equal(2);
-
-    });
-});
-*/
-
 describe("connectionUtils.setDefaultsTest", function () {
 
     const { setDefaults } = require('../lib/connectionUtils');

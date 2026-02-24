@@ -140,8 +140,10 @@
         labelStyle: function() {
             return this.name ? "node_label_italic" : "";
         },
-        oneditprepare: function () {
-            openhabEditPrepare(this, "[No Item]");
-        }
+
+        oneditsave: function() { openhabEditSave(RED, this); },
+        oneditprepare: function () { openhabEditPrepare(RED, this, "[No Item]"); },
+        oneditcancel: function () { openhabEditCancel(RED, this); }
+
     });
 </script>

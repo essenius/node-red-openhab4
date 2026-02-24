@@ -10,76 +10,245 @@
 // See the License for the specific language governing permissions and limitations under the License.
 
 (function (_global) {
+
+    class ControllerStateTracker {
+        constructor() { this.trackedControllers = new Map(); }
+        setHash(id, hash) { this.trackedControllers.set(id, hash); }
+        getHashWithDefault(id, defaultValue) {
+            if (!this.trackedControllers.has(id)) {
+                this.trackedControllers.set(id, defaultValue);
+                return defaultValue;
+            }
+            return this.trackedControllers.get(id);
+        }
+        hasHashChanged(id, hash) { return this.trackedControllers.get(id) !== hash; }
+    }
+
+    const controllerStateTracker = new ControllerStateTracker();
+
+    let deployListenerAttached = false;
+
+    function safeAsync(fn) {
+        Promise.resolve()
+            .then(fn)
+            .catch(err => {
+                console.error("openHAB editor error:", err);
+            });
+    }
+
+    async function getControllerNode(RED, controllerId, attempts = 10) {
+        for (let i = 0; i < attempts; i++) {
+            const node = RED.nodes.node(controllerId);
+            if (node) return node;
+            await new Promise(r => setTimeout(r, 50));
+        }
+        return null;
+    }
+
+    async function checkedControllerNode(RED, node, controllerInput) {
+        const selectedControllerId = controllerInput?.value;
+
+        if (!selectedControllerId) {
+            return { message: "Select a controller first" };
+        }
+
+        const controllerNode = await getControllerNode(RED, selectedControllerId);
+
+        if (!controllerNode) {
+            return { message: "Controller not ready" };
+        }
+
+        // default makes sure that we have a value in the tracker (and using it implies the hash hasn't changed).
+        let deployedHash = controllerStateTracker.getHashWithDefault(selectedControllerId, controllerNode.hash);
+
+        console.log(`Deployed hash for ${selectedControllerId}`, deployedHash);
+
+        // if the deployed hash isn't equal to the local node's hash, we need a deploy
+        const controllerChanged = controllerStateTracker.hasHashChanged(selectedControllerId, controllerNode.hash);
+
+        console.log("Controller changed", controllerChanged);
+        console.log("Node:", node);
+        console.log("Controller:", selectedControllerId, controllerNode);
+
+        if (controllerChanged) {
+            return { message: "⚠ Controller configuration changed, deploy first" };
+        }
+
+        return { controllerNode };
+    }
+
+    function ensureDeployListener(RED) {
+        if (!deployListenerAttached) {
+            RED.events.on("deploy", () => {
+                console.log("Deploying");
+                RED.nodes.eachConfig(n => {
+                    if (n.hash) {
+                        console.log(`Adding ${n.id} : ${n.hash}`);
+                        controllerStateTracker.setHash(n.id, n.hash);
+                    }
+                });
+            });
+            deployListenerAttached = true; 
+        }
+    }
+
+    function getInputField(name) {
+        return document.getElementById(`node-input-${name}`);
+    }
+
+    function getFields() {
+        return {
+            controllerInput: getInputField("controller"),
+            conceptInput: getInputField("concept"),
+            itemNameInput: getInputField("identifier")
+        };
+    }
+
+    function openhabEditCancel(RED, node) {
+        removeEventListeners(RED, node);
+    }
+
+    function openhabEditSave(RED, node) { safeAsync(() => openhabEditSaveAsync(RED, node)) };
+
+    async function openhabEditSaveAsync(RED, node) {
+        removeEventListeners(RED, node);
+        const { message } = await checkedControllerNode(RED, node, getInputField("controller"));
+
+        if (message) {
+            console.warn(message);
+        }
+    }
+
+    async function openhabEditPrepare(RED, node, emptyText) {
+        safeAsync(async () => {
+            try {
+                await openhabEditPrepareAsync(RED, node, emptyText);
+            } catch (err) {
+                console.error("Prepare failed:", err);
+                removeEventListeners(RED, node);
+                throw err;
+            }
+        });
+    }
+
     /**
      * Populate a native <select> dropdown with OpenHAB items.
      * @param node    the current node instance
      * @param emptyText  Text to use for empty value
      */
-    function openhabEditPrepare(node, emptyText) {
+    async function openhabEditPrepareAsync(RED, node, emptyText) {
+        removeEventListeners(RED, node);
+
+        ensureDeployListener(RED);
+
         // Fix existing array data
         if (Array.isArray(node.identifier)) {
             node.identifier = node.identifier[0] || "";
         }
-
-        const controllerInput = document.getElementById("node-input-controller");
-        const itemNameInput = document.getElementById("node-input-identifier");
-        const conceptInput = document.getElementById("node-input-concept");
+        const { controllerInput, conceptInput, itemNameInput } = getFields();
+        console.log(`oneditprepare for ${node.type}/${node.id}`);
 
         let allItemNames = [];
+        let callCount = 0;
+        let refreshVersion = 0;
 
-        async function updateItemNameDropdown(controllerId, selectedValue) {
+        function getConcept() {
+            return conceptInput?.value ?? "items";
+        }
+
+        async function updateItemNameDropdown(selectedValue, version) {
+            if (!itemNameInput) return; // in case the dialog is closed during refresh
             itemNameInput.innerHTML = "";
-
-            if (!controllerId) {
-                return itemNameInput.append(
-                    $("<option disabled>").text("Select a controller first")
-                );
+            const controllerCheck = await checkedControllerNode(RED, node, controllerInput);
+            if (version !== refreshVersion) return; // ignore stale responses
+            if (controllerCheck.message) {
+                const option = document.createElement("option");
+                option.disabled = true;
+                option.textContent = controllerCheck.message;
+                itemNameInput.appendChild(option);
+                return;
             }
+
+            const concept = getConcept();
 
             try {
                 // if there is no concept input (e.g. with out), we default to "items" as concept
-                const concept = conceptInput?.value ?? "items";
                 // pass on the controller Id for server side fetching of config
-                const items = await $.getJSON(`openhab4/${concept}`, { controller: controllerId });
+                const items = await $.getJSON(`openhab4/${concept}`, { controller: controllerInput.value });
+                if (version !== refreshVersion) return; // ignore stale responses
+
+                callCount++;
                 const nameKey = concept === "things" ? "UID" : "name";
+                console.log("CallCount: ", callCount);
+                console.log("Items: ", items);
+
                 items.sort((a, b) => a[nameKey].localeCompare(b[nameKey]));
                 allItemNames = items.map(item => item[nameKey]); // Store all names for filtering
+                console.log("allItemNames:", allItemNames);
+
                 let specialOption = { value: "", text: emptyText };
-                if (document.getElementById('node-input-list-filter')) {
+                if (getInputField('list-filter')) {
                     const makeDropdownParams = {
-                        filterInputId: 'node-input-list-filter',
-                        selectId: 'node-input-identifier',
+                        filterInputId: 'list-filter',
+                        selectId: 'identifier',
                         allOptions: allItemNames,
                         specialOption: specialOption,
                         selectedValue: selectedValue
                     }
-                    makeFilterableDropdown(makeDropdownParams);
+                    makeFilterableDropdown(makeDropdownParams, node);
                 }
             }
             catch (err) {
                 console.log("Failed loading resources", err);
-                itemNameInput.innerHTML = ""; 
-
+                itemNameInput.innerHTML = "";
                 const option = document.createElement("option");
                 option.disabled = true;
-                option.textContent = "⚠️ Failed to load resources";
+                option.textContent = `⚠️ Could not load resources (${err.responseText ?? err.status})`;
                 itemNameInput.appendChild(option);
             }
         }
 
-
-        function refreshDropdown(topic) {
-            const controllerNode = RED.nodes.node(node.controller);
-            if (controllerNode) updateItemNameDropdown(controllerNode.id, topic);
+        async function refreshDropdown() {
+            const version = ++refreshVersion;
+            await updateItemNameDropdown(node.identifier, version);
         }
 
+        node._controllerChangeDomHandler = refreshDropdown;
+
+        // reload when controller content changes
+        attachControllerChangeListener(RED, node, controllerInput, node._controllerChangeDomHandler);
+
         // reload when controller or concept dropdown changes
-        controllerInput.addEventListener("change", () => { refreshDropdown(node.identifier); });
-        conceptInput?.addEventListener("change", () => { refreshDropdown(node.identifier); });
+        controllerInput.addEventListener("change", node._controllerChangeDomHandler);
+        conceptInput?.addEventListener("change", node._controllerChangeDomHandler);
 
         // initial load
 
-        refreshDropdown(node.identifier);
+        await refreshDropdown();
+    }
+
+    function removeEventListeners(RED, node) {
+        const { controllerInput, conceptInput } = getFields();
+        controllerInput?.removeEventListener("change", node._controllerChangeDomHandler);
+        conceptInput?.removeEventListener("change", node._controllerChangeDomHandler);
+        delete node._controllerChangeDomHandler;
+
+        const filterInput = getInputField("list-filter");
+
+        if (filterInput && node._filterInputHandler) {
+            filterInput.removeEventListener("input", node._filterInputHandler);
+            delete node._filterInputHandler;
+        }
+
+        detachRedControllerChangeListener(RED, node);
+    }
+
+    function appendOption(select, { value, text }, selectedValue) {
+        const option = document.createElement('option');
+        option.value = value;
+        option.text = text;
+        option.selected = value === selectedValue;
+        select.appendChild(option);
     }
 
     /**
@@ -89,39 +258,77 @@
      * @param {Array<string>} allOptions - The full list of options.
      * @param {Object} [specialOption] - An object { value, text } for a special first option.
      */
-    function makeFilterableDropdown(params) {
-        
-        const filterInput = document.getElementById(params.filterInputId);
-        const select = document.getElementById(params.selectId);
+    function makeFilterableDropdown(params, node) {
+
+        const filterInput = getInputField(params.filterInputId);
+        const select = getInputField(params.selectId);
 
         function populateDropdown(options) {
             select.innerHTML = '';
             if (params.specialOption) {
-                const opt = document.createElement('option');
-                opt.value = params.specialOption.value;
-                opt.text = params.specialOption.text;
-                opt.selected = (params.specialOption.value === params.selectedValue);
-                select.appendChild(opt);
+                appendOption(select, params.specialOption, params.selectedValue);
             }
             options.forEach(item => {
-                const option = document.createElement('option');
-                option.value = item;
-                option.text = item;
-                option.selected = (item === params.selectedValue);
-                select.appendChild(option);
+                appendOption(select, { value: item, text: item }, params.selectedValue);
             });
         }
 
-        filterInput.addEventListener('input', function () {
+        if (node._filterInputHandler) {
+            filterInput.removeEventListener('input', node._filterInputHandler);
+        }
+
+        node._filterInputHandler = function () {
             const filter = this.value.toLowerCase();
-            const filtered = params.allOptions.filter(item => item.toLowerCase().includes(filter));
+            const filtered = params.allOptions.filter(item =>
+                item.toLowerCase().includes(filter)
+            );
             populateDropdown(filtered);
-        });
+        };
+
+        filterInput.addEventListener('input', node._filterInputHandler);
 
         // Initial population
         populateDropdown(params.allOptions);
     }
 
+    function attachControllerChangeListener(RED, node, controllerInput, refreshFn) {
+
+        // Prevent duplicate listeners
+        if (node._controllerChangeRedHandler) {
+            RED.events.off("nodes:change", node._controllerChangeRedHandler);
+        }
+
+        node._controllerChangeRedHandler = async function (changedNode) {
+
+            if (!changedNode?._def) return;
+            if (changedNode._def.category !== "config") return;
+
+            const selectedControllerId = controllerInput?.value;
+            if (!selectedControllerId) return;
+
+            if (changedNode.id === selectedControllerId) {
+                console.log("Controller config changed → refreshing");
+                await refreshFn();
+            }
+        };
+
+        RED.events.on("nodes:change", node._controllerChangeRedHandler);
+    }
+
+    function detachRedControllerChangeListener(RED, node) {
+        if (node._controllerChangeRedHandler) {
+            RED.events.off("nodes:change", node._controllerChangeRedHandler);
+            delete node._controllerChangeRedHandler;
+        }
+    }
+
     globalThis.openhabEditPrepare = openhabEditPrepare;
+    globalThis.openhabEditSave = openhabEditSave;
+    globalThis.openhabEditCancel = openhabEditCancel;
     globalThis.makeFilterableDropdown = makeFilterableDropdown;
+
+    // for testing
+    if (typeof module !== 'undefined' && module.exports) {
+        module.exports = { ControllerStateTracker };
+    }
 })(globalThis);
