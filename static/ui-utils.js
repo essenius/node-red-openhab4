@@ -9,11 +9,108 @@
 // distributed on an "AS IS" BASIS WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and limitations under the License.
 
+"use strict";
+
 (function (_global) {
 
+
+    // --- ControllerChecker ---
+
+    /**
+    * @param {object} RED the node red object
+    * @param {ControllerStateTracker} tracker the state tracker object
+    */
+    class ControllerChecker {
+        constructor(RED, tracker) {
+            this.RED = RED;
+            this.tracker = tracker;
+        }
+
+        async getControllerNode(controllerId, attempts = 10) {
+            for (let i = 0; i < attempts; i++) {
+                const node = this.RED.nodes.node(controllerId);
+                if (node) return node;
+                await new Promise(r => setTimeout(r, 50));
+            }
+            return null;
+        }
+
+        async check(controllerInput) {
+            const selectedControllerId = controllerInput?.value;
+            if (!selectedControllerId) {
+                return { message: "Select a controller first" };
+            }
+
+            const controllerNode = await this.getControllerNode(selectedControllerId);
+            if (!controllerNode) {
+                return { message: "Controller not ready" };
+            }
+
+            const deployedHash = this.tracker.getHashWithDefault(selectedControllerId, controllerNode.hash);
+            console.log(`Deployed hash for ${selectedControllerId}`, deployedHash);
+
+            const controllerChanged = this.tracker.hasHashChanged(selectedControllerId, controllerNode.hash);
+
+            console.log("Controller changed", controllerChanged);
+            console.log("Controller:", selectedControllerId, controllerNode);
+            if (controllerChanged) {
+                return { message: "⚠ Controller configuration changed, deploy first" };
+            }
+
+            return { controllerNode };
+        }
+    }
+
+    // --- ControllerConfigChangeListener class ---
+
+    class ControllerConfigChangeListener {
+        /**
+         * @param {object} RED
+         * @param {HTMLSelectElement} controllerInput
+         * @param {Function} refreshFn
+         */
+        constructor(RED, controllerInput, refreshFn) {
+            this.RED = RED;
+            this.controllerInput = controllerInput;
+
+            this._handler = async (changedNode) => {
+                if (!changedNode?._def) return;
+                if (changedNode._def.category !== "config") return;
+
+                const selectedControllerId = this.controllerInput?.value;
+                if (!selectedControllerId) return;
+
+                if (changedNode.id === selectedControllerId) {
+                    console.log("Controller config changed → refreshing");
+                    await refreshFn();
+                }
+            };
+            this.RED.events.on("nodes:change", this._handler);
+        }
+
+        destroy() {
+            this.RED.events.off("nodes:change", this._handler);
+        }
+    }
+
+    // --- ControllerStateTracker class ---
+
     class ControllerStateTracker {
-        constructor() { this.trackedControllers = new Map(); }
-        setHash(id, hash) { this.trackedControllers.set(id, hash); }
+        constructor(RED) {
+            this.trackedControllers = new Map();
+            this.RED = RED;
+            this._deployHandler = null;
+            this._attachDeployListener();
+        }
+
+        destroy() {
+            this._detachDeployListener();
+        }
+
+        setHash(id, hash) {
+            this.trackedControllers.set(id, hash);
+        }
+
         getHashWithDefault(id, defaultValue) {
             if (!this.trackedControllers.has(id)) {
                 this.trackedControllers.set(id, defaultValue);
@@ -21,12 +118,259 @@
             }
             return this.trackedControllers.get(id);
         }
-        hasHashChanged(id, hash) { return this.trackedControllers.get(id) !== hash; }
+
+        hasHashChanged(id, hash) {
+            return this.trackedControllers.get(id) !== hash;
+        }
+
+        _attachDeployListener() {
+            if (this._deployHandler || !this.RED) return;
+            this._deployHandler = () => {
+                this.RED.nodes.eachConfig(n => {
+                    if (n.hash) this.setHash(n.id, n.hash);
+                });
+            };
+            this.RED.events.on("deploy", this._deployHandler);
+        }
+
+        _detachDeployListener() {
+            if (!this._deployHandler || !this.RED) return;
+            this.RED.events.off("deploy", this._deployHandler);
+            // Note: store the handler if you want proper off() later
+            this._deployHandler = null;
+        }
     }
 
-    const controllerStateTracker = new ControllerStateTracker();
+    // --- DropdownController class ---
 
-    let deployListenerAttached = false;
+    class DropdownController {
+        constructor({ checker, controllerInput, conceptInput, dropdown, currentValue, fetchFn }) {
+            this.checker = checker;
+            this.currentValue = currentValue;
+            this.controllerInput = controllerInput;
+            this.conceptInput = conceptInput;
+            this.dropdown = dropdown;
+            this.fetchFn = fetchFn;
+            this._refreshVersion = 0;
+        }
+
+        async refresh() {
+            const version = ++this._refreshVersion;
+
+            const controllerCheck = await this.checker.check(this.controllerInput);
+
+            if (controllerCheck.message) {
+                this.dropdown.setSingleDisabledOption(controllerCheck.message);
+                return;
+            }
+
+            const concept = this.conceptInput?.value ?? "items";
+
+            let resources;
+            try {
+                resources = await this.fetchFn(`openhab4/${concept}`, { controller: this.controllerInput.value });
+            } catch (err) {
+                if (version !== this._refreshVersion) return;
+                this.dropdown.setSingleDisabledOption(err.message);
+                return;
+            }
+
+            if (version !== this._refreshVersion) return;
+
+            const nameKey = concept === "things" ? "UID" : "name";
+            const allNames = resources.map(i => i[nameKey]).sort();
+
+            this.dropdown.setOptions(allNames, this.currentValue);
+        }
+    }
+
+    // --- DropdownFilterListener class ---
+
+    class DropdownFilterListener {
+        /**
+         * @param {HTMLSelectElement} select
+         * @param {HTMLInputElement|null} filterInput
+         * @param {string|null} specialOptionText
+         */
+        constructor(select, filterInput = null, specialOptionText = "[None]") {
+            this.select = select;
+            this.filterInput = filterInput;
+            this.specialOption = { value: "", text: specialOptionText };
+            this.allOptions = [];
+            this.selectedValue = null;
+            this._attachFilterInput();
+        }
+
+        destroy() {
+            this._detachFilterInput();
+        }
+
+        clearOptions() {
+            if (!this.select) return;
+            this.select.innerHTML = '';
+        }
+
+        setOptions(allOptions, selectedValue) {
+            this.allOptions = allOptions;
+            this.selectedValue = selectedValue;
+            this._populate(allOptions);
+        }
+
+        setSingleDisabledOption(optionText) {
+            this.clearOptions();
+            this._appendOption({ value: "", text: optionText, disabled: true });
+        }
+
+        // private methods
+
+        _appendOption({ value, text, disabled = false }, selectedValue = null) {
+            const option = document.createElement('option');
+            option.value = value;
+            option.text = text;
+            if (disabled) option.disabled = disabled;
+            if (selectedValue != null) option.selected = value === selectedValue;
+            this.select.appendChild(option);
+        }
+
+        _attachFilterInput() {
+            if (!this.filterInput) return;
+
+            this._inputHandler = () => {
+                const filter = this.filterInput.value.toLowerCase();
+                const filtered = this.allOptions.filter(resource => resource.toLowerCase().includes(filter));
+                this._populate(filtered);
+            };
+
+            this.filterInput.addEventListener('input', this._inputHandler);
+        }
+
+        _detachFilterInput() {
+            if (this.filterInput && this._inputHandler) {
+                this.filterInput.removeEventListener('input', this._inputHandler);
+                this._inputHandler = null;
+            }
+        }
+
+        _populate(options) {
+            if (!this.select) return;
+            this.clearOptions();
+
+            this._appendOption(this.specialOption, this.selectedValue);
+
+            options.forEach(resource => {
+                this._appendOption({ value: resource, text: resource }, this.selectedValue);
+            });
+        }
+    }
+
+    // --- FieldChangeListener class ---
+
+    class FieldChangeListener {
+        constructor(controllerInput, conceptInput, refreshFn) {
+            this.controllerInput = controllerInput;
+            this.conceptInput = conceptInput;
+            this._handler = () => refreshFn();
+            this._attach();
+        }
+
+        destroy() {
+            this._detach();
+        }
+
+        _attach() {
+            this.controllerInput?.addEventListener("change", this._handler);
+            this.conceptInput?.addEventListener("change", this._handler);
+        }
+
+        _detach() {
+            this.controllerInput?.removeEventListener("change", this._handler);
+            this.conceptInput?.removeEventListener("change", this._handler);
+        }
+
+    }
+
+    // --- ListenerManager class ---
+
+    class ListenerManager {
+        constructor() {
+            this.listeners = new Map();
+        }
+
+        /**
+         * Add a listener under a unique key.
+         * The listener must have a destroy() method.
+         */
+        add(key, listener) {
+            if (this.listeners.has(key)) {
+                // Optional: auto-remove old listener if key already exists
+                this.remove(key);
+            }
+            this.listeners.set(key, listener);
+        }
+
+        get(key) {
+            return this.listeners.get(key);
+        }
+
+        /**
+         * Remove a single listener by key.
+         */
+        remove(key) {
+            const listener = this.listeners.get(key);
+            if (listener?.destroy) listener.destroy();
+            this.listeners.delete(key);
+        }
+
+        /**
+         * Remove all listeners.
+         */
+        clear() {
+            for (const listener of this.listeners.values()) {
+                if (listener.destroy) listener.destroy();
+            }
+            this.listeners.clear();
+        }
+
+        /**
+         * Iterate over listeners (for testing or inspection)
+         */
+        forEach(callback) {
+            this.listeners.forEach(callback);
+        }
+    }
+
+    // --- Main entry point ---
+
+    let controllerStateTracker = null;
+
+    function getControllerStateTracker(RED) {
+        if (!controllerStateTracker) {
+            controllerStateTracker = new ControllerStateTracker(RED);
+        }
+        return controllerStateTracker;
+    }
+
+    async function fetchJson(url, data, timeoutMs = 5000) {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+        try {
+            const query = new URLSearchParams(data).toString();
+            const response = await fetch(`${url}?${query}`, {
+                method: "GET",
+                headers: { "Accept": "application/json" },
+                signal: controller.signal
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            return await response.json();
+        } finally {
+            clearTimeout(timeout);
+        }
+    }
 
     function safeAsync(fn) {
         Promise.resolve()
@@ -36,299 +380,148 @@
             });
     }
 
-    async function getControllerNode(RED, controllerId, attempts = 10) {
-        for (let i = 0; i < attempts; i++) {
-            const node = RED.nodes.node(controllerId);
-            if (node) return node;
-            await new Promise(r => setTimeout(r, 50));
-        }
-        return null;
-    }
-
-    async function checkedControllerNode(RED, node, controllerInput) {
-        const selectedControllerId = controllerInput?.value;
-
-        if (!selectedControllerId) {
-            return { message: "Select a controller first" };
-        }
-
-        const controllerNode = await getControllerNode(RED, selectedControllerId);
-
-        if (!controllerNode) {
-            return { message: "Controller not ready" };
-        }
-
-        // default makes sure that we have a value in the tracker (and using it implies the hash hasn't changed).
-        let deployedHash = controllerStateTracker.getHashWithDefault(selectedControllerId, controllerNode.hash);
-
-        console.log(`Deployed hash for ${selectedControllerId}`, deployedHash);
-
-        // if the deployed hash isn't equal to the local node's hash, we need a deploy
-        const controllerChanged = controllerStateTracker.hasHashChanged(selectedControllerId, controllerNode.hash);
-
-        console.log("Controller changed", controllerChanged);
-        console.log("Node:", node);
-        console.log("Controller:", selectedControllerId, controllerNode);
-
-        if (controllerChanged) {
-            return { message: "⚠ Controller configuration changed, deploy first" };
-        }
-
-        return { controllerNode };
-    }
-
-    function ensureDeployListener(RED) {
-        if (!deployListenerAttached) {
-            RED.events.on("deploy", () => {
-                console.log("Deploying");
-                RED.nodes.eachConfig(n => {
-                    if (n.hash) {
-                        console.log(`Adding ${n.id} : ${n.hash}`);
-                        controllerStateTracker.setHash(n.id, n.hash);
-                    }
-                });
-            });
-            deployListenerAttached = true; 
-        }
-    }
-
     function getInputField(name) {
         return document.getElementById(`node-input-${name}`);
     }
 
-    function getFields() {
+    /*function getFields() {
         return {
             controllerInput: getInputField("controller"),
             conceptInput: getInputField("concept"),
-            itemNameInput: getInputField("identifier")
+            identifierInput: getInputField("identifier")
         };
-    }
+    } */
 
     function openhabEditCancel(RED, node) {
-        removeEventListeners(RED, node);
+        removeEventListeners(node);
     }
 
-    function openhabEditSave(RED, node) { safeAsync(() => openhabEditSaveAsync(RED, node)) };
+    function openhabEditSave(RED, node, { safeAsync = safeAsync } = {}) {
+        safeAsync(() => openhabEditSaveAsync(RED, node));
+    }
 
     async function openhabEditSaveAsync(RED, node) {
-        removeEventListeners(RED, node);
-        const { message } = await checkedControllerNode(RED, node, getInputField("controller"));
+        if (!node.checker) {
+            console.log("No checker in node", node);
+            return;
+        }
+        const { message } = await node.checker.check(RED, getInputField("controller"));
+
+        removeEventListeners(node);
 
         if (message) {
             console.warn(message);
         }
     }
 
-    async function openhabEditPrepare(RED, node, emptyText) {
-        safeAsync(async () => {
+    function openhabEditPrepare(RED, node, emptyText, injections = {}) {
+        const {
+            safeAsyncFn = safeAsync,
+        } = injections;
+
+        safeAsyncFn(async () => {
             try {
-                await openhabEditPrepareAsync(RED, node, emptyText);
+                await openhabEditPrepareAsync(RED, node, emptyText, injections);
             } catch (err) {
                 console.error("Prepare failed:", err);
-                removeEventListeners(RED, node);
+                node._listenerManager?.clear();
                 throw err;
             }
         });
     }
 
     /**
-     * Populate a native <select> dropdown with OpenHAB items.
+     * Populate a native <select> dropdown with OpenHAB resources (items/things).
+     * @param RED     the node red object
      * @param node    the current node instance
      * @param emptyText  Text to use for empty value
      */
-    async function openhabEditPrepareAsync(RED, node, emptyText) {
-        removeEventListeners(RED, node);
+    async function openhabEditPrepareAsync(RED, node, emptyText, injections) {
+        const {
+            fetchFn = fetchJson,
+            getInputFieldFn = getInputField,
+        } = injections;
 
-        ensureDeployListener(RED);
+        removeEventListeners(node);
 
         // Fix existing array data
         if (Array.isArray(node.identifier)) {
+            console.log("Fixing array");
             node.identifier = node.identifier[0] || "";
         }
-        const { controllerInput, conceptInput, itemNameInput } = getFields();
+
+        const controllerInput = getInputFieldFn("controller");
+        const conceptInput = getInputFieldFn("concept");
+        const identifierInput = getInputFieldFn("identifier");
+        const filterInput = getInputFieldFn("list-filter");
         console.log(`oneditprepare for ${node.type}/${node.id}`);
 
-        let allItemNames = [];
-        let callCount = 0;
-        let refreshVersion = 0;
+        node._listenerManager = new ListenerManager();
 
-        function getConcept() {
-            return conceptInput?.value ?? "items";
-        }
+        const dropdownFilterListener = new DropdownFilterListener(identifierInput, filterInput, emptyText);
+        node._listenerManager.add("dropdownFilter", dropdownFilterListener);
 
-        async function updateItemNameDropdown(selectedValue, version) {
-            if (!itemNameInput) return; // in case the dialog is closed during refresh
-            itemNameInput.innerHTML = "";
-            const controllerCheck = await checkedControllerNode(RED, node, controllerInput);
-            if (version !== refreshVersion) return; // ignore stale responses
-            if (controllerCheck.message) {
-                const option = document.createElement("option");
-                option.disabled = true;
-                option.textContent = controllerCheck.message;
-                itemNameInput.appendChild(option);
-                return;
-            }
+        //        node._dropdownFilterListener = new DropdownFilterListener(identifierInput, filterInput, emptyText);
+        node._controllerChecker = new ControllerChecker(RED, getControllerStateTracker(RED));
 
-            const concept = getConcept();
+        node._dropdownController = new DropdownController({
+            checker: node._controllerChecker,
+            controllerInput,
+            conceptInput,
+            dropdown: dropdownFilterListener,
+            currentValue: node.identifier,
+            fetchFn
+        });
 
-            try {
-                // if there is no concept input (e.g. with out), we default to "items" as concept
-                // pass on the controller Id for server side fetching of config
-                const items = await $.getJSON(`openhab4/${concept}`, { controller: controllerInput.value });
-                if (version !== refreshVersion) return; // ignore stale responses
+        const refreshDropdown = () => node._dropdownController.refresh();
+        node._listenerManager.add("controllerConfig", new ControllerConfigChangeListener(RED, controllerInput, refreshDropdown));
+        node._listenerManager.add("fieldChange", new FieldChangeListener(controllerInput, conceptInput, refreshDropdown));
 
-                callCount++;
-                const nameKey = concept === "things" ? "UID" : "name";
-                console.log("CallCount: ", callCount);
-                console.log("Items: ", items);
-
-                items.sort((a, b) => a[nameKey].localeCompare(b[nameKey]));
-                allItemNames = items.map(item => item[nameKey]); // Store all names for filtering
-                console.log("allItemNames:", allItemNames);
-
-                let specialOption = { value: "", text: emptyText };
-                if (getInputField('list-filter')) {
-                    const makeDropdownParams = {
-                        filterInputId: 'list-filter',
-                        selectId: 'identifier',
-                        allOptions: allItemNames,
-                        specialOption: specialOption,
-                        selectedValue: selectedValue
-                    }
-                    makeFilterableDropdown(makeDropdownParams, node);
-                }
-            }
-            catch (err) {
-                console.log("Failed loading resources", err);
-                itemNameInput.innerHTML = "";
-                const option = document.createElement("option");
-                option.disabled = true;
-                option.textContent = `⚠️ Could not load resources (${err.responseText ?? err.status})`;
-                itemNameInput.appendChild(option);
-            }
-        }
-
-        async function refreshDropdown() {
-            const version = ++refreshVersion;
-            await updateItemNameDropdown(node.identifier, version);
-        }
-
-        node._controllerChangeDomHandler = refreshDropdown;
-
-        // reload when controller content changes
-        attachControllerChangeListener(RED, node, controllerInput, node._controllerChangeDomHandler);
-
-        // reload when controller or concept dropdown changes
-        controllerInput.addEventListener("change", node._controllerChangeDomHandler);
-        conceptInput?.addEventListener("change", node._controllerChangeDomHandler);
-
-        // initial load
+        //node._controllerConfigChangeListener = new ControllerConfigChangeListener(RED, controllerInput, refreshDropdown);
+        //node._fieldChangeListener = new FieldChangeListener(controllerInput, conceptInput, refreshDropdown);
 
         await refreshDropdown();
     }
 
-    function removeEventListeners(RED, node) {
-        const { controllerInput, conceptInput } = getFields();
-        controllerInput?.removeEventListener("change", node._controllerChangeDomHandler);
-        conceptInput?.removeEventListener("change", node._controllerChangeDomHandler);
-        delete node._controllerChangeDomHandler;
+    /*function dispose(owner, property) {
+        const obj = owner[property];
+        if (!obj) return;
+        if (obj.destroy) obj.destroy();
+        owner[property] = null;
+    } */
 
-        const filterInput = getInputField("list-filter");
-
-        if (filterInput && node._filterInputHandler) {
-            filterInput.removeEventListener("input", node._filterInputHandler);
-            delete node._filterInputHandler;
-        }
-
-        detachRedControllerChangeListener(RED, node);
-    }
-
-    function appendOption(select, { value, text }, selectedValue) {
-        const option = document.createElement('option');
-        option.value = value;
-        option.text = text;
-        option.selected = value === selectedValue;
-        select.appendChild(option);
-    }
-
-    /**
-     * Makes a <select> element filterable by a text input.
-     * @param {string} filterInputId - The ID of the text input for filtering.
-     * @param {string} selectId - The ID of the select element to filter.
-     * @param {Array<string>} allOptions - The full list of options.
-     * @param {Object} [specialOption] - An object { value, text } for a special first option.
-     */
-    function makeFilterableDropdown(params, node) {
-
-        const filterInput = getInputField(params.filterInputId);
-        const select = getInputField(params.selectId);
-
-        function populateDropdown(options) {
-            select.innerHTML = '';
-            if (params.specialOption) {
-                appendOption(select, params.specialOption, params.selectedValue);
-            }
-            options.forEach(item => {
-                appendOption(select, { value: item, text: item }, params.selectedValue);
-            });
-        }
-
-        if (node._filterInputHandler) {
-            filterInput.removeEventListener('input', node._filterInputHandler);
-        }
-
-        node._filterInputHandler = function () {
-            const filter = this.value.toLowerCase();
-            const filtered = params.allOptions.filter(item =>
-                item.toLowerCase().includes(filter)
-            );
-            populateDropdown(filtered);
-        };
-
-        filterInput.addEventListener('input', node._filterInputHandler);
-
-        // Initial population
-        populateDropdown(params.allOptions);
-    }
-
-    function attachControllerChangeListener(RED, node, controllerInput, refreshFn) {
-
-        // Prevent duplicate listeners
-        if (node._controllerChangeRedHandler) {
-            RED.events.off("nodes:change", node._controllerChangeRedHandler);
-        }
-
-        node._controllerChangeRedHandler = async function (changedNode) {
-
-            if (!changedNode?._def) return;
-            if (changedNode._def.category !== "config") return;
-
-            const selectedControllerId = controllerInput?.value;
-            if (!selectedControllerId) return;
-
-            if (changedNode.id === selectedControllerId) {
-                console.log("Controller config changed → refreshing");
-                await refreshFn();
-            }
-        };
-
-        RED.events.on("nodes:change", node._controllerChangeRedHandler);
-    }
-
-    function detachRedControllerChangeListener(RED, node) {
-        if (node._controllerChangeRedHandler) {
-            RED.events.off("nodes:change", node._controllerChangeRedHandler);
-            delete node._controllerChangeRedHandler;
-        }
+    function removeEventListeners(node) {
+        node._listenerManager?.clear();
+        node._listenerManager = null;
     }
 
     globalThis.openhabEditPrepare = openhabEditPrepare;
     globalThis.openhabEditSave = openhabEditSave;
     globalThis.openhabEditCancel = openhabEditCancel;
-    globalThis.makeFilterableDropdown = makeFilterableDropdown;
 
-    // for testing
-    if (typeof module !== 'undefined' && module.exports) {
-        module.exports = { ControllerStateTracker };
+    const isTest = typeof module !== 'undefined' && module.exports;
+
+    if (isTest) {
+        module.exports = {
+            ControllerChecker,
+            ControllerConfigChangeListener,
+            ControllerStateTracker,
+            DropdownController,
+            DropdownFilterListener,
+            FieldChangeListener,
+            ListenerManager,
+            fetchJson,
+            getInputField,
+            openhabEditCancel,
+            openhabEditPrepare,
+            openhabEditPrepareAsync,
+            openhabEditSave,
+            openhabEditSaveAsync,
+            removeEventListeners,
+            safeAsync,
+            _resetControllerStateTracker: () => {
+                controllerStateTracker = null;
+            }
+        };
     }
 })(globalThis);

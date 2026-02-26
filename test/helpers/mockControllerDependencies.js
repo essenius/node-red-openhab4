@@ -13,16 +13,13 @@
 
 const sinon = require("sinon");
 
-function createControllerDependencies({
-    handlerOverrides = {},
-    httpOverrides = {}
-} = {}) {
+function createControllerDependencies({ handlerOverrides = {} } = {}) {
 
     const fakeConnection = {
         startEventSource: sinon.stub(),
         sendRequest: sinon.stub().resolves({ ok: true, data: [] }),
         close: sinon.stub(),
-        ...handlerOverrides.connection
+        //...handlerOverrides.connection
     };
 
     const fakeHandler = {
@@ -31,21 +28,22 @@ function createControllerDependencies({
         control: sinon.stub(),
         _onClose: sinon.stub(),
         connection: fakeConnection,
+        getResources: sinon.stub().returns({ok:true, data:[] }),
         ...handlerOverrides
     };
 
     const setupHandlerStub = sinon.stub().returns(fakeHandler);
 
-    const httpRequestStub = sinon.stub().resolves({
+    /*const httpRequestStub = sinon.stub().resolves({
         ok: true,
         data: []
-    });
+    }); 
 
-    Object.assign(httpRequestStub, httpOverrides);
+    Object.assign(httpRequestStub, httpOverrides); */
 
     return {
         setupHandlerStub,
-        httpRequestStub,
+        //httpRequestStub,
         fakeHandler,
         fakeConnection
     };

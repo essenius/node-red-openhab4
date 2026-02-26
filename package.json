@@ -2,7 +2,7 @@
   "name": "@essenius/node-red-openhab4",
   "author": "Rik Essenius (https://github.com/essenius)",
   "type": "commonjs",
-  "version": "0.10.24",
+  "version": "0.10.25",
   "description": "OpenHAB 4 integration nodes for Node-RED",
   "main": "nodes/controller.js",
   "engines": {
@@ -48,6 +48,8 @@
     "eslint": "^9.31.0",
     "eslint-plugin-import": "^2.32.0",
     "globals": "^16.3.0",
+    "jsdom": "^28.1.0",
+    "jsdom-global": "^3.0.2",
     "mocha": "^11.7.1",
     "node-red": "^4.0.9",
     "node-red-node-test-helper": "^0.3.4",
@@ -58,7 +60,8 @@
   "nyc": {
     "include": [
       "nodes/**/*.js",
-      "lib/**/*.js"
+      "lib/**/*.js",
+      "static/**/*.js"
     ],
     "exclude": [
       "test/**/*.js"
