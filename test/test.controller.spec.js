@@ -132,7 +132,7 @@ describe('openhab4-controller', function () {
 
             await handler(req, res);
 
-            expect(res.status.calledOnceWith(503)).to.be.true;
+            expect(res.send.calledOnceWith(fakeResponse)).to.be.true;
         });
     });
 });

@@ -27,14 +27,15 @@ function createResourceHandler(RED, type) {
         const handler = controller.handler;
         const response = await handler.getResources(type, endpoint);
         if (!response.ok) {
-            console.log(`getting ${type} at ${endpoint} failed`);
+            console.log(`getting ${type} at ${endpoint} failed`, response);
         }
-        if (response.data) {
+        res.send(response);
+        /*if (response.data) {
             res.send(response.data);
         } else {
             console.log('error', response);
             res.status(response.status).send(response.message);
-        }
+        }*/
     };
 }
 

@@ -168,17 +168,18 @@
             try {
                 resources = await this.fetchFn(`openhab4/${concept}`, { controller: this.controllerInput.value });
             } catch (err) {
-                if (version !== this._refreshVersion) return;
-                this.dropdown.setSingleDisabledOption(err.message);
-                return;
+                resources = { ok: false, message: err.message };
             }
 
             if (version !== this._refreshVersion) return;
 
-            const nameKey = concept === 'things' ? 'UID' : 'name';
-            const allNames = resources.map((i) => i[nameKey]).sort();
-
-            this.dropdown.setOptions(allNames, this.currentValue);
+            if (resources.data) {
+                const nameKey = concept === 'things' ? 'UID' : 'name';
+                const allNames = resources.data.map((i) => i[nameKey]).sort();
+                this.dropdown.setOptions(allNames, this.currentValue);
+                return;
+            }
+            this.dropdown.setSingleDisabledOption(resources.message);
         }
     }
 
@@ -385,8 +386,8 @@
         removeEventListeners(node);
     }
 
-    function openhabEditSave(RED, node, { safeAsync = safeAsync } = {}) {
-        safeAsync(() => openhabEditSaveAsync(RED, node));
+    function openhabEditSave(RED, node, { safeAsyncFn = safeAsync } = {}) {
+        safeAsyncFn(() => openhabEditSaveAsync(RED, node));
     }
 
     async function openhabEditSaveAsync(RED, node) {

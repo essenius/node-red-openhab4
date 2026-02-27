@@ -90,14 +90,14 @@ describe('OpenhabConnection.getResources', function () {
             name: 'returns cached data on httpRequest failure',
             cacheData: [{ name: 'cached' }],
             httpResponse: { ok: false, status: 500 },
-            expected: { ok: false, data: [{ name: 'cached' }] }
+            expected: { ok: false, data: [{ name: 'cached' }] },
         },
         {
             name: 'returns failed status with no cached data',
             cacheData: null,
             httpResponse: { ok: false },
-            expected: { ok: false, status: 503, data: undefined }
-        }
+            expected: { ok: false, status: 503, data: undefined },
+        },
     ];
 
     scenarios.forEach(({ name, cacheData, httpResponse, expected }) => {

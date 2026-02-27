@@ -45,7 +45,7 @@ describe('ui-utils DropdownController (with injected fetchFn)', function () {
         createDropdownController('items', 'B');
         checker.check.resolves({});
         const items = [{ name: 'B' }, { name: 'A' }, { name: 'C' }];
-        fetchFn.resolves(items);
+        fetchFn.resolves({ data: items });
 
         await controller.refresh();
 
@@ -53,6 +53,15 @@ describe('ui-utils DropdownController (with injected fetchFn)', function () {
         expect(dropdown.setOptions.calledOnce).to.be.true;
         expect(dropdown.setOptions.firstCall.args[0]).to.deep.equal(['A', 'B', 'C']);
         expect(dropdown.setOptions.firstCall.args[1]).to.equal('B');
+    });
+
+    it('shows error message if fetchFn returns message', async function () {
+        createDropdownController(undefined);
+        checker.check.resolves({});
+        fetchFn.resolves({ message: 'Network error' });
+        await controller.refresh();
+        expect(dropdown.setSingleDisabledOption.calledOnceWith('Network error')).to.be.true;
+        expect(dropdown.setOptions.called).to.be.false;
     });
 
     it('shows error message if fetchFn rejects', async function () {
@@ -83,7 +92,7 @@ describe('ui-utils DropdownController (with injected fetchFn)', function () {
         const things = [{ UID: 'B' }, { UID: 'A' }, { UID: 'C' }];
         checker.check.resolves({});
 
-        fetchFn.resolves(things);
+        fetchFn.resolves({ data: things });
 
         await controller.refresh();
 

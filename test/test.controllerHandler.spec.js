@@ -237,20 +237,19 @@ describe('controllerHandler.setupControllerHandler', function () {
             expect(sendRequestStub.notCalled, 'sendRequest not called').to.be.true;
         });
 
-
         const sendScenarios = [
             {
                 name: 'should call control for a command and return no response',
                 operation: OPERATION.COMMAND,
                 expectedUrl: `/rest/items/${item1.identifier}`,
-                expectedMethod: HTTP_METHODS.POST
+                expectedMethod: HTTP_METHODS.POST,
             },
             {
                 name: 'should call control for an update and return no response',
                 operation: OPERATION.UPDATE,
                 expectedUrl: `/rest/items/${item1.identifier}/state`,
-                expectedMethod: HTTP_METHODS.PUT
-            }
+                expectedMethod: HTTP_METHODS.PUT,
+            },
         ];
 
         sendScenarios.forEach(({ name, operation, expectedUrl, expectedMethod }) => {
@@ -312,7 +311,7 @@ describe('controllerHandler.setupControllerHandler', function () {
                     },
                 },
                 before: null,
-                after: null
+                after: null,
             },
             {
                 name: 'should return version data when called with system concept (new openHAB)',
@@ -327,7 +326,7 @@ describe('controllerHandler.setupControllerHandler', function () {
                     },
                 },
                 before: null,
-                after: null
+                after: null,
             },
             {
                 name: 'should return default version data when called with system concept (old openHAB)',
@@ -341,9 +340,13 @@ describe('controllerHandler.setupControllerHandler', function () {
                         openhab: {},
                     },
                 },
-                before: () => { simulateOldVersion = true; },
-                after: () => { simulateOldVersion = false; }
-            }
+                before: () => {
+                    simulateOldVersion = true;
+                },
+                after: () => {
+                    simulateOldVersion = false;
+                },
+            },
         ];
 
         scenarioConcepts.forEach(({ name, resource, expected, before, after }) => {

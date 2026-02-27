@@ -15,9 +15,9 @@ const { expect } = require('chai');
 const sinon = require('sinon');
 
 // Import the module
-const { openhabEditPrepare } = require('../static/ui-utils.js');
+const { openhabEditPrepare, openhabEditSave } = require('../static/ui-utils.js');
 
-describe('Node-RED editor sync entry points (DI pattern)', function () {
+describe('ui-utils sync entry points', function () {
     let RED, node;
     let safeStub;
 
@@ -33,6 +33,13 @@ describe('Node-RED editor sync entry points (DI pattern)', function () {
 
     it('openhabEditPrepare calls safeAsync with a function', function () {
         openhabEditPrepare(RED, node, 'empty text', { safeAsyncFn: safeStub });
+        expect(safeStub.calledOnce).to.be.true;
+        const arg = safeStub.firstCall.args[0];
+        expect(arg).to.be.a('function');
+    });
+
+    it('openhabEditSave calls safeAsync with a function', function () {
+        openhabEditSave(RED, node, { safeAsyncFn: safeStub });
         expect(safeStub.calledOnce).to.be.true;
         const arg = safeStub.firstCall.args[0];
         expect(arg).to.be.a('function');

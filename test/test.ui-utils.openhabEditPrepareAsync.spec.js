@@ -53,7 +53,7 @@ describe('openhabEditPrepareAsync with injections', function () {
                 off: sinon.stub(),
             },
         };
-        fetchStub = sinon.stub().resolves([{ name: 'item1' }, { name: 'item2' }]);
+        fetchStub = sinon.stub().resolves({ data: [{ name: 'item1' }, { name: 'item2' }] });
     });
 
     afterEach(() => {
