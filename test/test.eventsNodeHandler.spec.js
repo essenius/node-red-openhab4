@@ -60,8 +60,8 @@ describe('eventsNodeHandler', function () {
         // validate subscriptions are correct
         const subscribe = eventBus.subscribe;
         expect(subscribe.callCount, 'subscribe called 3 times').to.equal(2);
-        expect(subscribe.calledWith('items/*', eventsNodeHandler._processIncomingEvent), 'Subscribed to items/*')
-            .to.be.true;
+        expect(subscribe.calledWith('items/*', eventsNodeHandler._processIncomingEvent), 'Subscribed to items/*').to.be
+            .true;
 
         // bypass pub/sub as that is mocked, send message straight to the callback
 

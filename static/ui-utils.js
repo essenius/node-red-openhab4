@@ -468,25 +468,15 @@
         const refreshDropdown = () => node._dropdownController.refresh();
         node._listenerManager.add(
             'controllerConfig',
-            new ControllerConfigChangeListener(RED, controllerInput, refreshDropdown),
+            new ControllerConfigChangeListener(RED, controllerInput, refreshDropdown)
         );
         node._listenerManager.add(
             'fieldChange',
-            new FieldChangeListener(controllerInput, conceptInput, refreshDropdown),
+            new FieldChangeListener(controllerInput, conceptInput, refreshDropdown)
         );
-
-        //node._controllerConfigChangeListener = new ControllerConfigChangeListener(RED, controllerInput, refreshDropdown);
-        //node._fieldChangeListener = new FieldChangeListener(controllerInput, conceptInput, refreshDropdown);
 
         await refreshDropdown();
     }
-
-    /*function dispose(owner, property) {
-        const obj = owner[property];
-        if (!obj) return;
-        if (obj.destroy) obj.destroy();
-        owner[property] = null;
-    } */
 
     function removeEventListeners(node) {
         node._listenerManager?.clear();
