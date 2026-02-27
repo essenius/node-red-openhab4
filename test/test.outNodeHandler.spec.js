@@ -9,7 +9,7 @@
 // distributed on an "AS IS" BASIS WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and limitations under the License.
 
-"use strict";
+'use strict';
 
 const path = require('node:path');
 const { expect } = require('chai');
@@ -20,45 +20,57 @@ const { OutNodeHandler } = require(outNodeHandlerPath);
 function createOutNodeHandler({
     controlResult = { ok: true, payload: {} },
     config = {},
-    time = "12:34:56"
+    time = '12:34:56'
 } = {}) {
-    const node = { type: "openhab4-out", status: sinon.spy(), on: sinon.spy(), send: sinon.spy(), log: sinon.spy() };
+    const node = { type: 'openhab4-out', status: sinon.spy(), on: sinon.spy(), send: sinon.spy(), log: sinon.spy() };
     const controllerHandler = { control: sinon.stub().resolves(controlResult) };
     const controller = { handler: controllerHandler };
     const outNodeHandler = new OutNodeHandler(node, config, controller, { generateTime: () => time });
     return { outNodeHandler, node, controller };
 }
 
-describe("outNodeHandler", function () {
+describe('outNodeHandler', function () {
 
-    it("should set state on successful send", async function () {
-        const { outNodeHandler, node } = createOutNodeHandler({config: { operation: "command" }});
-        const msg = { topic: "items/test", payload: "testPayload" };
+    it('should set state on successful send', async function () {
+        const { outNodeHandler, node } = createOutNodeHandler({config: { operation: 'command' }});
+        const msg = { topic: 'items/test', payload: 1234 };
         await outNodeHandler.handleInput(msg);
-        expect(node.status.getCall(0).args[0]).to.deep.equal({ fill: 'blue', shape: 'dot', text: 'testPayload ⇨ @ 12:34:56'}, "status sending called");
-        expect(node.status.getCall(1).args[0]).to.deep.equal({ fill: 'green', shape: 'dot', text: 'testPayload ✓ @ 12:34:56'}, "status sent called");
+        expect(node.status.getCall(0).args[0]).to.deep.equal({ fill: 'blue', shape: 'dot', text: '1234 ⇨ @ 12:34:56'}, 'status sending called');
+        expect(node.status.getCall(1).args[0]).to.deep.equal({ fill: 'green', shape: 'dot', text: '1234 ✓ @ 12:34:56'}, 'status sent called');
 
         // should be a separate test, but that seems too much overhead
-        expect(outNodeHandler.getNodeType(), "node type is Out").to.equal("Out");
+        expect(outNodeHandler.getNodeType(), 'node type is Out').to.equal('Out');
     });
 
-    it("should set state and show error with handleInput on undefined items", async function () {
-        const { outNodeHandler, node } = createOutNodeHandler({ config: { concept: "items", operation: "command" } });
-        const msg = { payload: "test" };
+    it('should set state and show error with handleInput on undefined items', async function () {
+        const { outNodeHandler, node } = createOutNodeHandler({ config: { concept: 'items', operation: 'command' } });
+        const msg = { payload: 'test' };
 
         await outNodeHandler.handleInput(msg);
-        expect(node.status.firstCall.args, "status called").to.deep.equal([{ fill: 'red', shape: 'ring', text: 'found no item @ 12:34:56' }]);
+        expect(node.status.firstCall.args, 'status called').to.deep.equal([{ fill: 'red', shape: 'ring', text: 'found no item @ 12:34:56' }]);
 
     });
 
-    it ("should show an error if control fails", async function () {
+    it ('should show an error if control fails', async function () {
         const { outNodeHandler, node } = createOutNodeHandler(
-            { controlResult: {ok: false, retry: false, message: "Simulated error"}, 
-              config: { concept: "items", identifier: "testItem", operation: "update", payload: "testPayload", priority: "message" }});
+            { controlResult: {ok: false, retry: false, message: 'Simulated error'}, 
+              config: { concept: 'items', identifier: 'testItem', operation: 'update', payload: 'testPayload', priority: 'message' }});
 
-        const msg = { payload: "test" }; // should override config
+        const msg = { payload: 'test' }; // should override config
 
         await outNodeHandler.handleInput(msg);
-        expect(node.status.secondCall.args, "status called").to.deep.equal([{ fill: 'red', shape: 'ring', text: 'test ✗ @ 12:34:56' }]);
+        expect(node.status.secondCall.args, 'status called').to.deep.equal([{ fill: 'red', shape: 'ring', text: 'test ✗ @ 12:34:56' }]);
+    });
+
+    
+    it ('should convert a buffer to utf8', async function () {
+        const payload = Buffer.from([65, 66, 67, 68]);
+        const { outNodeHandler, node } = createOutNodeHandler(
+              { config: { concept: 'items', identifier: 'testItem', operation: 'update', payload: null, priority: 'message' }});
+
+        const msg = { payload };
+
+        await outNodeHandler.handleInput(msg);
+        expect(node.status.getCall(0).args[0]).to.deep.equal({ fill: 'blue', shape: 'dot', text: 'ABCD ⇨ @ 12:34:56'}, 'status sending called');
     });
 });

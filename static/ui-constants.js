@@ -13,19 +13,18 @@
 globalThis.OPENHAB4 = globalThis.OPENHAB4 || {};
 
 // Attach constants
-; (function (ns) {
-    ns.NODE_COLOR = "#3bd17e"; // balanced spring = #3bd17e, seafoam green = #33cc99, spring green = #00e676, #4caf50 = moss green
+(function (ns) {
+    ns.NODE_COLOR = '#3bd17e'; // balanced spring = #3bd17e, seafoam green = #33cc99, spring green = #00e676, #4caf50 = moss green
 
     // Shared naming utilities to avoid code duplication
     ns.generateNodeName = function (nodeType, customName, identifier) {
         if (customName) {
             return customName;
         }
-        const trimmedItemName = (identifier || "").trim();
+        const trimmedItemName = (identifier || '').trim();
         if (trimmedItemName) {
             return `${nodeType} (${trimmedItemName})`;
         }
         return `openhab4-${nodeType}`;
     };
 })(globalThis.OPENHAB4);
-

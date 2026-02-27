@@ -9,17 +9,15 @@
 // distributed on an "AS IS" BASIS WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and limitations under the License.
 
-"use strict";
+'use strict';
 
 (function (_global) {
-
-
     // --- ControllerChecker ---
 
     /**
-    * @param {object} RED the node red object
-    * @param {ControllerStateTracker} tracker the state tracker object
-    */
+     * @param {object} RED the node red object
+     * @param {ControllerStateTracker} tracker the state tracker object
+     */
     class ControllerChecker {
         constructor(RED, tracker) {
             this.RED = RED;
@@ -30,7 +28,7 @@
             for (let i = 0; i < attempts; i++) {
                 const node = this.RED.nodes.node(controllerId);
                 if (node) return node;
-                await new Promise(r => setTimeout(r, 50));
+                await new Promise((r) => setTimeout(r, 50));
             }
             return null;
         }
@@ -38,12 +36,12 @@
         async check(controllerInput) {
             const selectedControllerId = controllerInput?.value;
             if (!selectedControllerId) {
-                return { message: "Select a controller first" };
+                return { message: 'Select a controller first' };
             }
 
             const controllerNode = await this.getControllerNode(selectedControllerId);
             if (!controllerNode) {
-                return { message: "Controller not ready" };
+                return { message: 'Controller not ready' };
             }
 
             const deployedHash = this.tracker.getHashWithDefault(selectedControllerId, controllerNode.hash);
@@ -51,10 +49,10 @@
 
             const controllerChanged = this.tracker.hasHashChanged(selectedControllerId, controllerNode.hash);
 
-            console.log("Controller changed", controllerChanged);
-            console.log("Controller:", selectedControllerId, controllerNode);
+            console.log('Controller changed', controllerChanged);
+            console.log('Controller:', selectedControllerId, controllerNode);
             if (controllerChanged) {
-                return { message: "⚠ Controller configuration changed, deploy first" };
+                return { message: '⚠ Controller configuration changed, deploy first' };
             }
 
             return { controllerNode };
@@ -75,21 +73,21 @@
 
             this._handler = async (changedNode) => {
                 if (!changedNode?._def) return;
-                if (changedNode._def.category !== "config") return;
+                if (changedNode._def.category !== 'config') return;
 
                 const selectedControllerId = this.controllerInput?.value;
                 if (!selectedControllerId) return;
 
                 if (changedNode.id === selectedControllerId) {
-                    console.log("Controller config changed → refreshing");
+                    console.log('Controller config changed → refreshing');
                     await refreshFn();
                 }
             };
-            this.RED.events.on("nodes:change", this._handler);
+            this.RED.events.on('nodes:change', this._handler);
         }
 
         destroy() {
-            this.RED.events.off("nodes:change", this._handler);
+            this.RED.events.off('nodes:change', this._handler);
         }
     }
 
@@ -126,16 +124,16 @@
         _attachDeployListener() {
             if (this._deployHandler || !this.RED) return;
             this._deployHandler = () => {
-                this.RED.nodes.eachConfig(n => {
+                this.RED.nodes.eachConfig((n) => {
                     if (n.hash) this.setHash(n.id, n.hash);
                 });
             };
-            this.RED.events.on("deploy", this._deployHandler);
+            this.RED.events.on('deploy', this._deployHandler);
         }
 
         _detachDeployListener() {
             if (!this._deployHandler || !this.RED) return;
-            this.RED.events.off("deploy", this._deployHandler);
+            this.RED.events.off('deploy', this._deployHandler);
             // Note: store the handler if you want proper off() later
             this._deployHandler = null;
         }
@@ -164,7 +162,7 @@
                 return;
             }
 
-            const concept = this.conceptInput?.value ?? "items";
+            const concept = this.conceptInput?.value ?? 'items';
 
             let resources;
             try {
@@ -177,8 +175,8 @@
 
             if (version !== this._refreshVersion) return;
 
-            const nameKey = concept === "things" ? "UID" : "name";
-            const allNames = resources.map(i => i[nameKey]).sort();
+            const nameKey = concept === 'things' ? 'UID' : 'name';
+            const allNames = resources.map((i) => i[nameKey]).sort();
 
             this.dropdown.setOptions(allNames, this.currentValue);
         }
@@ -192,10 +190,10 @@
          * @param {HTMLInputElement|null} filterInput
          * @param {string|null} specialOptionText
          */
-        constructor(select, filterInput = null, specialOptionText = "[None]") {
+        constructor(select, filterInput = null, specialOptionText = '[None]') {
             this.select = select;
             this.filterInput = filterInput;
-            this.specialOption = { value: "", text: specialOptionText };
+            this.specialOption = { value: '', text: specialOptionText };
             this.allOptions = [];
             this.selectedValue = null;
             this._attachFilterInput();
@@ -218,7 +216,7 @@
 
         setSingleDisabledOption(optionText) {
             this.clearOptions();
-            this._appendOption({ value: "", text: optionText, disabled: true });
+            this._appendOption({ value: '', text: optionText, disabled: true });
         }
 
         // private methods
@@ -237,7 +235,7 @@
 
             this._inputHandler = () => {
                 const filter = this.filterInput.value.toLowerCase();
-                const filtered = this.allOptions.filter(resource => resource.toLowerCase().includes(filter));
+                const filtered = this.allOptions.filter((resource) => resource.toLowerCase().includes(filter));
                 this._populate(filtered);
             };
 
@@ -257,7 +255,7 @@
 
             this._appendOption(this.specialOption, this.selectedValue);
 
-            options.forEach(resource => {
+            options.forEach((resource) => {
                 this._appendOption({ value: resource, text: resource }, this.selectedValue);
             });
         }
@@ -278,15 +276,14 @@
         }
 
         _attach() {
-            this.controllerInput?.addEventListener("change", this._handler);
-            this.conceptInput?.addEventListener("change", this._handler);
+            this.controllerInput?.addEventListener('change', this._handler);
+            this.conceptInput?.addEventListener('change', this._handler);
         }
 
         _detach() {
-            this.controllerInput?.removeEventListener("change", this._handler);
-            this.conceptInput?.removeEventListener("change", this._handler);
+            this.controllerInput?.removeEventListener('change', this._handler);
+            this.conceptInput?.removeEventListener('change', this._handler);
         }
-
     }
 
     // --- ListenerManager class ---
@@ -357,9 +354,9 @@
         try {
             const query = new URLSearchParams(data).toString();
             const response = await fetch(`${url}?${query}`, {
-                method: "GET",
-                headers: { "Accept": "application/json" },
-                signal: controller.signal
+                method: 'GET',
+                headers: { Accept: 'application/json' },
+                signal: controller.signal,
             });
 
             if (!response.ok) {
@@ -375,8 +372,8 @@
     function safeAsync(fn) {
         Promise.resolve()
             .then(fn)
-            .catch(err => {
-                console.error("openHAB editor error:", err);
+            .catch((err) => {
+                console.error('openHAB editor error:', err);
             });
     }
 
@@ -402,10 +399,10 @@
 
     async function openhabEditSaveAsync(RED, node) {
         if (!node.checker) {
-            console.log("No checker in node", node);
+            console.log('No checker in node', node);
             return;
         }
-        const { message } = await node.checker.check(RED, getInputField("controller"));
+        const { message } = await node.checker.check(RED, getInputField('controller'));
 
         removeEventListeners(node);
 
@@ -415,15 +412,13 @@
     }
 
     function openhabEditPrepare(RED, node, emptyText, injections = {}) {
-        const {
-            safeAsyncFn = safeAsync,
-        } = injections;
+        const { safeAsyncFn = safeAsync } = injections;
 
         safeAsyncFn(async () => {
             try {
                 await openhabEditPrepareAsync(RED, node, emptyText, injections);
             } catch (err) {
-                console.error("Prepare failed:", err);
+                console.error('Prepare failed:', err);
                 node._listenerManager?.clear();
                 throw err;
             }
@@ -437,29 +432,26 @@
      * @param emptyText  Text to use for empty value
      */
     async function openhabEditPrepareAsync(RED, node, emptyText, injections) {
-        const {
-            fetchFn = fetchJson,
-            getInputFieldFn = getInputField,
-        } = injections;
+        const { fetchFn = fetchJson, getInputFieldFn = getInputField } = injections;
 
         removeEventListeners(node);
 
         // Fix existing array data
         if (Array.isArray(node.identifier)) {
-            console.log("Fixing array");
-            node.identifier = node.identifier[0] || "";
+            console.log('Fixing array');
+            node.identifier = node.identifier[0] || '';
         }
 
-        const controllerInput = getInputFieldFn("controller");
-        const conceptInput = getInputFieldFn("concept");
-        const identifierInput = getInputFieldFn("identifier");
-        const filterInput = getInputFieldFn("list-filter");
+        const controllerInput = getInputFieldFn('controller');
+        const conceptInput = getInputFieldFn('concept');
+        const identifierInput = getInputFieldFn('identifier');
+        const filterInput = getInputFieldFn('list-filter');
         console.log(`oneditprepare for ${node.type}/${node.id}`);
 
         node._listenerManager = new ListenerManager();
 
         const dropdownFilterListener = new DropdownFilterListener(identifierInput, filterInput, emptyText);
-        node._listenerManager.add("dropdownFilter", dropdownFilterListener);
+        node._listenerManager.add('dropdownFilter', dropdownFilterListener);
 
         //        node._dropdownFilterListener = new DropdownFilterListener(identifierInput, filterInput, emptyText);
         node._controllerChecker = new ControllerChecker(RED, getControllerStateTracker(RED));
@@ -470,12 +462,18 @@
             conceptInput,
             dropdown: dropdownFilterListener,
             currentValue: node.identifier,
-            fetchFn
+            fetchFn,
         });
 
         const refreshDropdown = () => node._dropdownController.refresh();
-        node._listenerManager.add("controllerConfig", new ControllerConfigChangeListener(RED, controllerInput, refreshDropdown));
-        node._listenerManager.add("fieldChange", new FieldChangeListener(controllerInput, conceptInput, refreshDropdown));
+        node._listenerManager.add(
+            'controllerConfig',
+            new ControllerConfigChangeListener(RED, controllerInput, refreshDropdown),
+        );
+        node._listenerManager.add(
+            'fieldChange',
+            new FieldChangeListener(controllerInput, conceptInput, refreshDropdown),
+        );
 
         //node._controllerConfigChangeListener = new ControllerConfigChangeListener(RED, controllerInput, refreshDropdown);
         //node._fieldChangeListener = new FieldChangeListener(controllerInput, conceptInput, refreshDropdown);
@@ -521,7 +519,7 @@
             safeAsync,
             _resetControllerStateTracker: () => {
                 controllerStateTracker = null;
-            }
+            },
         };
     }
 })(globalThis);

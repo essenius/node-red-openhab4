@@ -9,12 +9,12 @@
 // distributed on an "AS IS" BASIS WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and limitations under the License.
 
-"use strict";
+'use strict';
 
-const { setDefaults } = require("../lib/connectionUtils");
-const { setupControllerHandler } = require("../lib/controllerHandler");
-const { CONCEPTS } = require("../lib/constants");
-const { registerOpenHabAdminSite } = require("./admin");
+const { setDefaults } = require('../lib/connectionUtils');
+const { setupControllerHandler } = require('../lib/controllerHandler');
+const { CONCEPTS } = require('../lib/constants');
+const { registerOpenHabAdminSite } = require('./admin');
 
 /*
 async function _fetchResources(config, endpoint, requestFn) {
@@ -51,7 +51,7 @@ function createResourceHandler(RED, type) {
         if (response.data) {
             res.send(response.data);
         } else {
-            console.log("error", response);
+            console.log('error', response);
             res.status(response.status).send(response.message);
         }
     };
@@ -77,17 +77,17 @@ function createControllerModule({
             RED.nodes.createNode(this, config);
 
             const mergedConfig = setDefaults({ ...config, ...(this.credentials) });
-            console.log("createControllerNode config", mergedConfig);
+            console.log('createControllerNode config', mergedConfig);
             this.name = config.name;
             this.hash = config.hash;
             this.handler = setupHandler(this, mergedConfig);
         }
 
-        RED.nodes.registerType("openhab4-controller", createControllerNode, {
+        RED.nodes.registerType('openhab4-controller', createControllerNode, {
             credentials: {
-                token: { type: "password" },
-                username: { type: "text" },
-                password: { type: "password" }
+                token: { type: 'password' },
+                username: { type: 'text' },
+                password: { type: 'password' }
             }
         });
     }
