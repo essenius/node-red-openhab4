@@ -9,13 +9,12 @@
 // distributed on an "AS IS" BASIS WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and limitations under the License.
 
-const { expect } = require("chai");
-const sinon = require("sinon");
+const { expect } = require('chai');
+const sinon = require('sinon');
 
-const { FieldChangeListener } = require("../static/ui-utils.js");
+const { FieldChangeListener } = require('../static/ui-utils.js');
 
-describe("ui-utils FieldChangeListener", function () {
-
+describe('ui-utils FieldChangeListener', function () {
     let controllerInput;
     let conceptInput;
     let refreshFn;
@@ -23,12 +22,12 @@ describe("ui-utils FieldChangeListener", function () {
     beforeEach(function () {
         controllerInput = {
             addEventListener: sinon.spy(),
-            removeEventListener: sinon.spy()
+            removeEventListener: sinon.spy(),
         };
 
         conceptInput = {
             addEventListener: sinon.spy(),
-            removeEventListener: sinon.spy()
+            removeEventListener: sinon.spy(),
         };
 
         refreshFn = sinon.spy();
@@ -38,23 +37,21 @@ describe("ui-utils FieldChangeListener", function () {
         sinon.restore();
     });
 
-    it("attaches and detaches change listeners to/from both inputs", function () {
-
+    it('attaches and detaches change listeners to/from both inputs', function () {
         const listener = new FieldChangeListener(controllerInput, conceptInput, refreshFn);
 
-        expect(controllerInput.addEventListener.calledOnceWith("change")).to.be.true;
-        expect(conceptInput.addEventListener.calledOnceWith("change")).to.be.true;
+        expect(controllerInput.addEventListener.calledOnceWith('change')).to.be.true;
+        expect(conceptInput.addEventListener.calledOnceWith('change')).to.be.true;
 
         const controllerHandler = controllerInput.addEventListener.firstCall.args[1];
         const conceptHandler = conceptInput.addEventListener.firstCall.args[1];
 
         listener.destroy();
-        expect(controllerInput.removeEventListener.calledOnceWith("change", controllerHandler)).to.be.true;
-        expect(conceptInput.removeEventListener.calledOnceWith("change", conceptHandler)).to.be.true;
+        expect(controllerInput.removeEventListener.calledOnceWith('change', controllerHandler)).to.be.true;
+        expect(conceptInput.removeEventListener.calledOnceWith('change', conceptHandler)).to.be.true;
     });
 
-    it("calls refreshFn when change event fires", function () {
-
+    it('calls refreshFn when change event fires', function () {
         const listener = new FieldChangeListener(controllerInput, conceptInput, refreshFn);
 
         // Capture the handler passed to addEventListener
@@ -64,32 +61,27 @@ describe("ui-utils FieldChangeListener", function () {
 
         expect(refreshFn.calledOnce).to.be.true;
         listener.destroy();
-
     });
 
-    it("does not throw if controllerInput is null", function () {
-
+    it('does not throw if controllerInput is null', function () {
         expect(() => {
             new FieldChangeListener(null, conceptInput, refreshFn);
         }).to.not.throw();
 
-        expect(conceptInput.addEventListener.calledOnceWith("change")).to.be.true;
+        expect(conceptInput.addEventListener.calledOnceWith('change')).to.be.true;
     });
 
-    it("does not throw if conceptInput is null", function () {
-
+    it('does not throw if conceptInput is null', function () {
         expect(() => {
             new FieldChangeListener(controllerInput, null, refreshFn);
         }).to.not.throw();
 
-        expect(controllerInput.addEventListener.calledOnceWith("change")).to.be.true;
+        expect(controllerInput.addEventListener.calledOnceWith('change')).to.be.true;
     });
 
-    it("does not throw if both inputs are null", function () {
-
+    it('does not throw if both inputs are null', function () {
         expect(() => {
             new FieldChangeListener(null, null, refreshFn);
         }).to.not.throw();
     });
-
 });

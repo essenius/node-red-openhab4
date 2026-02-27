@@ -25,7 +25,7 @@ function createControllerNodeTest({ nodeName, configOverrides = {}, handlerOverr
     const RED = createMockRED();
 
     const { controllerModule, fakeHandler, ControllerHandlerStub } = createMockControllerModule({
-        handlerOverrides
+        handlerOverrides,
     });
 
     controllerModule(RED); // registers the node

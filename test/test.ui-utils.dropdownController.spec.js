@@ -21,11 +21,10 @@ describe('ui-utils DropdownController (with injected fetchFn)', function () {
     let fetchFn;
     let controller;
 
-
     function createDropdownController(concept, currentValue) {
         dropdown = {
             setSingleDisabledOption: sinon.spy(),
-            setOptions: sinon.spy()
+            setOptions: sinon.spy(),
         };
         controllerInput = { value: 'controller-1' };
         conceptInput = { value: concept };
@@ -38,7 +37,7 @@ describe('ui-utils DropdownController (with injected fetchFn)', function () {
             conceptInput,
             dropdown,
             currentValue,
-            fetchFn
+            fetchFn,
         });
     }
 
@@ -69,7 +68,7 @@ describe('ui-utils DropdownController (with injected fetchFn)', function () {
     });
 
     it('shows checker message if checker returns message', async function () {
-        createDropdownController("things");
+        createDropdownController('things');
 
         checker.check.resolves({ message: 'Controller not ready' });
 
@@ -79,7 +78,7 @@ describe('ui-utils DropdownController (with injected fetchFn)', function () {
         expect(fetchFn.called).to.be.false;
     });
 
-        it('calls fetchFn for things and populates dropdown on success', async function () {
+    it('calls fetchFn for things and populates dropdown on success', async function () {
         createDropdownController('things', 'C');
         const things = [{ UID: 'B' }, { UID: 'A' }, { UID: 'C' }];
         checker.check.resolves({});

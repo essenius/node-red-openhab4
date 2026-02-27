@@ -9,7 +9,7 @@
 // distributed on an "AS IS" BASIS WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and limitations under the License.
 
-"use strict";
+'use strict';
 
 const { setupDom, cleanupDom } = require('./helpers/dom-setup');
 const { expect } = require('chai');
@@ -18,7 +18,6 @@ let DropdownFilterListener;
 let select, filter, dropdown;
 
 describe('ui-utils DropdownFilterListener', () => {
-
     beforeEach(() => {
         setupDom(`<!DOCTYPE html><html><body>
             <select id="dropdown"></select>
@@ -36,7 +35,7 @@ describe('ui-utils DropdownFilterListener', () => {
         dropdown.destroy();
         select.innerHTML = '';
         filter.value = '';
-        cleanupDom()
+        cleanupDom();
     });
 
     it('should initialize with empty options', () => {
@@ -53,7 +52,6 @@ describe('ui-utils DropdownFilterListener', () => {
         expect(select.options[2].text).to.equal('Banana');
         expect(select.options[3].text).to.equal('Cherry');
     });
-
 
     it('should filter options correctly', () => {
         const options = ['Apple', 'Banana', 'Cherry'];

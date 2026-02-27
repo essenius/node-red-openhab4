@@ -16,26 +16,7 @@ const { setupControllerHandler } = require('../lib/controllerHandler');
 const { CONCEPTS } = require('../lib/constants');
 const { registerOpenHabAdminSite } = require('./admin');
 
-/*
-async function _fetchResources(config, endpoint, requestFn) {
-    const url = config.url + endpoint;
-    const result = await requestFn(url, config);
-
-    if (!result.ok) {
-        return {
-            status: !result.status || result.status < 0 ? 500 : result.status,
-            message: result.message
-        };
-    }
-
-    return {
-        status: result.data ? 200 : 204,
-        data: result.data
-    };
-} */
-
 function createResourceHandler(RED, type) {
-
     return async function (req, res) {
         const controller = RED.nodes.getNode(req.query.controller);
 
@@ -60,23 +41,20 @@ function createResourceHandler(RED, type) {
 /** Factory to create controller module with injectable dependencies */
 function createControllerModule({
     setupHandler = setupControllerHandler,
-    registerAdminSite = registerOpenHabAdminSite
+    registerAdminSite = registerOpenHabAdminSite,
 } = {}) {
-
     function controllerModule(RED) {
-
         registerAdminSite(RED);
 
         // start a web service for enabling the node configuration ui to retrieve the available openHAB items
 
         RED.httpAdmin.get(CONCEPTS.adminUrl(CONCEPTS.ITEMS), createResourceHandler(RED, CONCEPTS.ITEMS));
-
         RED.httpAdmin.get(CONCEPTS.adminUrl(CONCEPTS.THINGS), createResourceHandler(RED, CONCEPTS.THINGS));
 
         function createControllerNode(config) {
             RED.nodes.createNode(this, config);
 
-            const mergedConfig = setDefaults({ ...config, ...(this.credentials) });
+            const mergedConfig = setDefaults({ ...config, ...this.credentials });
             console.log('createControllerNode config', mergedConfig);
             this.name = config.name;
             this.hash = config.hash;
@@ -87,8 +65,8 @@ function createControllerModule({
             credentials: {
                 token: { type: 'password' },
                 username: { type: 'text' },
-                password: { type: 'password' }
-            }
+                password: { type: 'password' },
+            },
         });
     }
 

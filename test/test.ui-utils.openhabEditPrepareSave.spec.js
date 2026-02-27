@@ -9,16 +9,15 @@
 // distributed on an "AS IS" BASIS WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and limitations under the License.
 
-"use strict";
+'use strict';
 
-const { expect } = require("chai");
-const sinon = require("sinon");
+const { expect } = require('chai');
+const sinon = require('sinon');
 
 // Import the module
-const { openhabEditPrepare } = require("../static/ui-utils.js");
+const { openhabEditPrepare } = require('../static/ui-utils.js');
 
-describe("Node-RED editor sync entry points (DI pattern)", function () {
-
+describe('Node-RED editor sync entry points (DI pattern)', function () {
     let RED, node;
     let safeStub;
 
@@ -32,10 +31,10 @@ describe("Node-RED editor sync entry points (DI pattern)", function () {
         sinon.restore();
     });
 
-    it("openhabEditPrepare calls safeAsync with a function", function () {
-        openhabEditPrepare(RED, node, "empty text", { safeAsyncFn: safeStub });
+    it('openhabEditPrepare calls safeAsync with a function', function () {
+        openhabEditPrepare(RED, node, 'empty text', { safeAsyncFn: safeStub });
         expect(safeStub.calledOnce).to.be.true;
         const arg = safeStub.firstCall.args[0];
-        expect(arg).to.be.a("function");
+        expect(arg).to.be.a('function');
     });
 });

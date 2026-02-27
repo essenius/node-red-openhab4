@@ -9,12 +9,11 @@
 // distributed on an "AS IS" BASIS WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and limitations under the License.
 
-"use strict";
+'use strict';
 
-const sinon = require("sinon");
+const sinon = require('sinon');
 
 function createControllerDependencies({ handlerOverrides = {} } = {}) {
-
     const fakeConnection = {
         startEventSource: sinon.stub(),
         sendRequest: sinon.stub().resolves({ ok: true, data: [] }),
@@ -23,31 +22,22 @@ function createControllerDependencies({ handlerOverrides = {} } = {}) {
     };
 
     const fakeHandler = {
-        config: { url: "http://mocked" },
+        config: { url: 'http://mocked' },
         setupNode: sinon.stub().returnsThis(),
         control: sinon.stub(),
         _onClose: sinon.stub(),
         connection: fakeConnection,
-        getResources: sinon.stub().returns({ok:true, data:[] }),
-        ...handlerOverrides
+        getResources: sinon.stub().returns({ ok: true, data: [] }),
+        ...handlerOverrides,
     };
 
     const setupHandlerStub = sinon.stub().returns(fakeHandler);
 
-    /*const httpRequestStub = sinon.stub().resolves({
-        ok: true,
-        data: []
-    }); 
-
-    Object.assign(httpRequestStub, httpOverrides); */
-
     return {
         setupHandlerStub,
-        //httpRequestStub,
         fakeHandler,
-        fakeConnection
+        fakeConnection,
     };
 }
 
 module.exports = { createControllerDependencies };
-

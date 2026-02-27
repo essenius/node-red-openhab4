@@ -9,14 +9,13 @@
 // distributed on an "AS IS" BASIS WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and limitations under the License.
 
-"use strict";
+'use strict';
 
 const fs = require('node:fs');
 const path = require('node:path');
 const { expect } = require('chai');
 
 describe('Code validation', function () {
-
     const requiredFiles = [
         'lib/connectionUtils.js',
         'lib/constants.js',
@@ -28,8 +27,8 @@ describe('Code validation', function () {
         'lib/healthNodeHandler.js',
         'lib/inNodeHandler.js',
         'lib/openhabConnection.js',
-        'lib/outNodeHandler.js', 
-        'nodes/admin.js',    
+        'lib/outNodeHandler.js',
+        'nodes/admin.js',
         'nodes/controller.js',
         'nodes/controller.html',
         'nodes/events.js',
@@ -57,7 +56,7 @@ describe('Code validation', function () {
     ];
 
     describe('Required files', function () {
-        requiredFiles.forEach(file => {
+        requiredFiles.forEach((file) => {
             it(`should exist: ${file}`, function () {
                 const filePath = path.join(__dirname, '..', file);
                 expect(fs.existsSync(filePath), `${file} should exist`).to.be.true;
@@ -81,7 +80,7 @@ describe('Code validation', function () {
             '../lib/payloadUtils',
         ];
 
-        modulesToTest.forEach(modulePath => {
+        modulesToTest.forEach((modulePath) => {
             it(`should load ${modulePath}`, function () {
                 expect(() => require(modulePath)).to.not.throw();
             });
@@ -98,12 +97,11 @@ describe('Code validation', function () {
                 'openhab4-get',
                 'openhab4-health',
                 'openhab4-in',
-                'openhab4-out'
+                'openhab4-out',
             ];
-            expectedNodes.forEach(nodeName => {
+            expectedNodes.forEach((nodeName) => {
                 expect(nodeRedNodes[nodeName], `${nodeName} should be registered in package.json`).to.exist;
             });
         });
     });
-
 });

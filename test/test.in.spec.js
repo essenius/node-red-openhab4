@@ -17,43 +17,63 @@ const { expect } = require('chai');
 const eventBus = new EventBus();
 
 const controllerNode = function (RED) {
-  function ControllerNode(config) {
-    RED.nodes.createNode(this, config);
-    this.handler = {
-      eventBus: eventBus,
-    };
-  }
+    function ControllerNode(config) {
+        RED.nodes.createNode(this, config);
+        this.handler = {
+            eventBus: eventBus,
+        };
+    }
 
-  RED.nodes.registerType("openhab4-controller", ControllerNode);
+    RED.nodes.registerType('openhab4-controller', ControllerNode);
 };
 
-describe("openhab4-in node", function () {
-    before(function (done) { helper.startServer(done); });
-    after(function (done) { helper.stopServer(done); });
-    afterEach(function () { return helper.unload(); });
+describe('openhab4-in node', function () {
+    before(function (done) {
+        helper.startServer(done);
+    });
+    after(function (done) {
+        helper.stopServer(done);
+    });
+    afterEach(function () {
+        return helper.unload();
+    });
 
-    it("should emit a message when an openHAB event is received", function (done) {
+    it('should emit a message when an openHAB event is received', function (done) {
         const flow = [
-            { id: "controller1", type: "openhab4-controller", name: "Test Controller" },
-            { id: "in1", type: "openhab4-in", controller: "controller1", concept: "items", identifier: "TestItem", wires: [["helper1"]] },
-            { id: "helper1", type: "helper" }
+            { id: 'controller1', type: 'openhab4-controller', name: 'Test Controller' },
+            {
+                id: 'in1',
+                type: 'openhab4-in',
+                controller: 'controller1',
+                concept: 'items',
+                identifier: 'TestItem',
+                wires: [['helper1']],
+            },
+            { id: 'helper1', type: 'helper' },
         ];
 
         helper.load([controllerNode, inNode], flow, function () {
-            const helperNode = helper.getNode("helper1");
-            const controller = helper.getNode("controller1");
+            const helperNode = helper.getNode('helper1');
+            const controller = helper.getNode('controller1');
 
-            helperNode.on("input", function (msg) {
+            helperNode.on('input', function (msg) {
                 try {
-                    expect(msg).to.deep.include({ topic: "items/TestItem", payload: "OFF", payloadType: "OnOff", eventType: "ItemStateEvent" }, "Right message sent");                  
+                    expect(msg).to.deep.include(
+                        { topic: 'items/TestItem', payload: 'OFF', payloadType: 'OnOff', eventType: 'ItemStateEvent' },
+                        'Right message sent'
+                    );
                     done();
                 } catch (err) {
-                    done(err); 
+                    done(err);
                 }
             });
 
-            controller.handler.eventBus.publish("items/TestItem", { topic: "items/TestItem", payload: "OFF", payloadType: "OnOff", eventType: "ItemStateEvent" });
+            controller.handler.eventBus.publish('items/TestItem', {
+                topic: 'items/TestItem',
+                payload: 'OFF',
+                payloadType: 'OnOff',
+                eventType: 'ItemStateEvent',
+            });
         });
-
     });
 });

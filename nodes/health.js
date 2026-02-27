@@ -9,18 +9,18 @@
 // distributed on an "AS IS" BASIS WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and limitations under the License.
 
-"use strict";
+'use strict';
 
 const { setupHealthNodeHandler } = require('../lib/healthNodeHandler');
 
 function registerOpenHabHealthNode(RED) {
-	function createHealthNode(config) {
-		RED.nodes.createNode(this, config);
-		const controller = RED.nodes.getNode(config.controller);
-		setupHealthNodeHandler(this, config, controller, { generateId: RED.util.generateId });
-	}
-	
-	RED.nodes.registerType("openhab4-health", createHealthNode);
-};
+    function createHealthNode(config) {
+        RED.nodes.createNode(this, config);
+        const controller = RED.nodes.getNode(config.controller);
+        setupHealthNodeHandler(this, config, controller, { generateId: RED.util.generateId });
+    }
+
+    RED.nodes.registerType('openhab4-health', createHealthNode);
+}
 
 module.exports = registerOpenHabHealthNode;

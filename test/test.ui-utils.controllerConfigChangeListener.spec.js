@@ -9,7 +9,7 @@
 // distributed on an "AS IS" BASIS WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and limitations under the License.
 
-"use strict";
+'use strict';
 
 const { expect } = require('chai');
 const sinon = require('sinon');
@@ -18,7 +18,6 @@ const { EventEmitter } = require('node:events');
 const { ControllerConfigChangeListener } = require('../static/ui-utils');
 
 describe('ui-utils ControllerConfigChangeListener', function () {
-
     let RED;
     let controllerInput;
     let refreshSpy;
@@ -31,7 +30,7 @@ describe('ui-utils ControllerConfigChangeListener', function () {
         // Fake RED.events event emitter
 
         RED = {
-            events: emitter
+            events: emitter,
         };
 
         controllerInput = { value: 'controller-1' };
@@ -46,7 +45,7 @@ describe('ui-utils ControllerConfigChangeListener', function () {
     it('should call refresh when matching config node changes', async function () {
         RED.events.emit('nodes:change', {
             id: 'controller-1',
-            _def: { category: 'config' }
+            _def: { category: 'config' },
         });
 
         expect(refreshSpy.calledOnce).to.be.true;
@@ -55,7 +54,7 @@ describe('ui-utils ControllerConfigChangeListener', function () {
     it('should not call refresh if category is not config', function () {
         RED.events.emit('nodes:change', {
             id: 'controller-1',
-            _def: { category: 'other' }
+            _def: { category: 'other' },
         });
 
         expect(refreshSpy.notCalled).to.be.true;
@@ -64,7 +63,7 @@ describe('ui-utils ControllerConfigChangeListener', function () {
     it('should not call refresh if id does not match selected controller', function () {
         RED.events.emit('nodes:change', {
             id: 'controller-2',
-            _def: { category: 'config' }
+            _def: { category: 'config' },
         });
 
         expect(refreshSpy.notCalled).to.be.true;
@@ -75,7 +74,7 @@ describe('ui-utils ControllerConfigChangeListener', function () {
 
         RED.events.emit('nodes:change', {
             id: 'controller-1',
-            _def: { category: 'config' }
+            _def: { category: 'config' },
         });
 
         expect(refreshSpy.notCalled).to.be.true;
@@ -86,12 +85,11 @@ describe('ui-utils ControllerConfigChangeListener', function () {
 
         RED.events.emit('nodes:change', {
             id: 'controller-1',
-            _def: { category: 'config' }
+            _def: { category: 'config' },
         });
 
         expect(refreshSpy.notCalled).to.be.true;
     });
-
 
     it('destroy should be idempotent', function () {
         listener.destroy();
@@ -99,7 +97,7 @@ describe('ui-utils ControllerConfigChangeListener', function () {
 
         RED.events.emit('nodes:change', {
             id: 'controller-1',
-            _def: { category: 'config' }
+            _def: { category: 'config' },
         });
 
         expect(refreshSpy.notCalled).to.be.true;
@@ -121,7 +119,7 @@ describe('ui-utils ControllerConfigChangeListener', function () {
 
         emitter.emit('nodes:change', {
             id: 'controller-1',
-            _def: { category: 'config' }
+            _def: { category: 'config' },
         });
 
         expect(spy1.calledOnce).to.be.true;

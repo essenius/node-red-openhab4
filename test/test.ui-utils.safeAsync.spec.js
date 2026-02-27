@@ -9,29 +9,27 @@
 // distributed on an "AS IS" BASIS WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and limitations under the License.
 
-const { expect } = require("chai");
-const sinon = require("sinon");
+const { expect } = require('chai');
+const sinon = require('sinon');
 
-const { safeAsync } = require("../static/ui-utils.js");
+const { safeAsync } = require('../static/ui-utils.js');
 
 async function flush() {
     return new Promise(setImmediate);
 }
 
-describe("ui-utils safeAsync", function () {
-
+describe('ui-utils safeAsync', function () {
     let consoleErrorStub;
 
     beforeEach(function () {
-        consoleErrorStub = sinon.stub(console, "error");
+        consoleErrorStub = sinon.stub(console, 'error');
     });
 
     afterEach(function () {
         sinon.restore();
     });
 
-    it("executes the function", async function () {
-
+    it('executes the function', async function () {
         const fn = sinon.spy();
 
         safeAsync(fn);
@@ -42,9 +40,8 @@ describe("ui-utils safeAsync", function () {
         expect(consoleErrorStub.notCalled).to.be.true;
     });
 
-    it("logs error if function throws synchronously", async function () {
-
-        const error = new Error("boom");
+    it('logs error if function throws synchronously', async function () {
+        const error = new Error('boom');
 
         safeAsync(() => {
             throw error;
@@ -56,13 +53,12 @@ describe("ui-utils safeAsync", function () {
 
         const [message, loggedError] = consoleErrorStub.firstCall.args;
 
-        expect(message).to.equal("openHAB editor error:");
+        expect(message).to.equal('openHAB editor error:');
         expect(loggedError).to.equal(error);
     });
 
-    it("logs error if function returns a rejected promise", async function () {
-
-        const error = new Error("async boom");
+    it('logs error if function returns a rejected promise', async function () {
+        const error = new Error('async boom');
 
         safeAsync(() => Promise.reject(error));
 
@@ -73,5 +69,4 @@ describe("ui-utils safeAsync", function () {
         const [, loggedError] = consoleErrorStub.firstCall.args;
         expect(loggedError).to.equal(error);
     });
-
 });

@@ -14,25 +14,23 @@ const sinon = require('sinon');
 const { ControllerChecker } = require('../static/ui-utils');
 
 describe('ui-utils ControllerChecker', function () {
-
     let RED;
     let tracker;
     let checker;
     let clock;
 
     beforeEach(function () {
-
         // Fake RED
         RED = {
             nodes: {
-                node: sinon.stub()
-            }
+                node: sinon.stub(),
+            },
         };
 
         // Fake tracker
         tracker = {
             getHashWithDefault: sinon.stub(),
-            hasHashChanged: sinon.stub()
+            hasHashChanged: sinon.stub(),
         };
 
         checker = new ControllerChecker(RED, tracker);
@@ -57,12 +55,11 @@ describe('ui-utils ControllerChecker', function () {
         const result = await checker.check({ value: null });
 
         expect(result).to.deep.equal({
-            message: 'Select a controller first'
+            message: 'Select a controller first',
         });
     });
 
     it('returns message when controller node not found', async function () {
-
         RED.nodes.node.returns(null);
 
         const promise = checker.check({ value: 'ctrl-1' });
@@ -73,14 +70,13 @@ describe('ui-utils ControllerChecker', function () {
         const result = await promise;
 
         expect(result).to.deep.equal({
-            message: 'Controller not ready'
+            message: 'Controller not ready',
         });
 
         expect(RED.nodes.node.callCount).to.equal(10);
     });
 
     it('returns warning when hash changed', async function () {
-
         const controllerNode = { id: 'ctrl-1', hash: 'newHash' };
 
         RED.nodes.node.returns(controllerNode);
@@ -90,7 +86,7 @@ describe('ui-utils ControllerChecker', function () {
         const result = await checker.check({ value: 'ctrl-1' });
 
         expect(result).to.deep.equal({
-            message: '⚠ Controller configuration changed, deploy first'
+            message: '⚠ Controller configuration changed, deploy first',
         });
 
         expect(tracker.getHashWithDefault.calledWith('ctrl-1', 'newHash')).to.be.true;
@@ -98,7 +94,6 @@ describe('ui-utils ControllerChecker', function () {
     });
 
     it('returns controllerNode when everything is valid', async function () {
-
         const controllerNode = { id: 'ctrl-1', hash: 'hash1' };
 
         RED.nodes.node.returns(controllerNode);
@@ -108,7 +103,7 @@ describe('ui-utils ControllerChecker', function () {
         const result = await checker.check({ value: 'ctrl-1' });
 
         expect(result).to.deep.equal({
-            controllerNode
+            controllerNode,
         });
     });
 
@@ -117,13 +112,9 @@ describe('ui-utils ControllerChecker', function () {
     // ─────────────────────────────────────────────
 
     it('retries until node becomes available', async function () {
-
         const controllerNode = { id: 'ctrl-1' };
 
-        RED.nodes.node
-            .onFirstCall().returns(null)
-            .onSecondCall().returns(null)
-            .onThirdCall().returns(controllerNode);
+        RED.nodes.node.onFirstCall().returns(null).onSecondCall().returns(null).onThirdCall().returns(controllerNode);
 
         const promise = checker.getControllerNode('ctrl-1', 5);
 
@@ -136,7 +127,6 @@ describe('ui-utils ControllerChecker', function () {
     });
 
     it('returns null when node never appears', async function () {
-
         RED.nodes.node.returns(null);
 
         const promise = checker.getControllerNode('ctrl-1', 3);
@@ -148,5 +138,4 @@ describe('ui-utils ControllerChecker', function () {
         expect(result).to.be.null;
         expect(RED.nodes.node.callCount).to.equal(3);
     });
-
 });

@@ -9,7 +9,7 @@
 // distributed on an "AS IS" BASIS WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and limitations under the License.
 
-"use strict";
+'use strict';
 
 const sinon = require('sinon');
 
@@ -18,13 +18,13 @@ function createMockRED(registerType = sinon.spy(), httpAdminGet = sinon.spy()) {
         nodes: {
             registerType,
             createNode: sinon.spy(),
-            getNode: sinon.stub().returns({ handler: { config: { url: "http://mocked", token: "abc" }}})
+            getNode: sinon.stub().returns({ handler: { config: { url: 'http://mocked', token: 'abc' } } }),
         },
-        httpAdmin: { get: httpAdminGet, use: sinon.spy() }
+        httpAdmin: { get: httpAdminGet, use: sinon.spy() },
     };
 }
 
-function createNodeThis(name = "") {
+function createNodeThis(name = '') {
     return {
         credentials: {},
         name,
@@ -34,14 +34,14 @@ function createNodeThis(name = "") {
         status: sinon.spy(),
         error: sinon.spy(),
         setStatus: sinon.spy(),
-        removeListener: sinon.spy()
+        removeListener: sinon.spy(),
     };
 }
 
 function createMockResponse() {
     return {
         send: sinon.spy(),
-        status: sinon.stub().returnsThis()
+        status: sinon.stub().returnsThis(),
     };
 }
 

@@ -9,18 +9,18 @@
 // distributed on an "AS IS" BASIS WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and limitations under the License.
 
-"use strict";
+'use strict';
 
 const { setupGetNodeHandler } = require('../lib/getNodeHandler');
 
 function registerOpenHabGetNode(RED) {
-  function createGetNode(config) {
-    RED.nodes.createNode(this, config);
-    const controller = RED.nodes.getNode(config.controller);
-    setupGetNodeHandler(this, config, controller);
-  }
+    function createGetNode(config) {
+        RED.nodes.createNode(this, config);
+        const controller = RED.nodes.getNode(config.controller);
+        setupGetNodeHandler(this, config, controller);
+    }
 
-  RED.nodes.registerType("openhab4-get", createGetNode);
-};
+    RED.nodes.registerType('openhab4-get', createGetNode);
+}
 
 module.exports = registerOpenHabGetNode;

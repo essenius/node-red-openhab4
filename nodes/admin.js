@@ -9,19 +9,15 @@
 // distributed on an "AS IS" BASIS WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and limitations under the License.
 
-"use strict";
+'use strict';
 
 const path = require('node:path');
-const express = require('express');   // <— pull in express
+const express = require('express');
 
 function registerOpenHabAdminSite(RED) {
-  // 1) compute the folder that holds your JS (one level up into /static)
-  const staticPath = path.join(__dirname, "..", "static");
+    const staticPath = path.join(__dirname, '..', 'static');
 
-  // 2) mount ALL files in that folder under /openhab4/*
-  RED.httpAdmin.use("/openhab4", express.static(staticPath));
-
-  // any other admin‐side setup…  
-};
+    RED.httpAdmin.use('/openhab4', express.static(staticPath));
+}
 
 module.exports = { registerOpenHabAdminSite };
