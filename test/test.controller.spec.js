@@ -112,7 +112,6 @@ describe('openhab4-controller', function () {
                 status: 503,
                 message: 'Service Unavailable',
             };
-            //const fakeHttpRequest = sinon.stub().resolves(fakeResponse);
 
             const controllerFactory = require('../nodes/controller')._create;
 

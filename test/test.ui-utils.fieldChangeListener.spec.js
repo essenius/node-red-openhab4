@@ -64,24 +64,19 @@ describe('ui-utils FieldChangeListener', function () {
     });
 
     it('does not throw if controllerInput is null', function () {
-        expect(() => {
-            new FieldChangeListener(null, conceptInput, refreshFn);
-        }).to.not.throw();
-
+        const listener = new FieldChangeListener(null, conceptInput, refreshFn);
+        expect(listener).to.exist;
         expect(conceptInput.addEventListener.calledOnceWith('change')).to.be.true;
     });
 
     it('does not throw if conceptInput is null', function () {
-        expect(() => {
-            new FieldChangeListener(controllerInput, null, refreshFn);
-        }).to.not.throw();
-
+        const listener = new FieldChangeListener(controllerInput, null, refreshFn);
+        expect(listener).to.exist;
         expect(controllerInput.addEventListener.calledOnceWith('change')).to.be.true;
     });
 
     it('does not throw if both inputs are null', function () {
-        expect(() => {
-            new FieldChangeListener(null, null, refreshFn);
-        }).to.not.throw();
+        const listener = new FieldChangeListener(null, null, refreshFn);
+        expect(listener).to.exist;
     });
 });

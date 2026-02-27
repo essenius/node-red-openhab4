@@ -30,7 +30,7 @@ function createMockNode() {
     const node = new EventEmitter();
     node.name = 'MockNode';
     node.log = sinon.spy();
-    node.warn = sinon.spy(); // TODO: minimize
+    node.warn = sinon.spy();
     node.error = sinon.spy();
     return node;
 }
@@ -237,26 +237,34 @@ describe('controllerHandler.setupControllerHandler', function () {
             expect(sendRequestStub.notCalled, 'sendRequest not called').to.be.true;
         });
 
-        it('should call control for a command and return no response', async function () {
-            const result = await controllerHandler.control(item1, OPERATION.COMMAND, SWITCH_STATUS.ON);
-            expect(result).to.deep.equal({ ok: true, data: null }, 'Result is ok');
-            expect(
-                sendRequestStub.calledWithMatch(`/rest/items/${item1.identifier}`, HTTP_METHODS.POST, SWITCH_STATUS.ON),
-                'sendRequest called with correct args'
-            ).to.be.true;
-        });
 
-        it('should call control for an update and return no response', async function () {
-            const result = await controllerHandler.control(item1, OPERATION.UPDATE, SWITCH_STATUS.ON);
-            expect(result).to.deep.equal({ ok: true, data: null }, 'Result is ok');
-            expect(
-                sendRequestStub.calledWithMatch(
-                    `/rest/items/${item1.identifier}/state`,
-                    HTTP_METHODS.PUT,
-                    SWITCH_STATUS.ON
-                ),
-                'sendRequest called with correct args'
-            ).to.be.true;
+        const sendScenarios = [
+            {
+                name: 'should call control for a command and return no response',
+                operation: OPERATION.COMMAND,
+                expectedUrl: `/rest/items/${item1.identifier}`,
+                expectedMethod: HTTP_METHODS.POST
+            },
+            {
+                name: 'should call control for an update and return no response',
+                operation: OPERATION.UPDATE,
+                expectedUrl: `/rest/items/${item1.identifier}/state`,
+                expectedMethod: HTTP_METHODS.PUT
+            }
+        ];
+
+        sendScenarios.forEach(({ name, operation, expectedUrl, expectedMethod }) => {
+            it(name, async function () {
+                // Act
+                const result = await controllerHandler.control(item1, operation, SWITCH_STATUS.ON);
+
+                // Assert
+                expect(result).to.deep.equal({ ok: true, data: null }, 'Result is ok');
+                expect(
+                    sendRequestStub.calledWithMatch(expectedUrl, expectedMethod, SWITCH_STATUS.ON),
+                    'sendRequest called with correct args'
+                ).to.be.true;
+            });
         });
 
         it('should return an error when control called with unknown concept', async function () {
@@ -289,10 +297,12 @@ describe('controllerHandler.setupControllerHandler', function () {
             );
             expect(sendRequestStub.notCalled, 'Request stub not called').to.be.true;
         });
-        it('should return thing info when called with thing concept', async function () {
-            const result = await controllerHandler.control(thing1);
-            expect(result).to.deep.equal(
-                {
+
+        const scenarioConcepts = [
+            {
+                name: 'should return thing info when called with thing concept',
+                resource: thing1,
+                expected: {
                     ok: true,
                     data: {
                         topic: `things/${thing1.identifier}`,
@@ -301,14 +311,13 @@ describe('controllerHandler.setupControllerHandler', function () {
                         openhab: { UID: `${thing1.identifier}`, statusInfo: { status: 'OFFLINE' } },
                     },
                 },
-                'Ping request returns the right data'
-            );
-        });
-
-        it('should return version data when called with system concept', async function () {
-            const result = await controllerHandler.control(getResource(CONCEPTS.SYSTEM, ''));
-            expect(result).to.deep.equal(
-                {
+                before: null,
+                after: null
+            },
+            {
+                name: 'should return version data when called with system concept (new openHAB)',
+                resource: getResource(CONCEPTS.SYSTEM, ''),
+                expected: {
                     ok: true,
                     data: {
                         topic: 'system',
@@ -317,15 +326,13 @@ describe('controllerHandler.setupControllerHandler', function () {
                         openhab: { runtimeInfo: { version: '4.0.1' } },
                     },
                 },
-                'Ping request on newer openHAB returns the right data'
-            );
-        });
-
-        it('should return default version data when called with system concept', async function () {
-            simulateOldVersion = true;
-            const result = await controllerHandler.control(getResource(CONCEPTS.SYSTEM, 'any'));
-            expect(result).to.deep.equal(
-                {
+                before: null,
+                after: null
+            },
+            {
+                name: 'should return default version data when called with system concept (old openHAB)',
+                resource: getResource(CONCEPTS.SYSTEM, 'any'),
+                expected: {
                     ok: true,
                     data: {
                         topic: 'system',
@@ -334,10 +341,21 @@ describe('controllerHandler.setupControllerHandler', function () {
                         openhab: {},
                     },
                 },
-                'Ping request on older openHAB returns the right data'
-            );
+                before: () => { simulateOldVersion = true; },
+                after: () => { simulateOldVersion = false; }
+            }
+        ];
 
-            simulateOldVersion = false; // reset for other tests
+        scenarioConcepts.forEach(({ name, resource, expected, before, after }) => {
+            it(name, async function () {
+                if (before) before();
+
+                const result = await controllerHandler.control(resource);
+
+                expect(result).to.deep.equal(expected, 'Ping request returns the right data');
+
+                if (after) after();
+            });
         });
 
         it('should handle errors in control but not publish an error', async function () {

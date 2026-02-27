@@ -85,28 +85,35 @@ describe('OpenhabConnection.getResources', function () {
         expect(connection.cache.items.timestamp).to.equal(1000 + connection.CACHE_TTL + 1);
     });
 
-    it('returns cached data on httpRequest failure', async function () {
-        connection.cache.items = { data: [{ name: 'cached' }], timestamp: 1000 };
-        nowStub.returns(2000);
-        const failResponse = { ok: false, status: 500 };
-        httpStub.resolves(failResponse);
+    const scenarios = [
+        {
+            name: 'returns cached data on httpRequest failure',
+            cacheData: [{ name: 'cached' }],
+            httpResponse: { ok: false, status: 500 },
+            expected: { ok: false, data: [{ name: 'cached' }] }
+        },
+        {
+            name: 'returns failed status with no cached data',
+            cacheData: null,
+            httpResponse: { ok: false },
+            expected: { ok: false, status: 503, data: undefined }
+        }
+    ];
 
-        const result = await connection.getResources('items', 'endpoint');
+    scenarios.forEach(({ name, cacheData, httpResponse, expected }) => {
+        it(name, async function () {
+            // Arrange
+            connection.cache.items = { data: cacheData, timestamp: 1000 };
+            nowStub.returns(2000);
+            httpStub.resolves(httpResponse);
 
-        expect(result.ok).to.be.false;
-        expect(result.data).to.deep.equal([{ name: 'cached' }]);
-    });
+            // Act
+            const result = await connection.getResources('items', 'endpoint');
 
-    it('returns failed status with no cached data', async function () {
-        connection.cache.items = { data: null, timestamp: 1000 };
-        nowStub.returns(2000);
-        const failResponse = { ok: false };
-        httpStub.resolves(failResponse);
-
-        const result = await connection.getResources('items', 'endpoint');
-
-        expect(result.ok).to.be.false;
-        expect(result.status).to.equal(503);
-        expect(result.data).to.be.undefined;
+            // Assert
+            expect(result.ok).to.equal(expected.ok);
+            if ('data' in expected) expect(result.data).to.deep.equal(expected.data);
+            if ('status' in expected) expect(result.status).to.equal(expected.status);
+        });
     });
 });

@@ -89,7 +89,7 @@ describe('ui-utils fetchJson', function () {
     });
 
     it('clears timeout after successful completion', async function () {
-        const clearTimeoutSpy = sinon.spy(global, 'clearTimeout');
+        const clearTimeoutSpy = sinon.spy(globalThis, 'clearTimeout');
 
         fetchStub.resolves({
             ok: true,

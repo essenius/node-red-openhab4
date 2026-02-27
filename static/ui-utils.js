@@ -381,14 +381,6 @@
         return document.getElementById(`node-input-${name}`);
     }
 
-    /*function getFields() {
-        return {
-            controllerInput: getInputField("controller"),
-            conceptInput: getInputField("concept"),
-            identifierInput: getInputField("identifier")
-        };
-    } */
-
     function openhabEditCancel(RED, node) {
         removeEventListeners(node);
     }
@@ -449,13 +441,9 @@
         console.log(`oneditprepare for ${node.type}/${node.id}`);
 
         node._listenerManager = new ListenerManager();
-
         const dropdownFilterListener = new DropdownFilterListener(identifierInput, filterInput, emptyText);
         node._listenerManager.add('dropdownFilter', dropdownFilterListener);
-
-        //        node._dropdownFilterListener = new DropdownFilterListener(identifierInput, filterInput, emptyText);
         node._controllerChecker = new ControllerChecker(RED, getControllerStateTracker(RED));
-
         node._dropdownController = new DropdownController({
             checker: node._controllerChecker,
             controllerInput,
