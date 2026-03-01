@@ -306,7 +306,7 @@ describe('controllerHandler.setupControllerHandler', function () {
                     data: {
                         topic: `things/${thing1.identifier}`,
                         payload: 'OFFLINE',
-                        payloadType: 'Status',
+                        payloadType: 'String',
                         openhab: { UID: `${thing1.identifier}`, statusInfo: { status: 'OFFLINE' } },
                     },
                 },

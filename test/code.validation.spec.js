@@ -47,12 +47,20 @@ describe('Code validation', function () {
         'nodes/icons/openhab4-logo-in.svg',
         'nodes/icons/openhab4-logo-out.svg',
         'nodes/icons/openhab4-logo.svg',
-        'DEVELOPMENT.md',
+        'docs/development.md',
+        'docs/openhab4-controller.md',
+        'docs/openhab4-events.md',
+        'docs/openhab4-get.md',
+        'docs/openhab4-health.md',
+        'docs/openhab4-in.md',
+        'docs/openhab4-out.md',
         'LICENSE',
         'package.json',
         'README.md',
         'static/ui-constants.js',
         'static/ui-utils.js',
+        'examples/generate-test-flow.js',
+        'examples/test-flow-localhost.json'
     ];
 
     describe('Required files', function () {

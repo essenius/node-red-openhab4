@@ -26,50 +26,7 @@
     </div>
 </script>
 
-<script type="text/x-red" data-help-name="openhab4-events">
-    <div style="color: #b58900; margin-bottom: 1em;">
-        <i class="fa fa-exclamation-triangle"></i>
-        <strong>Tip:</strong> If you have just imported a flow or reused a controller configuration node, open and save the controller config node to ensure credentials and item lists are available in this node.
-    </div>
-    <p>Monitors the openHAB event bus and outputs all events as they occur.</p>
-    
-    <h3>Configuration</h3>
-    <dl class="message-properties">
-        <dt>Name <span class="property-type">string</span></dt>
-        <dd>Optional name for the node</dd>
-        <dt>Controller <span class="property-type">openhab4-controller</span></dt>
-        <dd>The openHAB4 controller to monitor</dd>
-        <dt>Filter <span class="property-type">string</span></dt>
-        <dd>The event filter without the API identifier (default <code>items/*</code>)</dd>
-    </dl>
-
-    <h3>Outputs</h3>
-    <ol class="node-ports">
-        <li>Events
-            <dl class="message-properties">
-                <dt>topic <span class="property-type">string</span></dt>
-                <dd>The event topic (e.g., <code>openhab/items/my_item/statechanged</code>)</dd>
-                <dt>payload <span class="property-type">object</span></dt>
-                <dd>The event payload containing the event data</dd>
-                <dt>type <span class="property-type">string</span></dt>
-                <dd>The event type (e.g., <code>ItemStateChangedEvent</code>, <code>ItemCommandEvent</code>)</dd>
-            </dl>
-        </li>
-    </ol>
-
-    <h3>Details</h3>
-    <p>This node connects to the openHAB event bus and forwards all filtered events.</p>
-    
-    <p>Common event types include:</p>
-    <ul>
-        <li><code>ItemStateChangedEvent</code> - When an item's state changes</li>
-        <li><code>ItemCommandEvent</code> - When a command is sent to an item</li>
-        <li><code>GroupItemStateChangedEvent</code> - When a group item's state changes</li>
-        <li><code>ItemUpdatedEvent</code> - When an item is updated</li>
-    </ul>
-    
-    <p>Use this node to build reactive flows that respond to changes in your openHAB system.</p>
-</script>
+{{HELP}}
 
 <script src="openhab4/ui-constants.js"></script>
 

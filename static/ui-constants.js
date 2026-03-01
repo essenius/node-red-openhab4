@@ -22,9 +22,6 @@ globalThis.OPENHAB4 = globalThis.OPENHAB4 || {};
             return customName;
         }
         const trimmedItemName = (identifier || '').trim();
-        if (trimmedItemName) {
-            return `${nodeType} (${trimmedItemName})`;
-        }
-        return `openhab4-${nodeType}`;
+        return trimmedItemName || `openhab4-${nodeType}`;
     };
 })(globalThis.OPENHAB4);

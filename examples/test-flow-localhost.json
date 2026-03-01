@@ -12,15 +12,14 @@
     "z": "test-flow-tab",
     "name": "",
     "controller": "controller-node",
+    "concept": "items",
     "identifier": "TestItem",
+    "changesOnly": true,
     "x": 100,
     "y": 200,
     "wires": [
       [
-        "debug-state"
-      ],
-      [
-        "debug-raw"
+        "debug-in"
       ]
     ]
   },
@@ -30,7 +29,9 @@
     "z": "test-flow-tab",
     "name": "",
     "controller": "controller-node",
+    "concept": "items",
     "identifier": "TestItem",
+    "priority": "message",
     "x": 290,
     "y": 300,
     "wires": [
@@ -44,9 +45,11 @@
     "type": "openhab4-out",
     "z": "test-flow-tab",
     "controller": "controller-node",
+    "operation": "command",
     "identifier": "TestItem",
     "topic": "",
     "payload": "",
+    "priority": "config",
     "x": 350,
     "y": 500,
     "wires": [
@@ -60,6 +63,7 @@
     "type": "openhab4-events",
     "z": "test-flow-tab",
     "controller": "controller-node",
+    "filter": "items/*",
     "x": 100,
     "y": 400,
     "wires": [
@@ -82,9 +86,6 @@
       ],
       [
         "debug-health-error"
-      ],
-      [
-        "debug-health-raw"
       ]
     ]
   },
@@ -122,15 +123,15 @@
         "p": "payload"
       },
       {
-        "p": "topic",
-        "vt": "str"
+        "p": "openhabControl",
+        "v": "{ \"operation\": \"command\" }",
+        "vt": "json"
       }
     ],
     "repeat": "",
     "crontab": "",
     "once": false,
     "onceDelay": 0.1,
-    "topic": "ItemCommand",
     "payload": "ON",
     "payloadType": "str",
     "x": 130,
@@ -151,15 +152,15 @@
         "p": "payload"
       },
       {
-        "p": "topic",
-        "vt": "str"
+        "p": "openhabControl",
+        "v": "{ \"operation\": \"update\" }",
+        "vt": "json"
       }
     ],
     "repeat": "",
     "crontab": "",
     "once": false,
     "onceDelay": 0.1,
-    "topic": "ItemUpdate",
     "payload": "OFF",
     "payloadType": "str",
     "x": 120,
@@ -171,10 +172,10 @@
     ]
   },
   {
-    "id": "debug-state",
+    "id": "debug-in",
     "type": "debug",
     "z": "test-flow-tab",
-    "name": "Debug In Channel 1",
+    "name": "Debug In",
     "active": true,
     "tosidebar": true,
     "console": false,
@@ -183,25 +184,8 @@
     "targetType": "full",
     "statusVal": "",
     "statusType": "auto",
-    "x": 320,
-    "y": 180,
-    "wires": []
-  },
-  {
-    "id": "debug-raw",
-    "type": "debug",
-    "z": "test-flow-tab",
-    "name": "Debug In Channel 2",
-    "active": true,
-    "tosidebar": true,
-    "console": false,
-    "tostatus": false,
-    "complete": "true",
-    "targetType": "full",
-    "statusVal": "",
-    "statusType": "auto",
-    "x": 320,
-    "y": 220,
+    "x": 280,
+    "y": 200,
     "wires": []
   },
   {
@@ -290,27 +274,12 @@
     "wires": []
   },
   {
-    "id": "debug-health-raw",
-    "type": "debug",
-    "z": "test-flow-tab",
-    "name": "Debug Health Raw",
-    "active": true,
-    "tosidebar": true,
-    "console": false,
-    "tostatus": false,
-    "complete": "true",
-    "targetType": "full",
-    "statusVal": "",
-    "statusType": "auto",
-    "x": 340,
-    "y": 660,
-    "wires": []
-  },
-  {
     "id": "controller-node",
     "type": "openhab4-controller",
     "z": "test-flow-tab",
     "name": "openhab4",
-    "url": "http://localhost:8080"
+    "url": "http://localhost:8080",
+    "eventFilter": "*",
+    "retryTimeout": ""
   }
 ]

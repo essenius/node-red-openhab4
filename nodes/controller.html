@@ -61,48 +61,7 @@
 
 </script>
 
-<script type="text/x-red" data-help-name="openhab4-controller">
-    <p>Configuration node for communication with an openHAB4 controller.</p>
-    
-    <h3>Configuration</h3>
-    <dl class="message-properties">
-        <dt>Name <span class="property-type">string</span></dt>
-        <dd>Name for the configuration node (referenced by other nodes)</dd>
-        <dt>URL <span class="property-type">string</span></dt>
-        <dd>Base URL for the OpenHAB server, e.g. <code>https://myopenhab:8443</code></dd>
-        <dt>Certificates / Allow self signed <span class="property-type">boolean</span></dt>
-        <dd>Switch off certificate checking to support self-signed certificates for HTTPS connections (default: <code>false</code>)</dd>
-        <dt>Token <span class="property-type">string</span> (optional)</dt>
-        <dd>Token in case bearer authentication is used (requires https).</dd>
-        <dt>User name (optional)<span class="property-type">string</span></dt>
-        <dd>Username for HTTP Basic Authentication (legacy)</dd>
-        <dt>Password (optional)<span class="property-type">string</span></dt>
-        <dd>Password for HTTP Basic Authentication (legacy)</dd>
-        <dt>Event filter <span class="property-type">string</span></dt>
-        <dd>The matching filter for the event source topic (default: <code>*</code> for no filtering)</dd>
-        <dt>Retry timeout<span class="property-type">number</span></dt>
-        <dd>Elapsed time after which an HTTP call fails (empty: retrying forever)</dd>
-    </dl>
-
-    <h3>Details</h3>
-    <p>This configuration node defines the connection parameters for an openHAB4 server. 
-    It is referenced by all other openHAB4 nodes in your flows.</p>
-    
-    <p><strong>Connection URLs:</strong> The node constructs URLs in the format:</p>
-    <code>{URL}/rest/</code>
-    
-    <p><strong>Authentication:</strong> If a token is provided, bearer authentication will be used.
-    If a username is provided, HTTP Basic Authentication will be used. If both are empty, no authentication is used.</p>
-    
-    <p><strong>Event Stream:</strong> The controller also manages the Server-Sent Events (SSE) 
-    connection for real-time event monitoring used by events and health nodes. 
-    A filter can be applied if other events are needed than just the items.</p>
-    
-    <p><strong>Multiple Controllers:</strong> You can create multiple controller configurations 
-    to connect to different openHAB instances or use different authentication credentials.</p>
-
-    <p>Retry timeout: this is for indiviual HTTP calls, not for the event stream, which will retry indefinitely.</p>
-</script>
+{{HELP}}
 
 <script src="openhab4/ui-constants.js"></script>
 

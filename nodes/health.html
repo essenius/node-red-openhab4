@@ -22,50 +22,7 @@
     </div>
 </script>
 
-<script type="text/x-red" data-help-name="openhab4-health">
-    <div style="color: #b58900; margin-bottom: 1em;">
-        <i class="fa fa-exclamation-triangle"></i>
-        <strong>Tip:</strong> If you have just imported a flow or reused a controller configuration node, open and save the controller config node to ensure credentials and item lists are available in this node.
-    </div>
-    <p>Monitors the health and status of the openHAB4 controller connection.</p>
-    
-    <h3>Configuration</h3>
-    <dl class="message-properties">
-        <dt>Name <span class="property-type">string</span></dt>
-        <dd>Optional name for the node</dd>
-        <dt>Controller <span class="property-type">openhab4-controller</span></dt>
-        <dd>The openHAB4 controller to monitor</dd>
-    </dl>
-
-    <h3>Outputs</h3>
-    <ol class="node-ports">
-        <li>Connection Status
-            <dl class="message-properties">
-                <dt>payload <span class="property-type">string</span></dt>
-                <dd>Connection status: 'ON' (connected) or 'OFF' (disconnected)</dd>
-                <dt>event <span class="property-type">string</span></dt>
-                <dd>Event type: 'ConnectionStatus'</dd>
-            </dl>
-        </li>
-        <li>Connection Errors
-            <dl class="message-properties">
-                <dt>payload <span class="property-type">string</span></dt>
-                <dd>Error message when connection issues occur</dd>
-                <dt>event <span class="property-type">string</span></dt>
-                <dd>Event type: 'ConnectionError'</dd>
-            </dl>
-        </li>
-    </ol>
-
-    <h3>Details</h3>
-    <p>This node provides system-level monitoring of the openHAB connection:</p>
-    <ul>
-        <li><strong>Output 1:</strong> Sends messages when the connection status changes</li>
-        <li><strong>Output 2:</strong> Sends messages when global errors (e.g. broken connection) occur</li>
-    </ul>
-    
-    <p>Use this node to monitor the overall health of your openHAB integration.</p>
-</script>
+{{HELP}}
 
 <script src="openhab4/ui-constants.js"></script>
 

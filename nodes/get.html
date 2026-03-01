@@ -56,61 +56,7 @@
 </div>
 </script>
 
-<script type="text/x-red" data-help-name="openhab4-get">
-    <div style="color: #b58900; margin-bottom: 1em;">
-        <i class="fa fa-exclamation-triangle"></i>
-        <strong>Tip:</strong> If you have just imported a flow or reused a controller configuration node, open and save the controller config node to ensure credentials and item lists are available in this node.
-    </div>
-    <p>Retrieves the current state of an openHAB item on demand.</p>
-    
-    <h3>Configuration</h3>
-    <dl class="message-properties">
-        <dt>Name <span class="property-type">string</span></dt>
-        <dd>Optional name for the node (auto-generated from resource name if empty)</dd>
-        <dt>Controller <span class="property-type">openhab4-controller</span></dt>
-        <dd>The openHAB4 controller to use</dd>
-        <dt>Concept <span class="property-type">string</span></dt>
-        <dd>The openHAB4 concept to use (e.g. items, things). Overridden by <code>msg.topic</code></dd>
-
-        <dt>List Filter <span class="property-type">string</span></dt>
-        <dd>Text to filter the list of resources with. Leave empty to show all resources.</dd>
-        <dt>Resource <span class="property-type">string</span></dt>
-        <dd>The openHAB resource to retrieve. Overridden by <code>msg.topic</code></dd>
-        <dt>Priority <span class="property-type">string</span></dt>
-        <dd>Whether message properties override config properties or or vice versa.</dd>
-    </dl>
-
-    <h3>Inputs</h3>
-    <dl class="message-properties">
-        <dt>topic <span class="property-type">string</span></dt>
-        <dd>The address (e.g. items/itemName) of the resource to retrieve (optional if configured in the node)</dd>
-    </dl>
-
-    <h3>Outputs</h3>
-    <ol class="node-ports">
-        <li>Item State
-            <dl class="message-properties">
-                <dt>topic <span class="property-type">string</span></dt>
-                <dd>The address (e.g. items/itemName) of the resource that was queried</dd>
-                <dt>payload <span class="property-type">object</span></dt>
-                <dd>The retrieved resource value</dd>
-                <dt>payloadType <span class="property-type">string</span></dt>
-                <dd>The retrieved resource type (e.g., string)</dd>
-                <dt>input <span class="property-type">Object</span></dt>
-                <dd>The incoming message</dd>
-                <dt>openhab <span class="property-type">Object</span></dt>
-                <dd>The retrieved resource data from openHAB</dd>
-            </dl>
-        </li>
-    </ol>
-
-    <h3>Details</h3>
-    <p>This node fetches the current state of an openHAB item or thing.
-    The item name can be specified either in the node configuration or in the <code>msg.item</code> property. 
-    The priority setting determines which takes precedence if both are provided.</p>
-    <p>Use this node when you need to fetch the current state of an item as part of a flow, 
-    rather than continuously monitoring for changes (use the in node or events node for that).</p>
-</script>
+{{HELP}}
 
 <script src="openhab4/ui-constants.js"></script>
 <script src="openhab4/ui-utils.js"></script>

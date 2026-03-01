@@ -81,7 +81,7 @@ describe('consumerNodeHandler', function () {
         nodeHandler._onConnectionStatus(SWITCH_STATUS.ON);
         expect(statusSpy.lastCall.args).to.deep.equal([STATE.READY, 'ready']);
         nodeHandler._onConnectionStatus(SWITCH_STATUS.OFF);
-        expect(statusSpy.lastCall.args).to.deep.equal([STATE.WAITING, 'disconnected']);
+        expect(statusSpy.lastCall.args).to.deep.equal([STATE.DOWN, 'disconnected']);
     });
 
     it('should set status to init', function () {

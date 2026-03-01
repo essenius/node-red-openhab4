@@ -51,52 +51,7 @@
     </div>
 </script>
 
-<script type="text/x-red" data-help-name="openhab4-in">
-    <div style="color: #b58900; margin-bottom: 1em;">
-        <i class="fa fa-exclamation-triangle"></i>
-        <strong>Tip:</strong> If you have just imported a flow or reused a controller configuration node, open and save the controller config node to ensure credentials and item lists are available in this node.
-    </div>
-    <p>Listens to state changes of a selected openHAB Item.</p>
-    
-    <h3>Configuration</h3>
-    <dl class="message-properties">
-        <dt>Name <span class="property-type">string</span></dt>
-        <dd>Optional name for the node (auto-generated from item name if empty)</dd>
-        <dt>Controller <span class="property-type">openhab4-controller</span></dt>
-        <dd>The openHAB4 controller to connect to</dd>
-        <dt>Concept <span class="property-type">string</span></dt>
-        <dd>The openHAB4 concept that a resource represents (e.g. items, things)</dd>
-        <dt>List Filter <span class="property-type">string</span></dt>
-        <dd>Text to filter the resource list with. Leave empty to show all.</dd>
-        <dt>Resource <span class="property-type">string</span></dt>
-        <dd>The name of the resource to listen to.</dd>
-        <dt>Filter Events<span class="property-type">bool</span></dt>
-        <dd>Checked: only pass events that change the stored state. Unchecked: send all events</dd>
-    </dl>
-
-    <h3>Outputs</h3>
-    <ol class="node-ports">
-        <li>Incoming Message
-            <dl class="message-properties">
-                <dt>payload <span class="property-type">string</span></dt>
-                <dd>The new state of the selected item</dd>
-                <dt>topic <span class="property-type">string</span></dt>
-                <dd>The resource's address (e.g. items/itemName)</dd>
-                <dt>payloadType <span class="property-type">string</span></dt>
-                <dd>The type of the payload (e.g. 'string')</dd>
-                <dt>eventType <span class="property-type">string</span></dt>
-                <dd>the incoming event type if not.</dd>
-                <dt>openhab <span class="property-type">object</span></dt>
-                <dd>The event that came in from OpenHAB. Added are concept, name, full_name and event (deconstructed from topic).</dd>
-            </dl>
-        </li>
-    </ol>
-
-    <h3>Details</h3>
-    <p>This node monitors a specific openHAB item. Normal operation is signalling changes only.
-        It is also possible to signal all item events by unchecking Changes Only, which might be useful for debugging or special automation cases.
-    </p>
-</script>
+{{HELP}}
 
 <script type="text/javascript">
     RED.nodes.registerType('openhab4-in', {

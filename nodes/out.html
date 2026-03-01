@@ -21,7 +21,7 @@
         <input type="text" id="node-input-controller">
     </div>
     <div class="form-row">
-        <label for="node-input-list-filter"><i class="fa fa-filter"></i> Filter Items</label>
+        <label for="node-input-list-filter"><i class="fa fa-filter"></i> List Filter</label>
         <input type="text" id="node-input-list-filter" placeholder="Type to filter below item name list...">
     </div>
     <div class="form-row">
@@ -49,69 +49,7 @@
     </div>
 </script>
 
-<script type="text/x-red" data-help-name="openhab4-out">
-    <div style="color: #b58900; margin-bottom: 1em;">
-        <i class="fa fa-exclamation-triangle"></i>
-        <strong>Tip:</strong> If you have just imported a flow or reused a controller configuration node, open and save the controller config node to ensure credentials and item lists are available in this node.
-    </div>
-    <p>Sends commands or state updates to an openHAB Item.</p>
-    
-    <h3>Configuration</h3>
-    <dl class="message-properties">
-        <dt>Name <span class="property-type">string</span></dt>
-        <dd>Optional name for the node (auto-generated from item name if empty)</dd>
-        <dt>Controller <span class="property-type">openhab4-controller</span></dt>
-        <dd>The openHAB4 controller to use</dd>
-        <dt>Filter List <span class="property-type">string</span></dt>
-        <dd>Text to filter the list of items with. Leave empty to show all items.</dd>
-        <dt>Item Name <span class="property-type">string</span></dt>
-        <dd>The openHAB item to send commands/updates to. Pairs with <code>msg.topic</code></dd>
-        <dt>Operation <span class="property-type">string</span></dt>
-        <dd>The type of operation: <code>ItemCommand</code> or <code>ItemUpdate</code>. Pairs with <code>msg.openhabControl.operation</code></dd>
-        <dt>Payload <span class="property-type">string</span></dt>
-        <dd>The command or update value to send. Pairs with <code>msg.payload</code></dd>
-        <dt>Priority <span class="property-type">string</span></dt>
-        <dd>Whether message properties override config properties or or vice versa.</dd>
-    </dl>
-
-    <h3>Inputs</h3>
-    <dl class="message-properties">
-        <dt>payload <span class="property-type">string | object</span></dt>
-        <dd>The value to send to the item</dd>
-        <dt>topic <span class="property-type">string</span></dt>
-        <dd>The address of the item to send the command/update to (e.g. items/myItem). Only items are supported; if no slash is included, it is assumed to be an item name.</dd>
-        <dt>openhabControl.operation <span class="property-type">string</span></dt>
-        <dd>The type of operation: <code>Command</code> or <code>Update</code>.</dd>
-    </dl>
-
-    <h3>Outputs</h3>
-    <ol class="node-ports">
-        <li>Sent Message
-            <dl class="message-properties">
-                <dt>payload <span class="property-type">string | object</span></dt>
-                <dd>The payload that was sent</dd>
-                <dt>topic <span class="property-type">string</span></dt>
-                <dd>The address (items/itemName) of the item that received the command/update</dd>
-                <dt>openhabControl.operation <span class="property-type">string</span></dt>
-                <dd>The type of operation that was performed</dd>
-                dt>input <span class="property-type">object</span></dt>
-                <dd>The original input message that triggered the command/update</dd>
-            </dl>
-        </li>
-    </ol>
-
-    <h3>Details</h3>
-    <p>This node sends commands or state updates to openHAB items:</p>
-    <ul>
-        <li><strong>Command:</strong> Sends a command to an item (e.g., turn a switch ON/OFF)</li>
-        <li><strong>Update:</strong> Updates the state of an item directly</li>
-    </ul>
-    
-    <p>Message properties take precedence over node configuration. 
-    If no item is specified in either the configuration or message, an error will be generated.</p>
-    
-    <p>The node will only generate output if the command/update was sent successfully.</p>
-</script>
+{{HELP}}
 
 <script src="openhab4/ui-constants.js"></script>
 <script src="openhab4/ui-utils.js"></script>
