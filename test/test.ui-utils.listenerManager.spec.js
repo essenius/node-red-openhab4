@@ -42,15 +42,15 @@ describe('ListenerManager', function () {
 
         manager.remove('a');
         expect(listenerA.destroy.calledOnce).to.be.true;
-        expect(manager.listeners.has('a')).to.be.false;
-        expect(manager.listeners.has('b')).to.be.true;
+        expect(manager.get('a')).to.be.undefined;
+        expect(manager.get('b')).to.equal(listenerB);
     });
 
-    it('should clear all listeners', function () {
+    it('should dispose of all listeners', function () {
         manager.add('a', listenerA);
         manager.add('b', listenerB);
 
-        manager.clear();
+        manager.dispose();
         expect(listenerA.destroy.calledOnce).to.be.true;
         expect(listenerB.destroy.calledOnce).to.be.true;
         expect(manager.listeners.size).to.equal(0);
@@ -85,7 +85,7 @@ describe('ListenerManager', function () {
         expect(() => manager.remove('nonexistent')).to.not.throw();
     });
 
-    it('clearing empty manager does nothing', function () {
-        expect(() => manager.clear()).to.not.throw();
+    it('disposing empty manager does nothing', function () {
+        expect(() => manager.dispose()).to.not.throw();
     });
 });

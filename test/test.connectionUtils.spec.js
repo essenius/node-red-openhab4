@@ -13,39 +13,36 @@
 
 const { expect } = require('chai');
 const sinon = require('sinon');
-const proxyquire = require('proxyquire');
 const { ERROR_TYPES } = require('../lib/constants');
 
-function loadConnectionUtils() {
-    proxyquire('../lib/connectionUtils', {
-        'node-fetch': () => {
-            console.log('called');
-            throw new Error('fake node-fetch error');
-        },
-    });
-}
+const {
+    createEventSourceOptions,
+    httpRequest,
+    resolveFetch,
+    setDefaults,
+    setFetch,
+} = require('../lib/connectionUtils');
 
 describe('connectionUtils Load', function () {
     it('should throw an error if fetch is not available', function () {
-        // Skip this test on Node.js 18 or higher as fetch is built-in
-        const [major] = process.versions.node.split('.').map(Number);
-        if (major >= 18) {
-            this.skip('this test is skipped', () => {
-                /* ... */
-            });
-        }
+        expect(() =>
+            resolveFetch(() => {
+                throw new Error('fake require fail');
+            }, {})
+        ).to.throw("No fetch available. Install 'node-fetch' or upgrade Node.js. Error: fake require fail");
 
-        let originalFetch = globalThis.fetch;
-        globalThis.fetch = undefined; // Simulate no fetch available
-
-        expect(loadConnectionUtils).to.throw(
-            "No fetch available. Install 'node-fetch' or upgrade Node.js. Error: fake node-fetch error"
-        );
-
-        // Restore globalThis.fetch
-        if (originalFetch !== undefined) {
-            globalThis.fetch = originalFetch;
-        }
+        // const [major] = process.versions.node.split('.').map(Number);
+        // if (major >= 18) {
+        // do the normal resolution
+        const resolvedFetch = resolveFetch();
+        // which should be the plain fetch function
+        expect(resolvedFetch).to.equal(fetch);
+        // now resolving using the mocks should also return the real one (i.e. not throw), as it doesn't check
+        expect(
+            resolveFetch(() => {
+                throw new Error('fake require fail');
+            }, {})
+        ).to.equal(resolvedFetch);
     });
 });
 
@@ -76,23 +73,11 @@ describe('connectionUtils.httpRequest', function () {
     // Import the httpRequest function from connectionUtils.js, using proxyquire to stub out node-fetch
     // This allows us to control the behavior of fetch without making actual HTTP requests.
 
-    let fetchStub, httpRequest, originalFetch, setDefaults;
+    let fetchStub;
 
     beforeEach(() => {
-        originalFetch = globalThis.fetch;
         fetchStub = sinon.stub();
-        globalThis.fetch = fetchStub;
-        ({ httpRequest, setDefaults } = proxyquire('../lib/connectionUtils', {
-            'node-fetch': fetchStub,
-        }));
-    });
-
-    afterEach(() => {
-        if (originalFetch === undefined) {
-            delete globalThis.fetch;
-        } else {
-            globalThis.fetch = originalFetch;
-        }
+        setFetch(fetchStub);
     });
 
     const successTestCases = [
@@ -325,5 +310,41 @@ describe('connectionUtils.setDefaultsTest', function () {
         };
         setDefaults(config);
         expect(config.authMethod).to.equal('Bearer', 'authMethod Bearer');
+    });
+});
+
+describe('createEventSourceOptions', () => {
+    it('calls fetch with augmented headers', async () => {
+        const config = { token: 'abc123', isHttps: false, allowSelfSigned: false, authMethod: 'Bearer' };
+        const options = createEventSourceOptions(config);
+        const input = 'http://example.com';
+        const init = { headers: { 'X-Test': '1' } };
+
+        const fetchStub = sinon.stub();
+        fetchStub.resolves({ ok: true, status: 200, text: async () => 'ok' });
+        setFetch(fetchStub);
+
+        await options.fetch(input, init);
+
+        expect(fetchStub.calledOnce, 'fetchStub called').to.be.true;
+        const fetchArgs = fetchStub.firstCall.args;
+        expect(fetchArgs[0]).to.equal(input, 'input passed on to fetch');
+        expect(fetchArgs[1].headers).to.deep.include(init.headers, 'Headers included in fetch call');
+        expect(fetchArgs[1].headers).to.include({ Authorization: 'Bearer abc123' }, 'Authorization header added');
+    });
+
+    it('sets https rejectUnauthorized when allowed', () => {
+        const config = { isHttps: true, allowSelfSigned: true };
+        const options = createEventSourceOptions(config);
+
+        expect(options).to.have.property('https');
+        expect(options.https.rejectUnauthorized).to.be.false;
+    });
+
+    it('does not set https when not needed', () => {
+        const config = { isHttps: true, allowSelfSigned: false };
+        const options = createEventSourceOptions(config);
+
+        expect(options).to.not.have.property('https');
     });
 });

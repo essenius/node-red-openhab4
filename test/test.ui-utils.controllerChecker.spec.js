@@ -20,14 +20,12 @@ describe('ui-utils ControllerChecker', function () {
     let clock;
 
     beforeEach(function () {
-        // Fake RED
         RED = {
             nodes: {
                 node: sinon.stub(),
             },
         };
 
-        // Fake tracker
         tracker = {
             getHashWithDefault: sinon.stub(),
             hasHashChanged: sinon.stub(),
@@ -35,10 +33,8 @@ describe('ui-utils ControllerChecker', function () {
 
         checker = new ControllerChecker(RED, tracker);
 
-        // Prevent real waiting
         clock = sinon.useFakeTimers();
 
-        // Silence logs
         sinon.stub(console, 'log');
     });
 
@@ -46,10 +42,6 @@ describe('ui-utils ControllerChecker', function () {
         sinon.restore();
         clock.restore();
     });
-
-    // ─────────────────────────────────────────────
-    // check()
-    // ─────────────────────────────────────────────
 
     it('returns message when no controller selected', async function () {
         const result = await checker.check({ value: null });
@@ -107,10 +99,6 @@ describe('ui-utils ControllerChecker', function () {
         });
     });
 
-    // ─────────────────────────────────────────────
-    // getControllerNode()
-    // ─────────────────────────────────────────────
-
     it('retries until node becomes available', async function () {
         const controllerNode = { id: 'ctrl-1' };
 
@@ -137,5 +125,16 @@ describe('ui-utils ControllerChecker', function () {
 
         expect(result).to.be.null;
         expect(RED.nodes.node.callCount).to.equal(3);
+    });
+});
+
+describe('ui-utils ControllerChecker without mocking ControllerChecker', function () {
+    it('second checker gets the same state tracker', async function () {
+        const events = { on: sinon.spy(), off: sinon.spy() };
+        const RED = { events };
+        const checker1 = new ControllerChecker(RED);
+        const checker2 = new ControllerChecker(RED);
+        expect(checker1.tracker).to.equal(checker2.tracker, 'Trackers are equal');
+        expect(events.on.calledOnce, 'one deploy listener added').to.be.true;
     });
 });

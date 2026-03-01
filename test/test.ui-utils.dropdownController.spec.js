@@ -11,7 +11,17 @@
 
 const { expect } = require('chai');
 const sinon = require('sinon');
-const { DropdownController } = require('../static/ui-utils');
+const { DropdownController, fetchJson } = require('../static/ui-utils');
+
+function deferred() {
+    let resolve;
+    let reject;
+    const promise = new Promise((res, rej) => {
+        resolve = res;
+        reject = rej;
+    });
+    return { promise, resolve, reject };
+}
 
 describe('ui-utils DropdownController (with injected fetchFn)', function () {
     let dropdown;
@@ -100,5 +110,53 @@ describe('ui-utils DropdownController (with injected fetchFn)', function () {
         expect(dropdown.setOptions.calledOnce).to.be.true;
         expect(dropdown.setOptions.firstCall.args[0]).to.deep.equal(['A', 'B', 'C']);
         expect(dropdown.setOptions.firstCall.args[1]).to.equal('C');
+    });
+
+    it('ignores outdated fetch result', async () => {
+        const first = deferred();
+        const second = deferred();
+
+        const fetchStub = sinon.stub();
+        fetchStub.onCall(0).returns(first.promise);
+        fetchStub.onCall(1).returns(second.promise);
+
+        const controller = new DropdownController({
+            fetchFn: fetchStub,
+            checker: { check: async () => ({}) }, // no validation error
+            dropdown: {
+                setOptions: sinon.spy(),
+                setSingleDisabledOption: sinon.spy(),
+            },
+            controllerInput: { value: 'my-controller' },
+            conceptInput: { value: 'items' },
+            currentValue: null,
+        });
+
+        const renderSpy = sinon.spy(controller, 'render');
+
+        // Start first refresh
+        controller.refresh();
+
+        // Start second refresh
+        controller.refresh();
+
+        // Resolve first (stale)
+        first.resolve({ data: [{ name: 'stale' }] });
+        await Promise.resolve();
+
+        expect(renderSpy.called).to.be.false;
+
+        // Resolve second (valid)
+        second.resolve({ data: [{ name: 'fresh' }] });
+        await Promise.resolve();
+
+        expect(renderSpy.calledOnce).to.be.true;
+    });
+});
+
+describe('ui-utils DropdownController (without injected fetchFn)', function () {
+    it('assigned default fetchJson if not overruled', function () {
+        const controller = new DropdownController({}, {}, {}, {}, {});
+        expect(controller.fetchFn).to.equal(fetchJson);
     });
 });

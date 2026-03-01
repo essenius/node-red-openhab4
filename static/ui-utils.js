@@ -21,7 +21,7 @@
     class ControllerChecker {
         constructor(RED, tracker) {
             this.RED = RED;
-            this.tracker = tracker;
+            this.tracker = tracker || getControllerStateTracker(this.RED);
         }
 
         async getControllerNode(controllerId, attempts = 10) {
@@ -142,23 +142,30 @@
     // --- DropdownController class ---
 
     class DropdownController {
-        constructor({ checker, controllerInput, conceptInput, dropdown, currentValue, fetchFn }) {
+        constructor({ checker, controllerInput, conceptInput, dropdown, currentValue, fetchFn = fetchJson }) {
             this.checker = checker;
             this.currentValue = currentValue;
             this.controllerInput = controllerInput;
             this.conceptInput = conceptInput;
             this.dropdown = dropdown;
             this.fetchFn = fetchFn;
-            this._refreshVersion = 0;
+            this._refreshToken = 0;
+        }
+
+        _nextRefreshToken() {
+            return ++this._refreshToken;
+        }
+
+        _isRefreshValid(token) {
+            return token === this._refreshToken;
         }
 
         async refresh() {
-            const version = ++this._refreshVersion;
-
+            const token = this._nextRefreshToken();
             const controllerCheck = await this.checker.check(this.controllerInput);
 
             if (controllerCheck.message) {
-                this.dropdown.setSingleDisabledOption(controllerCheck.message);
+                this.render({ message: controllerCheck.message });
                 return;
             }
 
@@ -171,9 +178,12 @@
                 resources = { ok: false, message: err.message };
             }
 
-            if (version !== this._refreshVersion) return;
+            if (!this._isRefreshValid(token)) return;
+            this.render(resources, concept);
+        }
 
-            if (resources.data) {
+        render(resources, concept) {
+            if (Array.isArray(resources.data)) {
                 const nameKey = concept === 'things' ? 'UID' : 'name';
                 const allNames = resources.data.map((i) => i[nameKey]).sort();
                 this.dropdown.setOptions(allNames, this.currentValue);
@@ -183,9 +193,9 @@
         }
     }
 
-    // --- DropdownFilterListener class ---
+    // --- DropdownWithFilterListener class ---
 
-    class DropdownFilterListener {
+    class DropdownWithFilterListener {
         /**
          * @param {HTMLSelectElement} select
          * @param {HTMLInputElement|null} filterInput
@@ -210,12 +220,14 @@
         }
 
         setOptions(allOptions, selectedValue) {
+            if (!this.select) return;
             this.allOptions = allOptions;
             this.selectedValue = selectedValue;
             this._populate(allOptions);
         }
 
         setSingleDisabledOption(optionText) {
+            if (!this.select) return;
             this.clearOptions();
             this._appendOption({ value: '', text: optionText, disabled: true });
         }
@@ -251,7 +263,6 @@
         }
 
         _populate(options) {
-            if (!this.select) return;
             this.clearOptions();
 
             this._appendOption(this.specialOption, this.selectedValue);
@@ -259,6 +270,27 @@
             options.forEach((resource) => {
                 this._appendOption({ value: resource, text: resource }, this.selectedValue);
             });
+        }
+    }
+
+    // --- EditorDom class ---
+
+    class EditorDom {
+        constructor(getInputFieldFn) {
+            this.getInputField = getInputFieldFn;
+        }
+
+        controllerInput() {
+            return this.getInputField('controller');
+        }
+        conceptInput() {
+            return this.getInputField('concept');
+        }
+        identifierInput() {
+            return this.getInputField('identifier');
+        }
+        filterInput() {
+            return this.getInputField('list-filter');
         }
     }
 
@@ -322,7 +354,7 @@
         /**
          * Remove all listeners.
          */
-        clear() {
+        dispose() {
             for (const listener of this.listeners.values()) {
                 if (listener.destroy) listener.destroy();
             }
@@ -334,6 +366,75 @@
          */
         forEach(callback) {
             this.listeners.forEach(callback);
+        }
+    }
+
+    // --- OpenhabEditorSession class ---
+    /** Manage the editor session for the node configuration
+     * RED, node, fetchFn and dom need to be defined.
+     */
+    class OpenhabEditorSession {
+        constructor(RED, node, emptyText = '', dependencies = {}) {
+            // Runtime parameters
+            this.RED = RED;
+            this.node = node;
+            this.emptyText = emptyText;
+
+            this.dependencies = dependencies;
+            this.dom = dependencies.dom ?? new EditorDom(getInputField);
+
+            this.listenerManager = new ListenerManager();
+
+            this.dropdown = null;
+            this.dropdownController = null;
+            this.controllerChecker = null;
+            this._disposed = false;
+        }
+
+        async prepare() {
+            const controllerInput = this.dom.controllerInput();
+            const conceptInput = this.dom.conceptInput();
+            const identifierInput = this.dom.identifierInput();
+            const filterInput = this.dom.filterInput();
+
+            this.dropdown = new DropdownWithFilterListener(identifierInput, filterInput, this.emptyText);
+            this.listenerManager.add('dropdownFilter', this.dropdown);
+            this.controllerChecker = new ControllerChecker(this.RED);
+
+            this.dropdownController = new DropdownController({
+                checker: this.controllerChecker,
+                controllerInput,
+                conceptInput,
+                dropdown: this.dropdown,
+                currentValue: this.node.identifier,
+                ...this.dependencies,
+            });
+
+            const refresh = () => this.dropdownController.refresh();
+
+            this.listenerManager.add(
+                'controllerConfig',
+                new ControllerConfigChangeListener(this.RED, controllerInput, refresh)
+            );
+            this.listenerManager.add('fieldChange', new FieldChangeListener(controllerInput, conceptInput, refresh));
+
+            await refresh();
+        }
+
+        async save() {
+            const { message } = await this.controllerChecker.check(this.dom.controllerInput());
+            this.dispose();
+            if (message) console.warn(message);
+        }
+
+        cancel() {
+            this.dispose();
+        }
+
+        dispose() {
+            if (this._disposed) return;
+            this.listenerManager.dispose();
+            this._disposed = true;
         }
     }
 
@@ -383,93 +484,23 @@
     }
 
     function openhabEditCancel(RED, node) {
-        removeEventListeners(node);
+        node._editorSession?.cancel();
+        delete node._editorSession;
     }
 
-    function openhabEditSave(RED, node, { safeAsyncFn = safeAsync } = {}) {
-        safeAsyncFn(() => openhabEditSaveAsync(RED, node));
-    }
-
-    async function openhabEditSaveAsync(RED, node) {
-        if (!node.checker) {
-            console.log('No checker in node', node);
-            return;
-        }
-        const { message } = await node.checker.check(RED, getInputField('controller'));
-
-        removeEventListeners(node);
-
-        if (message) {
-            console.warn(message);
-        }
+    function openhabEditSave(RED, node) {
+        safeAsync(async () => {
+            await node._editorSession?.save();
+            delete node._editorSession;
+        });
     }
 
     function openhabEditPrepare(RED, node, emptyText, injections = {}) {
-        const { safeAsyncFn = safeAsync } = injections;
+        node.session = injections.session ?? new OpenhabEditorSession(RED, node, emptyText, injections);
 
-        safeAsyncFn(async () => {
-            try {
-                await openhabEditPrepareAsync(RED, node, emptyText, injections);
-            } catch (err) {
-                console.error('Prepare failed:', err);
-                node._listenerManager?.clear();
-                throw err;
-            }
+        safeAsync(async () => {
+            await node.session.prepare();
         });
-    }
-
-    /**
-     * Populate a native <select> dropdown with OpenHAB resources (items/things).
-     * @param RED     the node red object
-     * @param node    the current node instance
-     * @param emptyText  Text to use for empty value
-     */
-    async function openhabEditPrepareAsync(RED, node, emptyText, injections) {
-        const { fetchFn = fetchJson, getInputFieldFn = getInputField } = injections;
-
-        removeEventListeners(node);
-
-        // Fix existing array data
-        if (Array.isArray(node.identifier)) {
-            console.log('Fixing array');
-            node.identifier = node.identifier[0] || '';
-        }
-
-        const controllerInput = getInputFieldFn('controller');
-        const conceptInput = getInputFieldFn('concept');
-        const identifierInput = getInputFieldFn('identifier');
-        const filterInput = getInputFieldFn('list-filter');
-        console.log(`oneditprepare for ${node.type}/${node.id}`);
-
-        node._listenerManager = new ListenerManager();
-        const dropdownFilterListener = new DropdownFilterListener(identifierInput, filterInput, emptyText);
-        node._listenerManager.add('dropdownFilter', dropdownFilterListener);
-        node._controllerChecker = new ControllerChecker(RED, getControllerStateTracker(RED));
-        node._dropdownController = new DropdownController({
-            checker: node._controllerChecker,
-            controllerInput,
-            conceptInput,
-            dropdown: dropdownFilterListener,
-            currentValue: node.identifier,
-            fetchFn,
-        });
-
-        const refreshDropdown = () => node._dropdownController.refresh();
-        node._listenerManager.add(
-            'controllerConfig',
-            new ControllerConfigChangeListener(RED, controllerInput, refreshDropdown)
-        );
-        node._listenerManager.add(
-            'fieldChange',
-            new FieldChangeListener(controllerInput, conceptInput, refreshDropdown)
-        );
-
-        await refreshDropdown();
-    }
-
-    function removeEventListeners(node) {
-        node._listenerManager?.clear();
-        node._listenerManager = null;
     }
 
     globalThis.openhabEditPrepare = openhabEditPrepare;
@@ -484,21 +515,17 @@
             ControllerConfigChangeListener,
             ControllerStateTracker,
             DropdownController,
-            DropdownFilterListener,
+            DropdownWithFilterListener,
+            EditorDom,
             FieldChangeListener,
             ListenerManager,
+            OpenhabEditorSession,
             fetchJson,
             getInputField,
             openhabEditCancel,
             openhabEditPrepare,
-            openhabEditPrepareAsync,
             openhabEditSave,
-            openhabEditSaveAsync,
-            removeEventListeners,
             safeAsync,
-            _resetControllerStateTracker: () => {
-                controllerStateTracker = null;
-            },
         };
     }
 })(globalThis);
