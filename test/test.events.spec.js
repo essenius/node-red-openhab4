@@ -13,7 +13,7 @@
 
 const helper = require('node-red-node-test-helper');
 const { expect } = require('chai');
-const { EVENT_TYPES, SWITCH_STATUS } = require('../lib/constants.js');
+const { EVENT_TYPES, SWITCH } = require('../lib/constants.js');
 const { EventBus } = require('../lib/eventBus.js');
 
 const eventsModule = require('../nodes/events.js');
@@ -61,7 +61,7 @@ describe('openhab4-events integration', function () {
             const controller = helper.getNode('controller1');
             helperNode.on('input', function (msg) {
                 try {
-                    expect(msg.payload).to.equal(SWITCH_STATUS.OFF, 'payload OK');
+                    expect(msg.payload).to.equal(SWITCH.OFF, 'payload OK');
                     expect(msg.type).to.equal(EVENT_TYPES.ITEM_STATE, 'type OK');
                     expect(msg.topic).to.equal('test1', 'topic OK');
                     expect(msg._msgid, '_msgid added').to.exist;
@@ -72,7 +72,7 @@ describe('openhab4-events integration', function () {
             });
 
             controller.handler.eventBus.publish('items/test1', {
-                payload: SWITCH_STATUS.OFF,
+                payload: SWITCH.OFF,
                 topic: 'test1',
                 type: EVENT_TYPES.ITEM_STATE,
             });

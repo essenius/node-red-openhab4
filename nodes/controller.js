@@ -56,7 +56,6 @@ function createControllerModule({
             RED.nodes.createNode(this, config);
 
             const mergedConfig = setDefaults({ ...config, ...this.credentials });
-            console.log('createControllerNode config', mergedConfig);
             this.name = config.name;
             this.hash = config.hash;
             this.handler = setupHandler(this, mergedConfig);

@@ -44,13 +44,9 @@
                 return { message: 'Controller not ready' };
             }
 
-            const deployedHash = this.tracker.getHashWithDefault(selectedControllerId, controllerNode.hash);
-            console.log(`Deployed hash for ${selectedControllerId}`, deployedHash);
-
+            this.tracker.ensureHash(selectedControllerId, controllerNode.hash);
             const controllerChanged = this.tracker.hasHashChanged(selectedControllerId, controllerNode.hash);
 
-            console.log('Controller changed', controllerChanged);
-            console.log('Controller:', selectedControllerId, controllerNode);
             if (controllerChanged) {
                 return { message: '⚠ Controller configuration changed, deploy first' };
             }
@@ -79,7 +75,6 @@
                 if (!selectedControllerId) return;
 
                 if (changedNode.id === selectedControllerId) {
-                    console.log('Controller config changed → refreshing');
                     await refreshFn();
                 }
             };
@@ -109,12 +104,10 @@
             this.trackedControllers.set(id, hash);
         }
 
-        getHashWithDefault(id, defaultValue) {
+        ensureHash(id, defaultValue) {
             if (!this.trackedControllers.has(id)) {
                 this.trackedControllers.set(id, defaultValue);
-                return defaultValue;
             }
-            return this.trackedControllers.get(id);
         }
 
         hasHashChanged(id, hash) {
@@ -189,7 +182,7 @@
                 this.dropdown.setOptions(allNames, this.currentValue);
                 return;
             }
-            this.dropdown.setSingleDisabledOption(resources.message);
+            this.dropdown.setSingleDisabledOption(resources.code ?? resources.message);
         }
     }
 
@@ -326,13 +319,8 @@
             this.listeners = new Map();
         }
 
-        /**
-         * Add a listener under a unique key.
-         * The listener must have a destroy() method.
-         */
         add(key, listener) {
             if (this.listeners.has(key)) {
-                // Optional: auto-remove old listener if key already exists
                 this.remove(key);
             }
             this.listeners.set(key, listener);
@@ -342,18 +330,12 @@
             return this.listeners.get(key);
         }
 
-        /**
-         * Remove a single listener by key.
-         */
         remove(key) {
             const listener = this.listeners.get(key);
             if (listener?.destroy) listener.destroy();
             this.listeners.delete(key);
         }
 
-        /**
-         * Remove all listeners.
-         */
         dispose() {
             for (const listener of this.listeners.values()) {
                 if (listener.destroy) listener.destroy();
@@ -361,9 +343,6 @@
             this.listeners.clear();
         }
 
-        /**
-         * Iterate over listeners (for testing or inspection)
-         */
         forEach(callback) {
             this.listeners.forEach(callback);
         }
@@ -379,12 +358,9 @@
             this.RED = RED;
             this.node = node;
             this.emptyText = emptyText;
-
             this.dependencies = dependencies;
             this.dom = dependencies.dom ?? new EditorDom(getInputField);
-
             this.listenerManager = new ListenerManager();
-
             this.dropdown = null;
             this.dropdownController = null;
             this.controllerChecker = null;

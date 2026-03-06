@@ -27,16 +27,15 @@ describe('ui-utils ControllerStateTracker', function () {
         expect(tracker.trackedControllers.get('controller1')).to.equal('hash123');
     });
 
-    it('getHashWithDefault returns default if not set', function () {
-        const value = tracker.getHashWithDefault('controller2', 'defaultHash');
-        expect(value).to.equal('defaultHash');
+    it('ensureHash sets value if not set', function () {
+        tracker.ensureHash('controller2', 'defaultHash');
         expect(tracker.trackedControllers.get('controller2')).to.equal('defaultHash');
     });
 
-    it('getHashWithDefault returns existing value if set', function () {
+    it('ensureHash does not change value if it was set', function () {
         tracker.setHash('controller3', 'existingHash');
-        const value = tracker.getHashWithDefault('controller3', 'defaultHash');
-        expect(value).to.equal('existingHash');
+        tracker.ensureHash('controller3', 'ensureHash');
+        expect(tracker.trackedControllers.get('controller3')).to.equal('existingHash');
     });
 
     it('hasHashChanged returns true if different', function () {
@@ -49,8 +48,8 @@ describe('ui-utils ControllerStateTracker', function () {
         const id = 'controller5';
         const defaultHash = 'hashX';
 
-        // initially not set → default returned
-        expect(tracker.getHashWithDefault(id, defaultHash)).to.equal(defaultHash);
+        // initially not set → default set
+        tracker.ensureHash(id, defaultHash);
 
         // hash has not changed
         expect(tracker.hasHashChanged(id, defaultHash)).to.be.false;

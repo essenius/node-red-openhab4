@@ -4,8 +4,6 @@ Configuration node for communication with an openHAB4 controller.
 
 ### Configuration
     
-    ### Configuration
-
 - ***Name*** *(string)* — Optional. Auto-generated from url if empty.
 - **URL** *(string)* — The URL of the OpenHAB server to connect to.
 - **Certificates / ALlow Self Signed** *(boolean)* — Whether to allow self signed certificates (option disabled with HTTP).
@@ -14,7 +12,6 @@ Configuration node for communication with an openHAB4 controller.
 - ***Password*** *(password)* — Optional. Password for basic authentication. 
 - **Event Filter** *(string)* — Comma separated list of topics, e.g. `*/items/*` for all item events (default `*` for no filtering).
 - ***Retry Timeout*** *(number)* — Elapsed time in milliseconds after which an HTTP call fails (empty: retrying forever).
-- 
 - **Filter events** *(boolean)* — Whether to pass changes only or all events.
 
 ### Details
@@ -27,3 +24,11 @@ A filter can be applied if e.g. you are only interested in item events and want 
 - *Multiple Controllers*: You can create multiple controller configurations to connect to different openHAB instances or use different authentication credentials.
 - *Retry timeout*: this is for indiviual HTTP calls used by the get and out nodes, not for the event stream (which will always retry indefinitely).
 - The controller can cope with OpenHAB versions 2 and above, and has been tested with versions 2.5.9 and 4.3.5.
+
+*Note*: the filter targets the topic that OpenHAB sends, i.e. the format `openhab/concept/identifier/event` (OH3+) or `smarthome/concept/identifier/event` (OH2). Some examples:
+- `*/statechanged` sends all state changed events
+- `*/items/*` sends all item events
+- `*/things/*office*` sends events about all things with office in the identifier.
+- `*` sends all events
+
+In contrast, the filter on the event node targets the internal topic, i.e. `concept/identifier`

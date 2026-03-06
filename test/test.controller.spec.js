@@ -39,7 +39,7 @@ describe('openhab4-controller', function () {
             controllerModule(RED);
 
             expect(RED.nodes.registerType.calledWith('openhab4-controller')).to.be.true;
-            expect(RED.httpAdmin.get.calledTwice).to.be.true;
+            expect(RED.httpAdmin.get.calledThrice).to.be.true;
         });
     });
 

@@ -14,7 +14,7 @@
 const helper = require('node-red-node-test-helper');
 const healthNode = require('../nodes/health.js');
 const { expect } = require('chai');
-const { EVENT_TAGS, SWITCH_STATUS } = require('../lib/constants.js');
+const { EVENT_TAGS, SWITCH } = require('../lib/constants.js');
 const { EventBus } = require('../lib/eventBus.js');
 
 const eventBus = new EventBus();
@@ -55,7 +55,7 @@ describe('openhab4-health node', function () {
 
             helperNode.on('input', function (msg) {
                 try {
-                    expect(msg).to.have.property('payload', SWITCH_STATUS.OFF);
+                    expect(msg).to.have.property('payload', SWITCH.OFF);
                     expect(msg).to.have.property('topic', EVENT_TAGS.CONNECTION_STATUS);
                     done();
                 } catch (err) {
@@ -63,7 +63,10 @@ describe('openhab4-health node', function () {
                 }
             });
 
-            controller.handler.eventBus.publish(EVENT_TAGS.CONNECTION_STATUS, SWITCH_STATUS.OFF);
+            controller.handler.eventBus.publish(EVENT_TAGS.CONNECTION_STATUS, {
+                payload: SWITCH.OFF,
+                topic: EVENT_TAGS.CONNECTION_STATUS,
+            });
         });
     });
 });

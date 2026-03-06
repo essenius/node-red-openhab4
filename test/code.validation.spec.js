@@ -60,7 +60,7 @@ describe('Code validation', function () {
         'static/ui-constants.js',
         'static/ui-utils.js',
         'examples/generate-test-flow.js',
-        'examples/test-flow-localhost.json'
+        'examples/test-flow-localhost.json',
     ];
 
     describe('Required files', function () {

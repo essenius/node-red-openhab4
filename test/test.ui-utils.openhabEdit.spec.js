@@ -14,7 +14,7 @@
 const { expect } = require('chai');
 const sinon = require('sinon');
 
-const { openhabEditPrepare, openhabEditSave, openhabEditCancel, OpenhabEditorSession } = require('../static/ui-utils');
+const { openhabEditPrepare, openhabEditSave, openhabEditCancel } = require('../static/ui-utils');
 
 describe('ui-utils openHAB editor helpers', () => {
     let RED, node;
@@ -60,11 +60,12 @@ describe('ui-utils openHAB editor helpers', () => {
         expect(node._editorSession).to.be.undefined;
     });
 
-    it('openhabEditPrepare craetes a new OpenhabEditorSession', async () => {
-        openhabEditPrepare(RED, node, 'empty');
+    it('openhabEditPrepare calls session.prepare', async () => {
+        const session = {
+            prepare: sinon.spy(),
+        };
+        openhabEditPrepare(RED, node, 'empty', { session });
         await new Promise((r) => setImmediate(r));
-        expect(node.session).to.be.instanceOf(OpenhabEditorSession, 'instance created');
-        expect(node.session.RED).to.equal(RED, 'RED equal');
-        expect(node.session.node).to.equal(node, 'Node equal');
+        expect(session.prepare.calledOnce).to.be.true;
     });
 });

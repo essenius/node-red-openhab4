@@ -22,13 +22,14 @@
     </div>
     <div class="form-row">
         <label for="node-input-filter"><i class="fa fa-filter"></i> Event Filter</label>
-        <input type="text" id="node-input-filter">
+        <input type="text" id="node-input-filter" placeholder="items/*">
+        <div id="filter-error-msg" class="red-ui-editor-node-error" style="display:none;"></div>
     </div>
 </script>
 
 {{HELP}}
 
-<script src="openhab4/ui-constants.js"></script>
+<script src="openhab4-static/ui-constants.js"></script>
 
 <script type="text/javascript">
     RED.nodes.registerType('openhab4-events', {
@@ -37,7 +38,7 @@
         defaults: {
             name: { value: "", required: false },
             controller: { value: "", type: "openhab4-controller", required: true },
-            filter: {value: "items/*", required: true }
+            filter: { value: "items/*", required: true }
         },
         inputs: 0,
         outputs: 1,
@@ -47,10 +48,28 @@
         label: function () {
             return globalThis.OPENHAB4.generateNodeName('events', this.name, null);
         },
-        labelStyle: function() {
+        labelStyle: function () {
             return this.name ? "node_label_italic" : "";
         },
         oneditprepare: function () {
+            const input = document.getElementById("node-input-filter");
+            const errorMsg = document.getElementById("filter-error-msg");
+
+            function validate() {
+                // only allow valid filters like items/*
+                const FILTER_REGEX = /^[A-Za-z0-9_*?-]+\/[A-Za-z0-9_.:\-*?]+$/;
+                if (FILTER_REGEX.test(input.value.trim())) {
+                    input.classList.remove('red-ui-editor-node-invalid');
+                    errorMsg.style.display = 'none';
+                } else {
+                    input.classList.add('red-ui-editor-node-invalid');
+                    errorMsg.textContent = 'Invalid filter. Format: concept/identifier...';
+                    errorMsg.style.display = 'block';
+                }
+            }
+
+            input.addEventListener("input", validate);
+            input.addEventListener("blur", validate);
         }
     });
 </script>

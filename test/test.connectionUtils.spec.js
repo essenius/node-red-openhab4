@@ -16,33 +16,43 @@ const sinon = require('sinon');
 const { ERROR_TYPES } = require('../lib/constants');
 
 const {
-    createEventSourceOptions,
+    createEventSourceDependencies,
     httpRequest,
     resolveFetch,
     setDefaults,
     setFetch,
+    classifyError,
 } = require('../lib/connectionUtils');
 
-describe('connectionUtils Load', function () {
-    it('should throw an error if fetch is not available', function () {
+describe('connectionUtils resolveFetch', function () {
+    // assume globalThis.fetch isn't there and require fails
+
+    beforeEach(() => {
+        setFetch(undefined);
+    });
+
+    it('should throw an error if neither globalThis.fetch or undici are available', function () {
         expect(() =>
             resolveFetch(() => {
                 throw new Error('fake require fail');
             }, {})
-        ).to.throw("No fetch available. Install 'node-fetch' or upgrade Node.js. Error: fake require fail");
+        ).to.throw("No fetch available. Install 'undici' or upgrade Node.js. Error: fake require fail");
+    });
 
+    it('should resolve to undici fetch if globalThis.fetch is unavailable', function () {
+        const { fetch: fetchUndici } = require('undici');
+        expect(resolveFetch(undefined, {})).to.equal(fetchUndici);
+    });
+
+    it('should resolve to globalThis.fetch if it exists and cache it', function () {
         // const [major] = process.versions.node.split('.').map(Number);
         // if (major >= 18) {
-        // do the normal resolution
-        const resolvedFetch = resolveFetch();
-        // which should be the plain fetch function
-        expect(resolvedFetch).to.equal(fetch);
-        // now resolving using the mocks should also return the real one (i.e. not throw), as it doesn't check
-        expect(
-            resolveFetch(() => {
-                throw new Error('fake require fail');
-            }, {})
-        ).to.equal(resolvedFetch);
+
+        const globalObj = { fetch: true };
+        const resolvedFetch = resolveFetch(undefined, globalObj);
+        expect(resolvedFetch).to.equal(globalObj.fetch, 'resolved to globalThis.fetch');
+        const secondCallResult = resolveFetch(undefined, {});
+        expect(secondCallResult).to.equal(globalObj.fetch, 'second call returns cached value');
     });
 });
 
@@ -68,6 +78,24 @@ function createFakeResponse({
         },
     };
 }
+
+describe('connectionUtils.classifyError', function () {
+    it('classifies null error as unknown', function () {
+        expect(classifyError(null)).to.deep.equal({ type: ERROR_TYPES.UNKNOWN });
+    });
+
+    it('classifies unaugmented transport error as transport', function () {
+        expect(classifyError({ type: ERROR_TYPES.TRANSPORT })).to.deep.equal({ type: ERROR_TYPES.TRANSPORT });
+    });
+
+    it('classifies unaugmented http error as http', function () {
+        expect(classifyError({ type: ERROR_TYPES.HTTP })).to.deep.equal({ type: ERROR_TYPES.HTTP });
+    });
+
+    it('leaves an error without type intact', function () {
+        expect(classifyError({ bogus: 'test' })).to.deep.equal({ bogus: 'test' });
+    });
+});
 
 describe('connectionUtils.httpRequest', function () {
     // Import the httpRequest function from connectionUtils.js, using proxyquire to stub out node-fetch
@@ -118,6 +146,15 @@ describe('connectionUtils.httpRequest', function () {
         const options = fetchStub.firstCall.args[1];
         expect(options.body).to.equal('{"payload":1}', 'payload stringified');
         expect(options.headers['Content-Type']).to.equal('application/json', 'content type set');
+        expect(options.dispatcher, 'dispatcher undefined').to.be.undefined;
+    });
+
+    it('should allow self signed cert if config is set', async function () {
+        fetchStub.resolves(createFakeResponse({ text: '' }));
+        await httpRequest('https://test', { isHttps: true, allowSelfSigned: true }, {});
+        expect(fetchStub.calledOnce, 'Fetch called once').to.be.true;
+        const options = fetchStub.firstCall.args[1];
+        expect(options.dispatcher, 'dispatcher defined').to.not.be.undefined;
     });
 
     const errorTestCases = [
@@ -150,38 +187,14 @@ describe('connectionUtils.httpRequest', function () {
             message: 'Item q does not exist!',
         },
         {
-            testId: '401 without credentials - authRequired - no text',
-            fetchResponse: { status: 401, statusText: 'Unauthorized' },
-            authRequired: true,
-            status: 401,
-            message: 'Unauthorized',
-        },
-        {
             testId: '401 without credentials - authRequired',
             fetchResponse: {
                 status: 401,
                 statusText: 'Unauthorized',
                 text: '{"error":{"message":"Authentication required","http-code":401}}',
             },
-            authRequired: true,
             status: 401,
             message: 'Authentication required',
-        },
-        {
-            testId: '401 with username - authFailed',
-            config: { username: 'foo' },
-            fetchResponse: { status: 401, text: '{"error":{"message":"Invalid credentials","http-code":401}}' },
-            authFailed: true,
-            status: 401,
-            message: 'Invalid credentials',
-        },
-        {
-            testId: '401 with token - authFailed',
-            config: { token: 'foo' },
-            fetchResponse: { status: 401, text: '{"error":{"message":"Invalid credentials","http-code":401}}' },
-            authFailed: true,
-            status: 401,
-            message: 'Invalid credentials',
         },
         {
             testId: 'No status, statusText',
@@ -225,47 +238,38 @@ describe('connectionUtils.httpRequest', function () {
     describe('connectionUtils.httpRequest error handling', function () {
         const cases = [
             {
-                name: 'should report error on network failure',
-                code: 'ENOTFOUND',
-                errorType: ERROR_TYPES.NETWORK,
-                expected: { ok: false, retry: true, type: ERROR_TYPES.NETWORK, message: 'ENOTFOUND' },
+                name: 'should report retryable error on network failure',
+                code: 'ECONNREFUSED',
+                expected: { ok: false, retry: true, type: ERROR_TYPES.NETWORK },
             },
             {
-                name: 'should report unknown error',
+                name: 'should report unknown error as transport',
                 code: 'BOGUS',
-                errorType: ERROR_TYPES.UNKNOWN,
-                expected: { ok: false, type: ERROR_TYPES.UNKNOWN, message: 'BOGUS' },
+                expected: { ok: false, type: ERROR_TYPES.TRANSPORT },
             },
             {
                 name: 'should report error on tls failure',
                 code: 'ERR_TLS_CERT_EXPIRED',
-                errorType: ERROR_TYPES.TLS,
-                expected: { ok: false, type: ERROR_TYPES.TLS, message: 'ERR_TLS_CERT_EXPIRED' },
+                expected: { ok: false, type: ERROR_TYPES.TLS },
             },
             {
-                name: 'should show the message of an error that does not have a cause property',
+                name: 'should have inner name as code if code was undefined',
                 code: undefined,
-                errorType: undefined,
-                expected: {
-                    ok: false,
-                    retry: false,
-                    type: ERROR_TYPES.UNKNOWN,
-                    name: 'TypeError',
-                    message: 'fetch failed',
-                },
+                expected: { ok: false, type: ERROR_TYPES.TRANSPORT, code: 'Error' },
             },
         ];
 
         cases.forEach(({ name, code, expected }) => {
             it(name, async function () {
-                const cause = new Error('Test failure');
+                const cause = new Error('error details');
                 cause.code = code;
                 const err = new TypeError('fetch failed', { cause });
 
                 fetchStub.rejects(err);
 
                 const result = await httpRequest('http://test', {}, {});
-                expect(result).to.deep.equal(expected);
+                const expectedResult = { name: 'TypeError', message: 'error details', ...expected };
+                expect(result).to.deep.include(expectedResult, name);
             });
         });
     });
@@ -313,16 +317,20 @@ describe('connectionUtils.setDefaultsTest', function () {
     });
 });
 
-describe('createEventSourceOptions', () => {
-    it('calls fetch with augmented headers', async () => {
-        const config = { token: 'abc123', isHttps: false, allowSelfSigned: false, authMethod: 'Bearer' };
-        const options = createEventSourceOptions(config);
-        const input = 'http://example.com';
-        const init = { headers: { 'X-Test': '1' } };
+describe('createEventSourceDependencies', () => {
+    let fetchStub;
+    const input = 'http://example.com';
+    const init = { headers: { 'X-Test': '1' } };
 
-        const fetchStub = sinon.stub();
+    beforeEach(() => {
+        fetchStub = sinon.stub();
         fetchStub.resolves({ ok: true, status: 200, text: async () => 'ok' });
         setFetch(fetchStub);
+    });
+
+    it('calls fetch with augmented headers for bearer auth and does not set dispatcher', async () => {
+        const config = { token: 'abc123', isHttps: false, allowSelfSigned: false, authMethod: 'Bearer' };
+        const options = createEventSourceDependencies(config);
 
         await options.fetch(input, init);
 
@@ -331,20 +339,37 @@ describe('createEventSourceOptions', () => {
         expect(fetchArgs[0]).to.equal(input, 'input passed on to fetch');
         expect(fetchArgs[1].headers).to.deep.include(init.headers, 'Headers included in fetch call');
         expect(fetchArgs[1].headers).to.include({ Authorization: 'Bearer abc123' }, 'Authorization header added');
+        expect(fetchArgs[1].dispatcher, 'dispatcher does not exist').to.be.undefined;
     });
 
-    it('sets https rejectUnauthorized when allowed', () => {
+    it('calls fetch with augmented headers for basic auth', async () => {
+        const config = { username: 'joe', isHttps: false, authMethod: 'Basic' };
+        const options = createEventSourceDependencies(config);
+
+        await options.fetch(input, init);
+        expect(fetchStub.calledOnce, 'fetchStub called').to.be.true;
+        const fetchArgs = fetchStub.firstCall.args;
+        expect(fetchArgs[1].headers).to.include(
+            { Authorization: 'Basic am9lOnVuZGVmaW5lZA==' },
+            'Authorization header added'
+        );
+    });
+
+    it('sets custom dispatcher when self signed is allowed', async () => {
         const config = { isHttps: true, allowSelfSigned: true };
-        const options = createEventSourceOptions(config);
+        const options = createEventSourceDependencies(config);
+        await options.fetch(input, init);
 
-        expect(options).to.have.property('https');
-        expect(options.https.rejectUnauthorized).to.be.false;
+        const fetchArgs = fetchStub.firstCall.args;
+        expect(fetchArgs[1].dispatcher, 'dispatcher exists').to.not.be.undefined;
     });
 
-    it('does not set https when not needed', () => {
+    it('does not set dispatcher when not needed', async () => {
         const config = { isHttps: true, allowSelfSigned: false };
-        const options = createEventSourceOptions(config);
+        const options = createEventSourceDependencies(config);
+        await options.fetch(input, init);
 
-        expect(options).to.not.have.property('https');
+        const fetchArgs = fetchStub.firstCall.args;
+        expect(fetchArgs[1].dispatcher, 'dispatcher does not exist').to.be.undefined;
     });
 });

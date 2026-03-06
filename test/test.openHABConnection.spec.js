@@ -16,6 +16,7 @@ const sinon = require('sinon');
 const proxyquire = require('proxyquire');
 const { STATE, ERROR_TYPES, RETRY_CONFIG } = require('../lib/constants');
 const { OpenhabConnection } = require('../lib/openhabConnection');
+const { FetchEventSource } = require('../lib/fetchEventSource');
 
 let httpRequestStub;
 let MockEventSource;
@@ -48,12 +49,10 @@ describe('openhabConnection tests', function () {
         httpRequestStub = sinon.stub();
 
         MockEventSource = class {
-            constructor(url, options) {
+            constructor(url, dependencies) {
                 this.url = url;
-                this.options = options;
-                this.onopen = null;
-                this.onerror = null;
-                this.onmessage = null;
+                this.dependencies = dependencies;
+                this.start = sinon.spy();
                 this.close = sinon.spy();
             }
 
@@ -84,9 +83,9 @@ describe('openhabConnection tests', function () {
     // ----------------------------
 
     describe('OpenhabConnection sendRequest', function () {
-        it('should reject when not UP', async function () {
+        it('should sanitize parameter and reject when not UP', async function () {
             const connection = createConnection.call(this, { eventFilter: '*/items/*' });
-            expect(connection.eventSourceEndPoint).to.equal('/rest/events?topics=*/items/*');
+            expect(connection.eventSourceEndPoint).to.equal('/rest/events?topics=*%2Fitems%2F*');
 
             const result = await connection.sendRequest('/rest/items');
 
@@ -124,7 +123,7 @@ describe('openhabConnection tests', function () {
 
             const response = await connection.sendRequest('/rest/items');
 
-            expect(connection.state).to.equal(STATE.CONNECTING);
+            expect(connection.state).to.equal(STATE.WAITING);
             expect(response.message).to.equal('OpenHAB offline (internal server error)');
         });
 
@@ -135,9 +134,9 @@ describe('openhabConnection tests', function () {
                 expectedState: STATE.UP,
             },
             {
-                name: 'health probe fails → state moves to CONNECTING',
+                name: 'health probe fails → state moves to CONNECTING → WAITING',
                 secondResponse: { ok: false },
-                expectedState: STATE.CONNECTING,
+                expectedState: STATE.WAITING,
             },
         ].forEach(({ name, secondResponse, expectedState }) => {
             it(`should call health probe for 404/500 without retry flag and ${name}`, async function () {
@@ -174,42 +173,66 @@ describe('openhabConnection tests', function () {
             expect(connection.eventSource.url).to.include('/rest/events');
         });
 
-        it('should transition to UP on open', function () {
+        it('should transition to UP on open', async function () {
             const stateSpy = sinon.spy();
             const connection = createConnection.call(this, {}, { onStateChange: stateSpy });
             expect(connection.state, 'State DOWN right after start').to.equal(STATE.DOWN);
 
             connection.startEventSource();
-            connection.eventSource.onopen();
+            await connection.eventSource.dependencies.onOpen();
 
-            expect(connection.state, 'State UP after startEventSource and onopen').to.equal(STATE.UP);
+            expect(connection.state, 'State UP after startEventSource and onOpen').to.equal(STATE.UP);
             expect(stateSpy.calledWith(STATE.UP), 'StateSpy called with UP').to.be.true;
         });
 
-        it('should transition to CONNECTING on error', function () {
+        it('should transition to DOWN on non-retryable error', async function () {
             const connection = createConnection.call(this);
-
             connection.startEventSource();
-            connection.eventSource.onerror({ message: 'failure' });
+            await connection.eventSource.dependencies.onError({
+                type: ERROR_TYPES.TRANSPORT,
+                error: { cause: { code: 'SELF_SIGNED_CERT_IN_CHAIN' } },
+            });
+            expect(connection.state).to.equal(STATE.DOWN);
+        });
 
-            expect(connection.state).to.equal(STATE.CONNECTING);
+        it('should transition to CONNECTING → WAITING on retryable error', async function () {
+            const connection = createConnection.call(this);
+            connection.startEventSource();
+            await connection.eventSource.dependencies.onError({
+                type: ERROR_TYPES.TRANSPORT,
+                error: { cause: { code: 'ECONNREFUSED' } },
+            });
+            expect(connection.state).to.equal(STATE.WAITING);
+            const setStateSpy = sinon.spy(connection, '_setState');
+            connection._scheduleReconnect();
+            expect(setStateSpy.notCalled).to.be.true;
+            setStateSpy.restore();
+        });
+
+        it('should not call state change if the state has not changed', async function () {
+            const onStateChangeSpy = sinon.spy();
+            const connection = createConnection.call(this, {}, { onStateChange: onStateChangeSpy });
+            connection.startEventSource();
+            await connection._setState(STATE.DOWN);
+            expect(onStateChangeSpy.notCalled).to.be.true;
         });
 
         [
-            { name: 'undefined', payload: undefined, expected: false },
-            { name: 'null', payload: null, expected: false },
-            { name: 'string', payload: 'error', expected: false },
-            { name: 'number', payload: 42, expected: false },
-            { name: 'bool', payload: true, expected: false },
-            { name: 'object without type', payload: { message: 'fail' }, expected: false },
-            { name: 'object with empty type', payload: { type: {} }, expected: true },
-            { name: 'object with non-empty type', payload: { type: { code: 123 } }, expected: false },
-        ].forEach(({ name, payload, expected }) => {
-            it(`should ${expected ? 'not ' : ''}ignore errors with payload ${name}`, function () {
+            { name: 'undefined', payload: undefined, ignored: false },
+            { name: 'null', payload: null, ignored: false },
+            { name: 'string', payload: 'error', ignored: false },
+            { name: 'number', payload: 42, ignored: false },
+            { name: 'bool', payload: true, ignored: false },
+            { name: 'object without type', payload: { ignored: 'fail' }, ignored: false },
+            { name: 'object with empty type', payload: { type: {} }, ignored: true },
+            { name: 'object with non-empty type', payload: { type: { code: 123 } }, ignored: false },
+        ].forEach(({ name, payload, ignored }) => {
+            it(`should ${ignored ? '' : 'not '}ignore errors with payload ${name}`, async function () {
                 const connection = createConnection.call(this);
                 connection.startEventSource();
-                connection.eventSource.onerror(payload);
-                expect(connection.state !== STATE.CONNECTING).to.equal(expected);
+                await connection.eventSource.dependencies.onOpen();
+                await connection.eventSource.dependencies.onError(payload);
+                expect(connection.state === STATE.UP, ` test: ${name}`).to.equal(ignored);
             });
         });
     });
@@ -281,16 +304,17 @@ describe('openhabConnection tests', function () {
             );
 
             await connection._enterConnecting();
+            expect(stateSpy.calledWith(STATE.CONNECTING)).to.be.true;
+            expect(stateSpy.calledWith(STATE.WAITING)).to.be.true;
             await connection._enterConnecting();
             await connection._enterUp();
+            expect(stateSpy.calledWith(STATE.UP)).to.be.true;
             await connection._enterUp();
             await connection._enterDown();
+            expect(stateSpy.calledWith(STATE.DOWN)).to.be.true;
             await connection._enterDown();
 
-            expect(stateSpy.callCount).to.equal(3, 'Not called if not changed');
-            expect(stateSpy.calledWith(STATE.CONNECTING)).to.be.true;
-            expect(stateSpy.calledWith(STATE.UP)).to.be.true;
-            expect(stateSpy.calledWith(STATE.DOWN)).to.be.true;
+            expect(stateSpy.callCount).to.equal(4, 'Not called if not changed');
         });
     });
 
@@ -304,56 +328,53 @@ describe('openhabConnection tests', function () {
             const stateChangeSpy = sinon.spy();
             const connection = createConnection.call(
                 this,
-                { url: 'https://localhost:8443', isHttps: true, allowSelfSigned: true },
+                { url: 'https://localhost:8443', isHttps: true, allowSelfSigned: false },
                 { onMessage: messageSpy, onStateChange: stateChangeSpy }
             );
 
             connection.startEventSource();
-            expect(connection.eventSource.options.https).to.deep.equal(
-                { rejectUnauthorized: false },
-                'https options set for self-signed certs'
-            );
+
+            const deps = connection.eventSource.dependencies;
             expect(connection.eventSource, 'instance of MockEventSource').to.be.an.instanceof(MockEventSource);
             expect(connection.eventSource.url, 'URL ok').to.include('https://localhost:8443/rest/events');
-            expect(connection.eventSource.onopen, 'onopen set').to.be.a('function');
-            expect(connection.eventSource.onerror, 'onerror set').to.be.a('function');
-            expect(connection.eventSource.onmessage, 'onmessage set').to.be.a('function');
+            expect(deps.onOpen, 'onOpen set').to.be.a('function');
+            expect(deps.onError, 'onError set').to.be.a('function');
+            expect(deps.onMessage, 'onMessage set').to.be.a('function');
 
             // Simulate open
-            await connection.eventSource.onopen();
+            await deps.onOpen();
             expect(stateChangeSpy.calledOnceWithExactly('UP'), 'State change called on open').to.be.true;
 
             stateChangeSpy.resetHistory();
 
             // Simulate phantom error which should be ignored
             const error = { type: {} };
-            await connection.eventSource.onerror(error);
+            await deps.onError(error);
             expect(stateChangeSpy.notCalled, 'Phantom error ignored').to.be.true;
             expect(connection.eventSource.close.notCalled).to.be.true;
             expect(connection.eventSource, 'eventSource not null').to.not.be.null;
 
             // Simulate message
             const message = { data: 'test' };
-            await connection.eventSource.onmessage(message);
+            await deps.onMessage(message);
             expect(messageSpy.calledWith({ data: 'test' })).to.be.true;
             expect(stateChangeSpy.notCalled, 'Message did not cause state change').to.be.true;
 
-            await connection.eventSource.onerror({ message: 'No response' });
-            expect(stateChangeSpy.calledOnceWithExactly('CONNECTING'), 'Error caused reconnect').to.be.true;
-            expect(fakeSetTimeout.calledOnce, 'setTimeout called').to.be.true;
-            expect(connection.retryTimer, 'retryTimer set').to.not.be.null;
+            await deps.onError({ message: 'No response' });
+            expect(stateChangeSpy.calledOnceWithExactly('DOWN'), 'Error caused shutdown').to.be.true;
+            expect(fakeSetTimeout.calledOnce, 'setTimeout not called').to.be.false;
+            expect(connection.retryTimer, 'retryTimer not set').to.be.null;
         });
     });
 });
 
-const { getEventSource, httpRequest } = require('../lib/connectionUtils');
+const { httpRequest } = require('../lib/connectionUtils');
 
 describe('openhabConnection dependency tests', function () {
     it('takes the right defaults if not specified', function () {
         const connection = new OpenhabConnection({});
         const deps = connection.dependencies;
-        const eventSource = getEventSource();
-        expect(deps.eventSourceImpl).to.equal(eventSource);
+        expect(deps.eventSourceImpl).to.equal(FetchEventSource);
         expect(deps.setTimeoutImpl).to.equal(setTimeout);
         expect(deps.clearTimeoutImpl).to.equal(clearTimeout);
         expect(deps.httpRequest).to.equal(httpRequest);

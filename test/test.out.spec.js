@@ -75,7 +75,6 @@ describe('openhab4-out node', function () {
         helper.load([controllerNode, outNode], flow, function (_err) {
             const controller = helper.getNode('controller1');
             const out = helper.getNode('out1');
-            // Send a message to the out node
 
             out.receive({
                 topic: 'ub_Warning',

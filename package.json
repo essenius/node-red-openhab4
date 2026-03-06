@@ -2,7 +2,7 @@
   "name": "@essenius/node-red-openhab4",
   "author": "Rik Essenius (https://github.com/essenius)",
   "type": "commonjs",
-  "version": "0.10.29",
+  "version": "0.10.30",
   "description": "OpenHAB 4 integration nodes for Node-RED",
   "main": "nodes/controller.js",
   "engines": {
@@ -32,12 +32,11 @@
     }
   },
   "dependencies": {
-    "eventsource": "^3.0.7",
-    "express": "^5.1.0",
-    "node-fetch": "2.7.0"
+    "serve-static": "^1.15.0",
+    "undici": "^7.22.0"
   },
   "peerDependencies": {
-    "node-red": "^4.0.0"
+    "node-red": "^3.0.0"
   },
   "devDependencies": {
     "@eslint/css": "^0.10.0",
@@ -68,10 +67,13 @@
     ]
   },
   "scripts": {
-    "test": "mocha",
+    "test": "mocha test/*.spec.js",
+    "test:integration": "mocha test/integration/*.spec.js",
     "coverage": "nyc mocha && nyc report --reporter=html",
     "format": "prettier . --write",
     "format:check": "prettier . --check",
-    "prepack": "node build-help.js"
+    "prepack": "node prevent-pack.js",
+    "build": "node build-help.js",
+    "pack:dist": "npm run build && npm pack ./dist"
   }
 }

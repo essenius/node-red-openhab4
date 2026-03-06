@@ -4,7 +4,7 @@ Retrieves the current state of an openHAB item on demand.
 ### Configuration
 - ***Name*** *(string)* — Optional. Auto-generated from resource name if empty.
 - **Controller** *(openhab4-controller)* — The controller to connect to.
-- **Concept** *(string) — The OpenHAB concept (items/things). Pairs with `msg.topic` (together with `Resource`).
+- **Concept** *(string)* — The OpenHAB concept (items/things). Pairs with `msg.topic` (together with `Resource`).
 - ***List Filter*** *(string)* — Optional. Text to filter the item list with.
 - ***Resource*** *(string)* — Optional. The openhab resource to retrieve the value of. Pairs with `msg.topic` (togeter with `Concept`).
 - **Priority** *(string)* — Whether message properties override config properties (Message First) or vice versa.
@@ -19,7 +19,7 @@ Retrieves the current state of an openHAB item on demand.
 - **payloadType** *(string)* — The payload type (e.g. `string`).
 - **eventType** *(string)* — The type of event (e.g. `ItemStateEvent`).
 - **openhab** *(object)* — the retrieved resource data from OpenHAB. Note that this is a different format than the events provide.
-- **input** *(object)* the incoming message
+- **input** *(object)* — the incoming message.
 
 ### Details
 

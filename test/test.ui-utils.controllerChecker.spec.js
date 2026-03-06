@@ -11,28 +11,28 @@
 
 const { expect } = require('chai');
 const sinon = require('sinon');
-const { ControllerChecker } = require('../static/ui-utils');
+const { ControllerChecker, ControllerStateTracker } = require('../static/ui-utils');
 
 describe('ui-utils ControllerChecker', function () {
     let RED;
     let tracker;
     let checker;
     let clock;
+    const controllerId = 'controller-1';
 
     beforeEach(function () {
         RED = {
             nodes: {
                 node: sinon.stub(),
             },
+            events: {
+                on: sinon.stub(),
+                off: sinon.stub(),
+            },
         };
 
-        tracker = {
-            getHashWithDefault: sinon.stub(),
-            hasHashChanged: sinon.stub(),
-        };
-
+        tracker = new ControllerStateTracker(RED);
         checker = new ControllerChecker(RED, tracker);
-
         clock = sinon.useFakeTimers();
 
         sinon.stub(console, 'log');
@@ -54,7 +54,7 @@ describe('ui-utils ControllerChecker', function () {
     it('returns message when controller node not found', async function () {
         RED.nodes.node.returns(null);
 
-        const promise = checker.check({ value: 'ctrl-1' });
+        const promise = checker.check({ value: controllerId });
 
         // advance retry loop
         await clock.runAllAsync();
@@ -69,42 +69,28 @@ describe('ui-utils ControllerChecker', function () {
     });
 
     it('returns warning when hash changed', async function () {
-        const controllerNode = { id: 'ctrl-1', hash: 'newHash' };
-
+        const newHash = 'newHash';
+        const controllerNode = { id: controllerId, hash: newHash };
         RED.nodes.node.returns(controllerNode);
-        tracker.getHashWithDefault.returns('oldHash');
-        tracker.hasHashChanged.returns(true);
-
-        const result = await checker.check({ value: 'ctrl-1' });
-
-        expect(result).to.deep.equal({
-            message: '⚠ Controller configuration changed, deploy first',
-        });
-
-        expect(tracker.getHashWithDefault.calledWith('ctrl-1', 'newHash')).to.be.true;
-        expect(tracker.hasHashChanged.calledWith('ctrl-1', 'newHash')).to.be.true;
+        tracker.ensureHash(controllerId, 'oldHash');
+        const result = await checker.check({ value: controllerId });
+        expect(result).to.deep.equal({ message: '⚠ Controller configuration changed, deploy first' });
     });
 
     it('returns controllerNode when everything is valid', async function () {
-        const controllerNode = { id: 'ctrl-1', hash: 'hash1' };
-
+        const controllerNode = { id: controllerId, hash: 'hash1' };
         RED.nodes.node.returns(controllerNode);
-        tracker.getHashWithDefault.returns('hash1');
-        tracker.hasHashChanged.returns(false);
-
-        const result = await checker.check({ value: 'ctrl-1' });
-
-        expect(result).to.deep.equal({
-            controllerNode,
-        });
+        tracker.ensureHash(controllerId, 'hash1');
+        const result = await checker.check({ value: controllerId });
+        expect(result).to.deep.equal({ controllerNode });
     });
 
     it('retries until node becomes available', async function () {
-        const controllerNode = { id: 'ctrl-1' };
+        const controllerNode = { id: controllerId };
 
         RED.nodes.node.onFirstCall().returns(null).onSecondCall().returns(null).onThirdCall().returns(controllerNode);
 
-        const promise = checker.getControllerNode('ctrl-1', 5);
+        const promise = checker.getControllerNode(controllerId, 5);
 
         await clock.runAllAsync();
 
@@ -116,13 +102,9 @@ describe('ui-utils ControllerChecker', function () {
 
     it('returns null when node never appears', async function () {
         RED.nodes.node.returns(null);
-
-        const promise = checker.getControllerNode('ctrl-1', 3);
-
+        const promise = checker.getControllerNode(controllerId, 3);
         await clock.runAllAsync();
-
         const result = await promise;
-
         expect(result).to.be.null;
         expect(RED.nodes.node.callCount).to.equal(3);
     });

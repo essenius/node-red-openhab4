@@ -14,7 +14,7 @@
 const path = require('node:path');
 const { expect } = require('chai');
 const sinon = require('sinon');
-const { STATE, SWITCH_STATUS } = require('../lib/constants');
+const { STATE, SWITCH } = require('../lib/constants');
 
 describe('consumerNodeHandler', function () {
     let mockNode, mockHandler, mockBus, mockController, nodeHandler;
@@ -78,10 +78,10 @@ describe('consumerNodeHandler', function () {
 
     it('handles a connection status change adequately', function () {
         const statusSpy = sinon.spy(nodeHandler, 'setStatus');
-        nodeHandler._onConnectionStatus(SWITCH_STATUS.ON);
-        expect(statusSpy.lastCall.args).to.deep.equal([STATE.READY, 'ready']);
-        nodeHandler._onConnectionStatus(SWITCH_STATUS.OFF);
-        expect(statusSpy.lastCall.args).to.deep.equal([STATE.DOWN, 'disconnected']);
+        nodeHandler._onConnectionStatus({ payload: SWITCH.ON });
+        expect(statusSpy.lastCall.args).to.deep.equal([STATE.READY, 'online']);
+        nodeHandler._onConnectionStatus({ payload: SWITCH.OFF });
+        expect(statusSpy.lastCall.args).to.deep.equal([STATE.DOWN, 'offline']);
     });
 
     it('should set status to init', function () {

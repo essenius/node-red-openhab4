@@ -47,8 +47,7 @@ See [development.md](docs/development.md).
 
 ### v0.10.29
 - Major overhaul to support OpenHAB 2 and allow other concepts besides items. 
-- Breaking changes: interfaces changed to be more aligned with Node Red conventions. Now requires Node Red 4.
+- Breaking changes: interfaces changed to be more aligned with Node-RED conventions. Now requires Node-RED 4 (Node-RED 3 is end of life).
  
 ## Dependency restrictions
-- As this is a commonjs project, chai needs to stay at version 4, and node-fetch at version 2. Newer versions do not support commonjs.
-- The dependency on eventsource 3 introduces a dependency on Node.JS v18, which causes this node to require at least Node-Red v4.
+- As this is a commonjs project, chai needs to stay at version 4. Newer versions do not support commonjs.

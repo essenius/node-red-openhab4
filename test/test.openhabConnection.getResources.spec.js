@@ -102,15 +102,12 @@ describe('OpenhabConnection.getResources', function () {
 
     scenarios.forEach(({ name, cacheData, httpResponse, expected }) => {
         it(name, async function () {
-            // Arrange
             connection.cache.items = { data: cacheData, timestamp: 1000 };
             nowStub.returns(2000);
             httpStub.resolves(httpResponse);
 
-            // Act
             const result = await connection.getResources('items', 'endpoint');
 
-            // Assert
             expect(result.ok).to.equal(expected.ok);
             if ('data' in expected) expect(result.data).to.deep.equal(expected.data);
             if ('status' in expected) expect(result.status).to.equal(expected.status);

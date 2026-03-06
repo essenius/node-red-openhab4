@@ -142,7 +142,7 @@ describe('getNodeHandler handleInput', function () {
 
     it('should show an error if incoming data has a message', async function () {
         const { node, getNodeHandler } = createGetNodeHandler({
-            controlResult: { ok: false, message: 'wrong: unknown concept' },
+            controlResult: { ok: false, message: 'wrong: unknown concept', code: 'WRONG' },
         });
         await getNodeHandler.handleInput({ topic: 'wrong/concept', payload: 'test' });
         expect(node.status.getCall(2).args[0], 'requesting status called').to.deep.equal({
@@ -153,7 +153,7 @@ describe('getNodeHandler handleInput', function () {
         expect(node.status.getCall(3).args[0], 'Error shown').to.deep.equal({
             fill: 'red',
             shape: 'ring',
-            text: 'wrong: unknown concept @ 12:34:56',
+            text: 'WRONG @ 12:34:56',
         });
         expect(node.send.notCalled, 'No message sent').to.be.true;
     });

@@ -12,12 +12,14 @@
 'use strict';
 
 const path = require('node:path');
-const express = require('express');
 
 function registerOpenHabAdminSite(RED) {
     const staticPath = path.join(__dirname, '..', 'static');
 
-    RED.httpAdmin.use('/openhab4', express.static(staticPath));
+    RED.httpAdmin.get('/openhab4-static/:file', (req, res) => {
+        const filePath = path.join(staticPath, req.params.file);
+        res.sendFile(filePath);
+    });
 }
 
 module.exports = { registerOpenHabAdminSite };

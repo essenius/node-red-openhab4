@@ -11,11 +11,10 @@
 
 'use strict';
 
-const path = require('node:path');
 const { expect } = require('chai');
 const sinon = require('sinon');
-const healthNodeHandlerPath = path.join(__dirname, '..', 'lib', 'healthNodeHandler.js');
-const { HealthNodeHandler } = require(healthNodeHandlerPath);
+const { HealthNodeHandler } = require('../lib/healthNodeHandler');
+const { STATE } = require('../lib/constants');
 
 describe('healthNodeHandler', function () {
     it('should setup the right handlers and send the right messages', async function () {
@@ -62,14 +61,18 @@ describe('healthNodeHandler', function () {
         expect(subscribe.getCall(1).args[0]).to.equal('GlobalError');
 
         // this is called by the parent node when the connection status changes, but we can call it directly to test the logic
-        healthNodeHandler._afterConnectionStatus('ON');
+        healthNodeHandler._afterConnectionStatus({ payload: 'ON', topic: 'ConnectionStatus' });
 
+        expect(node.send.calledOnce, 'send called once').to.be.true;
         let sendArgs = node.send.getCall(0).args[0];
         expect(sendArgs[0], 'First channel provides the status').to.include({
             payload: 'ON',
             topic: 'ConnectionStatus',
         });
+
         expect(sendArgs[1], 'Second channel is null').to.be.null;
+
+        expect(node.status.calledTwice, 'status called twice').to.be.true;
 
         expect(node.status.getCall(0).args[0], 'Initializing status called').to.deep.equal({
             fill: 'grey',
@@ -77,22 +80,20 @@ describe('healthNodeHandler', function () {
             text: 'initializing... @ 12:34:56',
         });
         expect(node.status.getCall(1).args[0], 'Status cleared').to.deep.equal({});
-        expect(node.status.getCall(2).args[0], 'Status set to online').to.deep.equal({
-            fill: 'green',
-            shape: 'dot',
-            text: 'online @ 12:34:56',
-        });
 
         node.send.resetHistory();
 
-        healthNodeHandler._afterConnectionStatus('ON');
+        healthNodeHandler._afterConnectionStatus({ payload: 'ON', topic: 'ConnectionStatus' });
         expect(node.send.notCalled, 'send not called again').to.be.true;
 
         node.status.resetHistory();
 
         //simulate a typical error sequence
-        healthNodeHandler._afterConnectionStatus('OFF');
-        healthNodeHandler._onGlobalError({ payload: { message: 'connection error' } });
+        healthNodeHandler._afterConnectionStatus({ payload: 'OFF', topic: 'ConnectionStatus' });
+        healthNodeHandler._onGlobalError({
+            context: { state: STATE.ERROR },
+            payload: { message: 'connection error', code: 'CONN' },
+        });
         sendArgs = node.send.getCall(0).args[0];
         expect(sendArgs[0], 'First channel provides the status').to.include({
             payload: 'OFF',
@@ -103,20 +104,14 @@ describe('healthNodeHandler', function () {
         sendArgs = node.send.getCall(1).args[0];
         expect(sendArgs[0], 'First channel is null').to.be.null;
         expect(sendArgs[1], 'Second channel has the error message').to.deep.include({
-            payload: { message: 'connection error' },
+            payload: { message: 'connection error', code: 'CONN' },
             topic: 'GlobalError',
         });
 
-        // this means that in production the offline message will immmediately be overwritten by the error message, which is ok (color and shape are the same).
-        expect(node.status.getCall(0).args[0], 'Status set to offline').to.deep.equal({
+        expect(node.status.getCall(0).args[0], 'Status set to error').to.deep.equal({
             fill: 'red',
             shape: 'ring',
-            text: 'offline @ 12:34:56',
-        });
-        expect(node.status.getCall(1).args[0], 'Status set to error').to.deep.equal({
-            fill: 'red',
-            shape: 'ring',
-            text: 'connection error @ 12:34:56',
+            text: 'CONN @ 12:34:56',
         });
         healthNodeHandler.cleanup();
         const unsubscribe = controller.handler.eventBus.unsubscribe;

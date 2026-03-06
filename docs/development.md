@@ -33,17 +33,13 @@ I'll assume you are running Node-RED in a container. If not, adjust restart proc
 2. Update version in `package.json`.
 3. Run the unit tests: `npm test`, and make sure they all pass.
 4. Run `npm run coverage` to determine code coverage. Check out `coverage/index.html` for details
-5. Create new `.tgz`: 
-    ``` sh
-    cd dist
-    npm pack
-   ```
+5. Create new package: `npm run pack:dist`    
 6. If you prefer updating via the command line on the server hosting your Node-Red instance (recommended):
-   1. Upload the package to the server `scp ./essenius-node-red-openhab4-0.10.29.tgz user@server:/home/user`.
-   2. Login to the server hosting Node-RED : `ssh user@server`.
+   1. Upload the package to the server: `scp ./essenius-node-red-openhab4-0.10.29.tgz user@server:/home/user`.
+   2. Login to the server hosting Node-RED: `ssh user@server`.
    3. Make sure that the folder you copy this into is accessible to the container in folder `/data` (using your docker run or docker compose)
    4. Install the new package (assuming your Node-RED container is called `node-red`): 
-   `docker exec -it node-red sh -c "cd /data && npm install /data/essenius-node-red-openhab4-0.10.29.tgz"`
+   `docker exec -it node-red sh -c "cd /data && npm install /data/essenius-node-red-openhab4-0.10.30.tgz"`
    5. Restart Node-RED: `docker restart node-red`. This is a critical step if there was a previous version, see below.
    6. In the NODE-RED browser window, reload, so the client side is fresh too: `Ctrl-Shift-R`.
    7. Check that the new version is installed via `Menu` → `Manage Palette`, `Nodes`.
@@ -70,3 +66,17 @@ I'll assume you are running Node-RED in a container. If not, adjust restart proc
 - The new code files are written to disk, but Node-RED still executes the old code from `require.cache`.
 - This can cause confusion during development when fixes don't seem to take effect.
 - **Therefore, always restart Node-RED after installing/updating the package**
+
+## Documentation
+
+To reduce duplication, node documentation is maintained in the [docs](.) folder. There is a markdown file for each of the nodes, which can be viewed online
+directly. The script [build-help.js](../build-help.js) converts this format into a help section for the node's HTML file in the [nodes](../nodes) folder.
+It is run as part of the packaging process.
+
+The html files in the node folder have a placeholder {{HELP}} where this section will be inserted. 
+THe convention is that the markdown files use the full name `openhab4-nodeName.md` while the html files are called `nodeName.html`. The build script takes care of this mapping as well.
+
+## Packaging
+
+The packaging process creates a throwaway [dist](../dist) folder containing the files to be packaged.
+If you run the package command `npm run pack:dist` this will all be done automatically.

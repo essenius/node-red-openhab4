@@ -39,12 +39,21 @@ describe('PayloadUtils', function () {
 
     it('should successfully set properties with defaults', function () {
         expect(setWithDefault(null, 'default'), 'null => default').to.equal('default');
-        expect(setWithDefault(1, 42)).to.equal(1, 'number taken over as is');
+        expect(setWithDefault(1, 42)).to.equal(1, 'number taken over as is even without number flag');
         expect(setWithDefault('   1   ', 'default')).to.equal('1', 'string value trimmed');
+        expect(setWithDefault('   1   ', '34', { number: true })).to.equal(1, 'value converted to number');
         expect(setWithDefault('  1  ', 'default', { noTrim: true })).to.equal('  1  ', 'not trimmed with noTrim');
         expect(setWithDefault('    ', 'default'), { noTrim: false }).to.equal('default', 'just spaces => default');
         expect(setWithDefault('    ', 'default', { noTrim: true })).to.equal('    ', 'just spaces with noTrim');
-        expect(setWithDefault('   a   ', 42)).to.equal(42, 'non-number => default if default is number');
+        expect(setWithDefault('   a   ', 42)).to.equal('a', 'filled non-number stays if default is number');
+        expect(setWithDefault('   a   ', 42, { number: true })).to.equal(
+            42,
+            'filled non-number becomes default if convertNumber is set'
+        );
+        expect(
+            Number.isNaN(setWithDefault('a', 'b', { number: true })),
+            'filled non-number becomes Number.NaN if neither options are numbers'
+        ).to.be.true;
     });
 
     it('should trim slashes accurately', function () {
