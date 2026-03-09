@@ -25,7 +25,7 @@ const controllerNode = function (RED) {
             unsubscribe: sinon.spy(),
         };
         this.handler = {
-            control: sinon.stub().callsFake(async (resource, _operation, _payload) => {
+            control: sinon.stub().callsFake(async (resource, _action, _payload) => {
                 if (resource.identifier === 'TestItem') {
                     return { ok: true, data: { topic: 'items/TestItem', payload: 'MockValue' } };
                 }
@@ -96,7 +96,7 @@ describe('openhab4-get node', function () {
                 try {
                     const control = controller.handler.control;
                     expect(control.calledOnce, 'control called once').to.be.true;
-                    expect(control.firstCall.args[0]).to.deep.equal({ concept: 'items', identifier: 'TestItem' });
+                    expect(control.firstCall.args[0].topic()).to.equal('items/TestItem', 'right resource');
                     expect(msg.payload).to.equal('MockValue');
                     done();
                 } catch (error) {

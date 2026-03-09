@@ -40,7 +40,7 @@ describe('OpenhabConnection.getResources', function () {
     });
 
     it('returns 404 for unknown type', async function () {
-        const result = await connection.getResources('unknownType', 'endpoint');
+        const result = await connection.getResources('unknownType');
         expect(result.ok).to.be.false;
         expect(result.status).to.equal(404);
         expect(result.message).to.match(/unknownType/);
@@ -51,7 +51,7 @@ describe('OpenhabConnection.getResources', function () {
         const fetchData = { ok: true, data: [{ name: 'item1' }] };
         httpStub.resolves(fetchData);
 
-        const result = await connection.getResources('items', 'endpoint');
+        const result = await connection.getResources('items');
 
         expect(result.ok).to.be.true;
         expect(result.data).to.deep.equal(fetchData.data);
@@ -65,7 +65,7 @@ describe('OpenhabConnection.getResources', function () {
         connection.cache.items = { data: cachedData, timestamp: 1000 };
         nowStub.returns(1000 + connection.CACHE_TTL - 1);
 
-        const result = await connection.getResources('items', 'endpoint');
+        const result = await connection.getResources('items');
 
         expect(result.ok).to.be.true;
         expect(result.data).to.equal(cachedData);
@@ -78,7 +78,7 @@ describe('OpenhabConnection.getResources', function () {
         const newData = { ok: true, data: [{ name: 'newItem' }] };
         httpStub.resolves(newData);
 
-        const result = await connection.getResources('items', 'endpoint');
+        const result = await connection.getResources('items');
 
         expect(result.data).to.deep.equal(newData.data);
         expect(connection.cache.items.data).to.deep.equal(newData.data);
@@ -106,7 +106,7 @@ describe('OpenhabConnection.getResources', function () {
             nowStub.returns(2000);
             httpStub.resolves(httpResponse);
 
-            const result = await connection.getResources('items', 'endpoint');
+            const result = await connection.getResources('items');
 
             expect(result.ok).to.equal(expected.ok);
             if ('data' in expected) expect(result.data).to.deep.equal(expected.data);

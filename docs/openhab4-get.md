@@ -17,7 +17,8 @@ Retrieves the current state of an openHAB item on demand.
 - **payload** *(string)* — The retrieved resource value.
 - **topic** *(string)* — The address (e.g. `items/itemName`) of the resource that was queried.
 - **payloadType** *(string)* — The payload type (e.g. `string`).
-- **eventType** *(string)* — The type of event (e.g. `ItemStateEvent`).
+- **event** *(string)* — `state` for items and `status` for things 
+- **eventType** *(string)* — The type of event `ItemStateEvent` for items and `ThingStatusInfoEvent` for things.
 - **openhab** *(object)* — the retrieved resource data from OpenHAB. Note that this is a different format than the events provide.
 - **input** *(object)* — the incoming message.
 

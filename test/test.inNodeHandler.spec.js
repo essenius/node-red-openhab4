@@ -16,7 +16,7 @@ const { expect } = require('chai');
 const sinon = require('sinon');
 const inNodeHandlerPath = path.join(__dirname, '..', 'lib', 'inNodeHandler.js');
 const { InNodeHandler } = require(inNodeHandlerPath);
-const { EVENT_TYPES, SWITCH } = require('../lib/constants');
+const { EVENT_TYPE, SWITCH } = require('../lib/constants');
 
 describe('inNodeHandler', function () {
     it('should setup the right handlers and send the right messages', async function () {
@@ -70,18 +70,18 @@ describe('inNodeHandler', function () {
 
         inNodeHandler._processEvent({
             topic: 'items/testItem',
-            eventType: EVENT_TYPES.ITEM_STATE,
+            eventType: EVENT_TYPE.ITEM_STATE,
             payload: SWITCH.ON,
         });
         expect(node.send.firstCall.args[0]).to.deep.include(
-            { payload: SWITCH.ON, eventType: EVENT_TYPES.ITEM_STATE, topic: 'items/testItem' },
+            { payload: SWITCH.ON, eventType: EVENT_TYPE.ITEM_STATE, topic: 'items/testItem' },
             'First incoming message sent out'
         );
 
         node.send.resetHistory();
         inNodeHandler._processEvent({
             topic: 'items/testItem',
-            eventType: EVENT_TYPES.ITEM_STATE,
+            eventType: EVENT_TYPE.ITEM_STATE,
             payload: SWITCH.ON,
             payloadType: 'OnOff',
         });
@@ -90,7 +90,7 @@ describe('inNodeHandler', function () {
 
         inNodeHandler._processEvent({
             topic: 'items/testItem',
-            eventType: EVENT_TYPES.ITEM_STATE,
+            eventType: EVENT_TYPE.ITEM_STATE,
             payload: SWITCH.OFF,
             payloadType: 'OnOff',
         });
@@ -98,7 +98,7 @@ describe('inNodeHandler', function () {
             {
                 payload: SWITCH.OFF,
                 payloadType: 'OnOff',
-                eventType: EVENT_TYPES.ITEM_STATE,
+                eventType: EVENT_TYPE.ITEM_STATE,
                 topic: 'items/testItem',
             },
             'Message with different value does get sent'
@@ -108,14 +108,14 @@ describe('inNodeHandler', function () {
         inNodeHandler.config.changesOnly = false;
         inNodeHandler._processEvent({
             topic: 'items/testItem',
-            eventType: EVENT_TYPES.ITEM_STATE,
+            eventType: EVENT_TYPE.ITEM_STATE,
             payload: SWITCH.OFF,
             payloadType: 'OnOff',
         });
         expect(node.send.firstCall.args[0]).to.deep.include(
             {
                 payload: SWITCH.OFF,
-                eventType: EVENT_TYPES.ITEM_STATE,
+                eventType: EVENT_TYPE.ITEM_STATE,
                 topic: 'items/testItem',
                 payloadType: 'OnOff',
             },

@@ -11,7 +11,7 @@
 
 'use strict';
 
-const { CONCEPTS, OPERATION } = require('../lib/constants');
+const { ACTION } = require('../lib/constants');
 const helper = require('node-red-node-test-helper');
 const outNode = require('../nodes/out.js');
 const { expect } = require('chai');
@@ -26,7 +26,7 @@ const controllerNode = function (RED) {
             unsubscribe: sinon.spy(),
         };
         this.handler = {
-            control: sinon.spy((_resource, _operation, _payload) => {
+            control: sinon.spy((_resource, _action, _payload) => {
                 return { ok: true };
             }),
         };
@@ -51,7 +51,7 @@ function getFlow() {
             name: 'Test Out',
             controller: 'controller1',
             priority: 'config',
-            operation: 'command',
+            action: 'command',
             wires: [[]],
         },
     ];
@@ -78,7 +78,7 @@ describe('openhab4-out node', function () {
 
             out.receive({
                 topic: 'ub_Warning',
-                openhabControl: { operation: 'update' },
+                action: 'update',
                 payload: 'test1',
             });
 
@@ -88,11 +88,11 @@ describe('openhab4-out node', function () {
                     const control = controller.handler.control;
                     expect(control.calledOnce, 'control called once').to.be.true;
                     const call = control.getCall(0);
-                    expect(call.args[0]).to.deep.equal(
-                        { concept: CONCEPTS.ITEMS, identifier: 'ub_Warning' },
+                    expect(call.args[0].topic()).to.equal(
+                        'items/ub_Warning',
                         'should get resource from message as not set in config'
                     );
-                    expect(call.args[1]).to.equal(OPERATION.COMMAND, 'Should get operation from config');
+                    expect(call.args[1]).to.equal(ACTION.COMMAND, 'Should get action from config');
                     expect(call.args[2]).to.equal('test1', 'should get payload from message as not set in config');
                     done();
                 } catch (err) {
@@ -113,7 +113,7 @@ describe('openhab4-out node', function () {
             const controller = helper.getNode('controller1');
             out.receive({
                 topic: 'items/ub_Warning',
-                openhabControl: { operation: 'update' },
+                action: 'update',
                 payload: 'incoming-payload',
             });
 
@@ -122,11 +122,9 @@ describe('openhab4-out node', function () {
                     const control = controller.handler.control;
                     expect(control.calledOnce, 'Control called once').to.be.true;
                     const call = control.getCall(0);
-                    expect(call.args[0]).to.deep.equal(
-                        { concept: CONCEPTS.ITEMS, identifier: 'ub_Warning' },
-                        'should get resource from message'
-                    );
-                    expect(call.args[1]).to.equal(OPERATION.UPDATE, 'Should get operation from message');
+                    const resource = call.args[0];
+                    expect(resource.topic()).to.equal('items/ub_Warning', 'control called with right resource');
+                    expect(call.args[1]).to.equal(ACTION.UPDATE, 'Should get action from message');
                     expect(call.args[2]).to.equal('incoming-payload', 'Should get payload from message');
 
                     done();

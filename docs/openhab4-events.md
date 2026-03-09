@@ -13,6 +13,7 @@ Monitors the openHAB event bus and outputs events as they occur.
 - **topic** *(string)* — The resource address (e.g. `items/itemName`).
 - **payload** *(string)* — The retrieved value of the resource.
 - **payloadType** *(string)* — The payload type (e.g. `string`).
+- **event** *(string)* — the event name as passed in the OpenHAB topic (e.g. `state`) 
 - **eventType** *(string)* — The type of event (e.g. `ItemStateEvent`).
 - **openhab** *(object)* — The event that came in from OpenHAB.
 

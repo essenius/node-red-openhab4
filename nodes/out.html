@@ -30,8 +30,8 @@
     	</select>
     </div>
     <div class="form-row">
-        <label for="node-input-operation"><i class="fa fa-tasks"></i> Operation</label>
-    	<select id="node-input-operation" name="node-input-operation" style="width: 250px;">
+        <label for="node-input-action"><i class="fa fa-tasks"></i> Action</label>
+    	<select id="node-input-action" name="node-input-action" style="width: 250px;">
 			<option value="command">Command</option>
 			<option value="update">Update</option>
     	</select>
@@ -63,7 +63,7 @@
             controller: { value: "", type: "openhab4-controller", required: true },
             concept: { value: "items", required: true },
             identifier: { value: "", required: false },
-            operation: { value: "update", required: true },
+            action: { value: "update", required: true },
             payload: { value: "", required: false },
             priority: { value: "config", required: true }
         },
@@ -71,6 +71,7 @@
         outputs: 1,
         outputLabels: ["sent message"],
         icon: "openhab4-logo-out.svg",
+        align: "right",
         paletteLabel: "openhab4-out",
         label: function () {
             return globalThis.OPENHAB4.generateNodeName('out', this.name, this.identifier);

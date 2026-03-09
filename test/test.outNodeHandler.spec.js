@@ -27,7 +27,7 @@ function createOutNodeHandler({ controlResult = { ok: true, payload: {} }, confi
 
 describe('outNodeHandler', function () {
     it('should set state on successful send', async function () {
-        const { outNodeHandler, node } = createOutNodeHandler({ config: { operation: 'command' } });
+        const { outNodeHandler, node } = createOutNodeHandler({ config: { action: 'command' } });
         const msg = { topic: 'items/test', payload: 1234 };
         await outNodeHandler.handleInput(msg);
         expect(node.status.getCall(0).args[0]).to.deep.equal(
@@ -44,7 +44,7 @@ describe('outNodeHandler', function () {
     });
 
     it('should set state and show error with handleInput on undefined items', async function () {
-        const { outNodeHandler, node } = createOutNodeHandler({ config: { concept: 'items', operation: 'command' } });
+        const { outNodeHandler, node } = createOutNodeHandler({ config: { concept: 'items', action: 'command' } });
         const msg = { payload: 'test' };
 
         await outNodeHandler.handleInput(msg);
@@ -59,7 +59,7 @@ describe('outNodeHandler', function () {
             config: {
                 concept: 'items',
                 identifier: 'testItem',
-                operation: 'update',
+                action: 'update',
                 payload: 'testPayload',
                 priority: 'message',
             },
@@ -79,7 +79,7 @@ describe('outNodeHandler', function () {
             config: {
                 concept: 'items',
                 identifier: 'testItem',
-                operation: 'update',
+                action: 'update',
                 payload: null,
                 priority: 'message',
             },

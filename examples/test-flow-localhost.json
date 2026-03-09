@@ -45,8 +45,9 @@
     "type": "openhab4-out",
     "z": "test-flow-tab",
     "controller": "controller-node",
-    "operation": "command",
+    "concept": "items",
     "identifier": "TestItem",
+    "action": "command",
     "topic": "",
     "payload": "",
     "priority": "config",
@@ -123,9 +124,7 @@
         "p": "payload"
       },
       {
-        "p": "openhabControl",
-        "v": "{ \"operation\": \"command\" }",
-        "vt": "json"
+        "p": "action"
       }
     ],
     "repeat": "",
@@ -152,9 +151,7 @@
         "p": "payload"
       },
       {
-        "p": "openhabControl",
-        "v": "{ \"operation\": \"update\" }",
-        "vt": "json"
+        "p": "action"
       }
     ],
     "repeat": "",

@@ -71,8 +71,8 @@ describe('ui-utils EditorDom with real getInputField', () => {
     });
 
     afterEach(() => {
-        delete global.document;
-        delete global.window;
+        delete globalThis.document;
+        delete globalThis.window;
     });
 
     const cases = [

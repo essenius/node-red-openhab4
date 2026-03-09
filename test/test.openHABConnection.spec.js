@@ -14,7 +14,7 @@
 const { expect } = require('chai');
 const sinon = require('sinon');
 const proxyquire = require('proxyquire');
-const { STATE, ERROR_TYPES, RETRY_CONFIG } = require('../lib/constants');
+const { STATE, ERROR_TYPE, RETRY_CONFIG } = require('../lib/constants');
 const { OpenhabConnection } = require('../lib/openhabConnection');
 const { FetchEventSource } = require('../lib/fetchEventSource');
 
@@ -90,7 +90,7 @@ describe('openhabConnection tests', function () {
             const result = await connection.sendRequest('/rest/items');
 
             expect(result.ok).to.be.false;
-            expect(result.type).to.equal(ERROR_TYPES.SYSTEM);
+            expect(result.type).to.equal(ERROR_TYPE.SYSTEM);
         });
 
         it('should stay UP when a message arrives', async function () {
@@ -189,7 +189,7 @@ describe('openhabConnection tests', function () {
             const connection = createConnection.call(this);
             connection.startEventSource();
             await connection.eventSource.dependencies.onError({
-                type: ERROR_TYPES.TRANSPORT,
+                type: ERROR_TYPE.TRANSPORT,
                 error: { cause: { code: 'SELF_SIGNED_CERT_IN_CHAIN' } },
             });
             expect(connection.state).to.equal(STATE.DOWN);
@@ -199,7 +199,7 @@ describe('openhabConnection tests', function () {
             const connection = createConnection.call(this);
             connection.startEventSource();
             await connection.eventSource.dependencies.onError({
-                type: ERROR_TYPES.TRANSPORT,
+                type: ERROR_TYPE.TRANSPORT,
                 error: { cause: { code: 'ECONNREFUSED' } },
             });
             expect(connection.state).to.equal(STATE.WAITING);

@@ -13,7 +13,7 @@
 
 const { expect } = require('chai');
 const sinon = require('sinon');
-const { ERROR_TYPES } = require('../lib/constants');
+const { ERROR_TYPE } = require('../lib/constants');
 
 const {
     createEventSourceDependencies,
@@ -81,15 +81,15 @@ function createFakeResponse({
 
 describe('connectionUtils.classifyError', function () {
     it('classifies null error as unknown', function () {
-        expect(classifyError(null)).to.deep.equal({ type: ERROR_TYPES.UNKNOWN });
+        expect(classifyError(null)).to.deep.equal({ type: ERROR_TYPE.UNKNOWN });
     });
 
     it('classifies unaugmented transport error as transport', function () {
-        expect(classifyError({ type: ERROR_TYPES.TRANSPORT })).to.deep.equal({ type: ERROR_TYPES.TRANSPORT });
+        expect(classifyError({ type: ERROR_TYPE.TRANSPORT })).to.deep.equal({ type: ERROR_TYPE.TRANSPORT });
     });
 
     it('classifies unaugmented http error as http', function () {
-        expect(classifyError({ type: ERROR_TYPES.HTTP })).to.deep.equal({ type: ERROR_TYPES.HTTP });
+        expect(classifyError({ type: ERROR_TYPE.HTTP })).to.deep.equal({ type: ERROR_TYPE.HTTP });
     });
 
     it('leaves an error without type intact', function () {
@@ -240,22 +240,22 @@ describe('connectionUtils.httpRequest', function () {
             {
                 name: 'should report retryable error on network failure',
                 code: 'ECONNREFUSED',
-                expected: { ok: false, retry: true, type: ERROR_TYPES.NETWORK },
+                expected: { ok: false, retry: true, type: ERROR_TYPE.NETWORK },
             },
             {
                 name: 'should report unknown error as transport',
                 code: 'BOGUS',
-                expected: { ok: false, type: ERROR_TYPES.TRANSPORT },
+                expected: { ok: false, type: ERROR_TYPE.TRANSPORT },
             },
             {
                 name: 'should report error on tls failure',
                 code: 'ERR_TLS_CERT_EXPIRED',
-                expected: { ok: false, type: ERROR_TYPES.TLS },
+                expected: { ok: false, type: ERROR_TYPE.TLS },
             },
             {
                 name: 'should have inner name as code if code was undefined',
                 code: undefined,
-                expected: { ok: false, type: ERROR_TYPES.TRANSPORT, code: 'Error' },
+                expected: { ok: false, type: ERROR_TYPE.TRANSPORT, code: 'Error' },
             },
         ];
 

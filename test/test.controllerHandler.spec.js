@@ -13,11 +13,11 @@
 
 const { expect } = require('chai');
 const sinon = require('sinon');
-const { CONCEPTS, ERROR_TYPES, EVENT_TAGS, OPERATION, SWITCH, STATE, HTTP_METHODS } = require('../lib/constants');
+const { CONCEPT, ERROR_TYPE, EVENT_TAG, ACTION, SWITCH, STATE, HTTP_METHOD } = require('../lib/constants');
 const { EventBus } = require('../lib/eventBus');
 const { EventEmitter } = require('node:events');
 const { setupControllerHandler } = require('../lib/controllerHandler');
-const p = require('proxyquire');
+const { createResource } = require('../lib/resource');
 
 function createMockNode() {
     const node = new EventEmitter();
@@ -28,12 +28,8 @@ function createMockNode() {
     return node;
 }
 
-function getResource(concept, identifier) {
-    return { concept, identifier };
-}
-
-const item1 = getResource(CONCEPTS.ITEMS, 'Item1');
-const thing1 = getResource(CONCEPTS.THINGS, 'Thing1');
+const item1 = createResource(CONCEPT.ITEMS, 'Item1');
+const thing1 = createResource(CONCEPT.THINGS, 'Thing1');
 
 describe('controllerHandler.setupControllerHandler', function () {
     let eventBus, createConnection, mockNode, config, fakeHandlerDependencies, fakeConnection;
@@ -42,20 +38,32 @@ describe('controllerHandler.setupControllerHandler', function () {
     let simulateError = false;
     let simulateOldVersion = false;
 
+    const getResourcesStub = sinon.stub().callsFake(async (concept) => {
+        await new Promise((resolve) => setImmediate(resolve));
+
+        if (simulateError) return { ok: false, message: 'Simulated error' };
+
+        if (concept === CONCEPT.THINGS)
+            return { ok: true, data: [{ UID: thing1.identifier, statusInfo: { status: 'ONLINE' } }] };
+
+        if (concept === CONCEPT.ITEMS)
+            return { ok: true, data: [{ name: item1.identifier, state: SWITCH.OFF, type: 'Switch' }] };
+
+        if (concept === CONCEPT.SYSTEM) {
+            const data = simulateOldVersion ? {} : { runtimeInfo: { version: '4.0.1' } };
+            return { ok: true, data };
+        }
+        return { ok: false, message: 'Simulated error' };
+    });
+
     const sendRequestStub = sinon.stub().callsFake(async (endPoint, verb) => {
         await new Promise((resolve) => setImmediate(resolve));
         if (simulateError) {
-            return { ok: false, retry: true, type: ERROR_TYPES.NETWORK, message: 'Simulated error' };
+            return { ok: false, retry: true, type: ERROR_TYPE.NETWORK, message: 'Simulated error' };
         }
 
-        if (verb === HTTP_METHODS.GET) {
-            if (endPoint.endsWith('/things'))
-                return { ok: true, data: [{ UID: thing1.identifier, statusInfo: { status: 'ONLINE' } }] };
-
-            if (endPoint.endsWith('/items'))
-                return { ok: true, data: [{ name: item1.identifier, state: SWITCH.OFF, type: 'Switch' }] };
-
-            if (endPoint === CONCEPTS.ROOT_URL) {
+        if (verb === HTTP_METHOD.GET) {
+            if (endPoint === CONCEPT.ROOT_URL) {
                 const data = simulateOldVersion ? {} : { runtimeInfo: { version: '4.0.1' } };
                 return { ok: true, data };
             }
@@ -78,7 +86,7 @@ describe('controllerHandler.setupControllerHandler', function () {
             startEventSource: startEventSourceStub,
             sendRequest: sendRequestStub,
             close: sinon.stub(),
-            getResources: sinon.stub(),
+            getResources: getResourcesStub,
         };
 
         createConnection = function (config, dependencies) {
@@ -116,8 +124,8 @@ describe('controllerHandler.setupControllerHandler', function () {
 
     it('should delegate getResources to connection', function () {
         const controllerHandler = setupControllerHandler(mockNode, config, fakeHandlerDependencies);
-        controllerHandler.getResources('type', 'endpoint');
-        expect(fakeConnection.getResources.args[0]).to.deep.equal(['type', 'endpoint']);
+        controllerHandler.getResources('type');
+        expect(fakeConnection.getResources.args[0]).to.deep.equal(['type', '/rest/type']);
     });
 
     describe('retrieval tests', function () {
@@ -163,6 +171,7 @@ describe('controllerHandler.setupControllerHandler', function () {
                 payload: SWITCH.OFF,
                 payloadType: 'Switch',
                 eventType: 'ItemStateEvent',
+                event: 'state',
                 openhab: { name: item1.identifier, state: SWITCH.OFF, type: 'Switch' },
             });
         });
@@ -172,7 +181,7 @@ describe('controllerHandler.setupControllerHandler', function () {
 
             await fakeConnection.dependencies.onStateChange(STATE.CONNECTING);
             const errorCall = publishSpy.args[1];
-            expect(errorCall[0]).to.equal(EVENT_TAGS.GLOBAL_ERROR, 'second call is GlobalError');
+            expect(errorCall[0]).to.equal(EVENT_TAG.GLOBAL_ERROR, 'second call is GlobalError');
 
             expect(errorCall[1]).to.deep.equal(
                 {
@@ -197,7 +206,7 @@ describe('controllerHandler.setupControllerHandler', function () {
 
             await fakeConnection.dependencies.onStateChange(STATE.WAITING);
             const errorCall = publishSpy.args[0];
-            expect(errorCall[0]).to.equal(EVENT_TAGS.GLOBAL_ERROR, 'second call is GlobalError');
+            expect(errorCall[0]).to.equal(EVENT_TAG.GLOBAL_ERROR, 'second call is GlobalError');
 
             expect(errorCall[1]).to.deep.equal(
                 {
@@ -255,13 +264,15 @@ describe('controllerHandler.setupControllerHandler', function () {
         it('should call control for a get and return a response', async function () {
             publishSpy.resetHistory();
 
-            const result = await controllerHandler.control(item1, OPERATION.GET);
+            const result = await controllerHandler.control(item1, ACTION.GET);
 
+            // note the inconsistency in the name (item1 vs. Item1).
+            // the id (name) is not overwritten if it was there already
             expect(result).to.deep.equal(
                 {
                     ok: true,
                     data: {
-                        topic: 'items/item1',
+                        topic: 'items/Item1',
                         payload: SWITCH.OFF,
                         payloadType: 'OnOff',
                         openhab: { name: 'item1', state: SWITCH.OFF, type: 'OnOff' },
@@ -273,7 +284,8 @@ describe('controllerHandler.setupControllerHandler', function () {
         });
 
         it('should return a missing identifier error when control is called without identifier', async function () {
-            const result = await controllerHandler.control({ concept: 'items' }, OPERATION.COMMAND, SWITCH.ON);
+            const missingIdItem = createResource(CONCEPT.ITEMS);
+            const result = await controllerHandler.control(missingIdItem, ACTION.COMMAND, SWITCH.ON);
             expect(result).to.deep.equal({ ok: false, message: 'items: missing identifier' }, 'Result is ok');
             expect(sendRequestStub.notCalled, 'sendRequest not called').to.be.true;
         });
@@ -281,21 +293,21 @@ describe('controllerHandler.setupControllerHandler', function () {
         const sendScenarios = [
             {
                 name: 'should call control for a command and return no response',
-                operation: OPERATION.COMMAND,
+                action: ACTION.COMMAND,
                 expectedUrl: `/rest/items/${item1.identifier}`,
-                expectedMethod: HTTP_METHODS.POST,
+                expectedMethod: HTTP_METHOD.POST,
             },
             {
                 name: 'should call control for an update and return no response',
-                operation: OPERATION.UPDATE,
+                action: ACTION.UPDATE,
                 expectedUrl: `/rest/items/${item1.identifier}/state`,
-                expectedMethod: HTTP_METHODS.PUT,
+                expectedMethod: HTTP_METHOD.PUT,
             },
         ];
 
-        sendScenarios.forEach(({ name, operation, expectedUrl, expectedMethod }) => {
+        sendScenarios.forEach(({ name, action, expectedUrl, expectedMethod }) => {
             it(name, async function () {
-                const result = await controllerHandler.control(item1, operation, SWITCH.ON);
+                const result = await controllerHandler.control(item1, action, SWITCH.ON);
 
                 expect(result).to.deep.equal({ ok: true, data: null }, 'Result is ok');
                 expect(
@@ -307,19 +319,19 @@ describe('controllerHandler.setupControllerHandler', function () {
 
         it('should return an error when control called with unknown concept', async function () {
             const result = await controllerHandler.control(
-                getResource('bogus', 'irrelevant'),
-                OPERATION.UPDATE,
+                createResource('bogus', 'irrelevant'),
+                ACTION.UPDATE,
                 SWITCH.ON
             );
             expect(result).to.deep.equal(
-                { ok: false, message: 'bogus: unknown concept' },
+                { ok: false, message: "update: unsupported for 'bogus'" },
                 'Result has right error message'
             );
             expect(sendRequestStub.notCalled, 'Request stub not called').to.be.true;
         });
 
-        it('should return an error when control called with unsupported operation', async function () {
-            const result = await controllerHandler.control(thing1, OPERATION.COMMAND, 'ONLINE');
+        it('should return an error when control called with unsupported action', async function () {
+            const result = await controllerHandler.control(thing1, ACTION.COMMAND, 'ONLINE');
             expect(result).to.deep.equal(
                 { ok: false, message: "command: unsupported for 'things'" },
                 'command not supported for things'
@@ -327,11 +339,11 @@ describe('controllerHandler.setupControllerHandler', function () {
             expect(sendRequestStub.notCalled, 'Request stub not called').to.be.true;
         });
 
-        it('should return an error when control called with unsupported operation', async function () {
+        it('should return an error when control called with unsupported action', async function () {
             const result = await controllerHandler.control(thing1, 'bogus', 'ONLINE');
             expect(result).to.deep.equal(
-                { ok: false, message: 'bogus: unknown operation' },
-                'command not supported for things'
+                { ok: false, message: "bogus: unsupported for 'things'" },
+                'bogus action not supported for things'
             );
             expect(sendRequestStub.notCalled, 'Request stub not called').to.be.true;
         });
@@ -354,13 +366,13 @@ describe('controllerHandler.setupControllerHandler', function () {
             },
             {
                 name: 'should return version data when called with system concept (new openHAB)',
-                resource: getResource(CONCEPTS.SYSTEM, ''),
+                resource: createResource(CONCEPT.SYSTEM, ''),
                 expected: {
                     ok: true,
                     data: {
                         topic: 'system',
                         payload: '4.0.1',
-                        payloadType: 'Version',
+                        payloadType: 'String',
                         openhab: { runtimeInfo: { version: '4.0.1' } },
                     },
                 },
@@ -369,13 +381,13 @@ describe('controllerHandler.setupControllerHandler', function () {
             },
             {
                 name: 'should return default version data when called with system concept (old openHAB)',
-                resource: getResource(CONCEPTS.SYSTEM, 'any'),
+                resource: createResource(CONCEPT.SYSTEM, 'any'),
                 expected: {
                     ok: true,
                     data: {
                         topic: 'system',
                         payload: '2.x',
-                        payloadType: 'Version',
+                        payloadType: 'String',
                         openhab: {},
                     },
                 },
@@ -394,7 +406,7 @@ describe('controllerHandler.setupControllerHandler', function () {
 
                 const result = await controllerHandler.control(resource);
 
-                expect(result).to.deep.equal(expected, 'Ping request returns the right data');
+                expect(result).to.deep.equal(expected);
 
                 if (after) after();
             });
@@ -404,7 +416,7 @@ describe('controllerHandler.setupControllerHandler', function () {
             publishSpy.resetHistory();
 
             simulateError = true;
-            const result = await controllerHandler.control(item1, OPERATION.GET);
+            const result = await controllerHandler.control(item1, ACTION.GET);
             expect(result).to.deep.equal(
                 { ok: false, retry: true, type: 'network', message: 'Simulated error' },
                 'Result 2 is error as expected'
@@ -427,11 +439,10 @@ describe('controllerHandler.setupControllerHandler', function () {
                 {
                     context: {
                         function: '_getAll',
-                        endPoint: '/rest/things',
-                        operation: 'GET',
+                        concept: 'things',
                         node: 'MockNode',
                         state: 'ERROR',
-                        response: { ok: false, retry: true, type: 'network', message: 'Simulated error' },
+                        response: { ok: false, message: 'Simulated error' },
                     },
                     payload: { message: 'Simulated error', code: undefined },
                 },
@@ -449,25 +460,41 @@ describe('controllerHandler.setupControllerHandler', function () {
             await fakeConnection.dependencies.onStateChange(STATE.UP);
         });
 
-        it('should emit correct events for a valid ItemStateEvent', async function () {
-            const message = {
-                data: JSON.stringify({
-                    type: 'ItemStateEvent',
-                    topic: `openhab/items/${item1.identifier}/StateEvent`,
-                    payload: JSON.stringify({ value: 'ON' }),
-                }),
-            };
-            publishSpy.resetHistory();
-            await fakeConnection.dependencies.onMessage(message);
-            expect(publishSpy.firstCall.args[1]).to.deep.include(
-                {
-                    payload: 'ON',
-                    topic: `items/${item1.identifier}`,
-                    eventType: 'ItemStateEvent',
-                },
-                'Item Event emitted'
-            );
-        });
+        const passingCases = [
+            {
+                desc: 'unknown concept returns full payload object',
+                type: 'BogusStateEvent',
+                topic: 'bogus/bogus1',
+                payload: '',
+                outPayload: { value: '' },
+            },
+            {
+                desc: 'item concept returns payload value',
+                type: 'ItemStateEvent',
+                topic: `items/${item1.identifier}`,
+                payload: 'ON',
+                outPayload: 'ON',
+            },
+        ];
+        for (const testCase of passingCases) {
+            it(`should publish events with a ${testCase.desc}`, async function () {
+                const message = {
+                    data: JSON.stringify({
+                        type: testCase.type,
+                        topic: `openhab/${testCase.topic}/state`,
+                        payload: JSON.stringify({ value: testCase.payload }),
+                    }),
+                };
+                publishSpy.resetHistory();
+                await fakeConnection.dependencies.onMessage(message);
+                expect(publishSpy.firstCall.args[1]).to.deep.include({
+                    payload: testCase.outPayload,
+                    topic: testCase.topic,
+                    eventType: testCase.type,
+                    event: 'state',
+                });
+            });
+        }
 
         it('should not emit empty message', async function () {
             publishSpy.resetHistory();
@@ -513,7 +540,7 @@ describe('controllerHandler.setupControllerHandler', function () {
             });
         });
 
-        it('should ignore messages with an unknown concept', async function () {
+        /*it('should ignore messages with an unknown concept', async function () {
             await expectIgnoredMessage({
                 data: JSON.stringify({
                     type: 'ItemStateEvent',
@@ -521,7 +548,7 @@ describe('controllerHandler.setupControllerHandler', function () {
                     payload: JSON.stringify({ value: 'ON' }),
                 }),
             });
-        });
+        });*/
 
         const testCases = [
             {

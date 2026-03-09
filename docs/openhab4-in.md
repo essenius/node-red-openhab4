@@ -15,7 +15,8 @@ Listens to events from a selected openHAB resource (things or items).
 
 - **payload** *(string)* — The new state of the selected item.
 - **topic** *(string)* — The resource address (e.g. `items/itemName`).
-- **payloadType** *(string)* — The payload type (e.g. `string`).
+- **payloadType** *(string)* — The payload type (e.g. `String`).
+- **event** *(string)* — the event name as passed in the OpenHAB topic (e.g. `state`) 
 - **eventType** *(string)* — The type of event (e.g. `ItemStateEvent`).
 - **openhab** *(object)* — the event that came in from OpenHAB.
 

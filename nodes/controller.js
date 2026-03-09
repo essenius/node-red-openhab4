@@ -13,29 +13,25 @@
 
 const { setDefaults } = require('../lib/connectionUtils');
 const { setupControllerHandler } = require('../lib/controllerHandler');
-const { CONCEPTS } = require('../lib/constants');
+const { CONCEPT } = require('../lib/constants');
+const { Resource } = require('../lib/resource');
 const { registerOpenHabAdminSite } = require('./admin');
 
-function createResourceHandler(RED, type) {
+function createResourceHandler(RED, concept) {
     return async function (req, res) {
         const controller = RED.nodes.getNode(req.query.controller);
 
         if (!controller) {
             return res.status(404).send(`Controller '${req.query.controller}' not found`);
         }
-        const endpoint = CONCEPTS.baseUrl(type);
+        //const endpoint = CONCEPT.baseUrl(concept);
         const handler = controller.handler;
-        const response = await handler.getResources(type, endpoint);
+        const response = await handler.getResources(concept);
         if (!response.ok) {
-            console.log(`getting ${type} at ${endpoint} failed`, response);
+            console.log(`getting all ${concept} failed`, response);
         }
         res.send(response);
-        /*if (response.data) {
-            res.send(response.data);
-        } else {
-            console.log('error', response);
-            res.status(response.status).send(response.message);
-        }*/
+
     };
 }
 
@@ -49,8 +45,8 @@ function createControllerModule({
 
         // start a web service for enabling the node configuration ui to retrieve the available openHAB items
 
-        RED.httpAdmin.get(CONCEPTS.adminUrl(CONCEPTS.ITEMS), createResourceHandler(RED, CONCEPTS.ITEMS));
-        RED.httpAdmin.get(CONCEPTS.adminUrl(CONCEPTS.THINGS), createResourceHandler(RED, CONCEPTS.THINGS));
+        RED.httpAdmin.get(Resource.adminUrl(CONCEPT.ITEMS), createResourceHandler(RED, CONCEPT.ITEMS));
+        RED.httpAdmin.get(Resource.adminUrl(CONCEPT.THINGS), createResourceHandler(RED, CONCEPT.THINGS));
 
         function createControllerNode(config) {
             RED.nodes.createNode(this, config);
@@ -75,8 +71,8 @@ function createControllerModule({
     return controllerModule;
 }
 
-/* Production export */
+// Production export
 module.exports = createControllerModule();
 
-/* Test factory export */
+// Test export
 module.exports._create = createControllerModule;
