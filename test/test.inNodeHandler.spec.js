@@ -36,7 +36,7 @@ describe('inNodeHandler', function () {
                 get: (key) => contextStore[key],
             }),
         };
-        const config = { concept: 'items', identifier: 'testItem', changesOnly: true };
+        const config = { concept: 'items', identifier: 'testItem', changesOnly: true, eventTypesAll: true };
 
         const eventBus = {
             publish: sinon.spy(),
@@ -65,6 +65,7 @@ describe('inNodeHandler', function () {
 
         // node.on called for close
         expect(node.on.calledOnce, 'node.on called once').to.be.true;
+
         // subscribe called for ConnectionStatus, NodeError, items/TestItem (no input)
         expect(eventBus.subscribe.callCount).to.equal(2, 'Subscribe called 3 times');
 
@@ -145,5 +146,19 @@ describe('inNodeHandler', function () {
         );
         expect(inNodeHandler.cleanup(), 'Cleanup should succeed').to.not.throw;
         expect(node.off.callCount, 'No off called').to.equal(0);
+    });
+
+
+    it('should filter events accurately', async function () {
+        const node = { status: sinon.spy(), send: sinon.spy(), on: sinon.spy(), off: sinon.spy(), log: sinon.spy() };
+        const config = { concept: 'items' };
+        const inNodeHandler = new InNodeHandler(node, config, null, { generateTime: () => '12:34:56' });
+        expect(inNodeHandler._matchesEvent('state', { eventTypes: [ 'updated', 'command' ]})).to.be.false;
+        expect(inNodeHandler._matchesEvent('updated', { eventTypes: [ 'updated' ]})).to.be.true;
+        expect(inNodeHandler._matchesEvent('updated', { eventTypesAll: true })).to.be.true;
+        expect(inNodeHandler._matchesEvent('status', { eventTypes: [ 'state' ]})).to.be.true;
+        expect(inNodeHandler._matchesEvent('state', { eventTypes: [ 'status' ]})).to.be.false;
+        expect(inNodeHandler._matchesEvent('statechanged', { eventTypes: [ 'changed' ]})).to.be.true;
+
     });
 });

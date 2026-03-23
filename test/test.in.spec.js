@@ -47,6 +47,7 @@ describe('openhab4-in node', function () {
                 controller: 'controller1',
                 concept: 'items',
                 identifier: 'TestItem',
+                eventTypesAll: true,
                 wires: [['helper1']],
             },
             { id: 'helper1', type: 'helper' },

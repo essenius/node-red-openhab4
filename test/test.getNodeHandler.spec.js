@@ -46,7 +46,7 @@ async function expectHandleInputResult(getNodeHandler, msg, node) {
         text: 'ON @ 12:34:56',
     });
     expect(node.send.getCall(0).args[0], 'item status sent').to.deep.include({
-        inputMessage: msg,
+        input: msg,
         payload: 'ON',
         topic: 'items/testItem',
     });
@@ -80,7 +80,7 @@ describe('getNodeHandler handleInput', function () {
         });
         expect(node.send.getCall(0).args[0], 'Version sent').to.deep.equal({
             _msgid: '123',
-            inputMessage: { topic: 'system/' },
+            input: { topic: 'system/' },
             payload: '4.3.5',
             topic: 'system/',
         });

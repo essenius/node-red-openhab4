@@ -14,7 +14,35 @@
 <script src="openhab4-static/ui-constants.js"></script>
 <script src="openhab4-static/ui-utils.js"></script>
 
+<style>
+    #red-ui-editor .nr-checkbox-row {
+        white-space: nowrap;
+    }
+
+    #red-ui-editor .nr-checkbox {
+        display: inline-block;
+        margin-right: 10px;
+        margin-left: 0;
+    }
+
+    #red-ui-editor .nr-checkbox input[type="checkbox"] {
+        vertical-align: middle;
+        /* aligns checkbox with label text */
+        margin: 0;
+        width: 30%;
+    }
+
+    .nr-checkbox.disabled label {
+        color: #999;
+        /* gray text */
+        cursor: not-allowed;
+        /* optional: show that it’s disabled */
+    }
+</style>
+
 <script type="text/x-red" data-template-name="openhab4-in">
+
+
     <div class="form-row">
         <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
         <input type="text" id="node-input-name" placeholder="Name. Leave empty to show Resource">
@@ -41,13 +69,44 @@
     	<select id="node-input-identifier" name="node-input-identifier">
     	</select>
     </div>
-    <div class="form-row" style="display: flex; align-items: center; flex-wrap: nowrap;">
-        <label for="node-input-changesOnly"><i class="fa fa-refresh"></i> Filter Events</label>
-        <div style="margin-left: 1em; display: flex; align-items: center; white-space: nowrap;">
-            <input type="checkbox" id="node-input-changesOnly" name="node-input-changesOnly" style="margin-right: 0.5em;">
-            <span>State changes only</span>
+
+    <div class="form-row" style="display: flex; align-items: flex-start;">
+        <label><i class="fa fa-bolt"></i> Event types</label>
+        <div class="nr-checkbox-container">
+            <div class="nr-checkbox-row">
+                <label class="nr-checkbox"><input type="checkbox" id="node-input-eventTypesAll"><b>All</b></label>
+            </div>
+
+            <div class="nr-checkbox-row">
+                <label class="nr-checkbox"><input type="checkbox" class="event-type" value="changed">changed</label>
+                <label class="nr-checkbox"><input type="checkbox" class="event-type" value="command">command</label>
+                <label class="nr-checkbox"><input type="checkbox" class="event-type" value="initialized">initialized</label>
+            </div>
+            <div class="nr-checkbox-row">
+                <label class="nr-checkbox"><input type="checkbox" class="event-type" value="added">added</label>
+                <label class="nr-checkbox"><input type="checkbox" class="event-type" value="updated">updated</label>
+                <label class="nr-checkbox"><input type="checkbox" class="event-type" value="removed">removed</label>
+            </div>
+            <div class="nr-checkbox-row">
+                <label class="nr-checkbox"><input type="checkbox" class="event-type" value="state">state</label>
+                <label class="nr-checkbox"><input type="checkbox" class="event-type" value="predicted">predicted</label>
+                <label class="nr-checkbox"><input type="checkbox" class="event-type" value="triggered">triggered</label>
+            </div>
         </div>
-    	</select>
+    </div>
+
+    <input type="hidden" id="node-input-eventTypes" />
+
+    <div class="form-row" style="display: flex; align-items: flex-start;">
+        <label for="node-input-changesOnly"><i class="fa fa-refresh"></i> Filter Events</label>
+        <div class="nr-checkbox-container">
+            <div class="nr-checkbox-row">
+                <label class="nr-checkbox nowrap">
+                    <input type="checkbox" id="node-input-changesOnly">
+                    state changes only
+                </label>
+            </div>
+        </div>
     </div>
 </script>
 
@@ -62,6 +121,8 @@
             controller: { value: "", type: "openhab4-controller", required: true },
             concept: { value: "items", required: true },
             identifier: { value: "", required: true },
+            eventTypes: { value: ['initialized', 'changed'], required: true },
+            eventTypesAll: { value: true },
             changesOnly: { value: true, required: true }
         },
         inputs: 0,
@@ -72,12 +133,75 @@
         label: function () {
             return globalThis.OPENHAB4.generateNodeName('in', this.name, this.identifier);
         },
-        labelStyle: function() {
+        labelStyle: function () {
             return this.name ? "node_label_italic" : "";
         },
 
-        oneditsave: function() { openhabEditSave(RED, this); },
-        oneditprepare: function () { openhabEditPrepare(RED, this, "Select item..."); },
+        oneditsave: function () {
+            editSaveCheckboxes(this);
+            openhabEditSave(RED, this);
+        },
+        oneditprepare: function () {
+            editPrepareCheckboxes(this);
+            openhabEditPrepare(RED, this, "Select item...");
+        },
         oneditcancel: function () { openhabEditCancel(RED, this); }
     });
+
+    function editPrepareCheckboxes(node) {
+        const allCheckbox = document.getElementById("node-input-eventTypesAll");
+
+        const container = document.getElementById("dialog-form");
+        const typeCheckboxes = container.querySelectorAll(".event-type");
+
+        const types = node.eventTypes || [];
+        const isAll = node.eventTypesAll !== false; // default true
+
+        const hidden = document.getElementById("node-input-eventTypes");
+        hidden.value = JSON.stringify(types);
+
+        // Initialize "All"
+        allCheckbox.checked = isAll;
+
+        // Initialize individual checkboxes
+        typeCheckboxes.forEach(cb => {
+            cb.checked = types.includes(cb.value);
+            cb.disabled = isAll;
+        });
+
+        // Toggle behavior for "All"
+        allCheckbox.addEventListener("change", () => {
+            const checked = allCheckbox.checked;
+
+            typeCheckboxes.forEach(cb => {
+                cb.disabled = checked;
+                if (checked) {
+                    cb.parentNode.classList.add("disabled");
+                } else {
+                    cb.parentNode.classList.remove("disabled");
+                }
+                //if (checked) cb.checked = false;
+            });
+        });
+    }
+
+    function editSaveCheckboxes(node) {
+        const allCheckbox = document.getElementById("node-input-eventTypesAll");
+        const container = document.getElementById("dialog-form");
+        const typeCheckboxes = container.querySelectorAll(".event-type");
+        const hidden = document.getElementById("node-input-eventTypes");
+
+        const isAll = allCheckbox.checked;
+        node.eventTypesAll = isAll;
+
+        if (!isAll) {
+            const selected = [];
+            typeCheckboxes.forEach(cb => {
+                if (cb.checked) selected.push(cb.value);
+            });
+            node.eventTypes = selected;
+        }
+        hidden.value = JSON.stringify(node.eventTypes);
+    }
+
 </script>

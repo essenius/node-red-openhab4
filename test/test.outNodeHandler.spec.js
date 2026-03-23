@@ -69,7 +69,7 @@ describe('outNodeHandler', function () {
 
         await outNodeHandler.handleInput(msg);
         expect(node.status.secondCall.args, 'status called').to.deep.equal([
-            { fill: 'red', shape: 'ring', text: 'test ✗ @ 12:34:56' },
+            { fill: 'red', shape: 'ring', text: 'test ✗ testItem @ 12:34:56' },
         ]);
     });
 

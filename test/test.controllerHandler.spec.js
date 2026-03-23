@@ -170,8 +170,8 @@ describe('controllerHandler.setupControllerHandler', function () {
                 topic: `items/${item1.identifier}`,
                 payload: SWITCH.OFF,
                 payloadType: 'Switch',
-                eventType: 'ItemStateEvent',
-                event: 'state',
+                eventType: 'ItemInitializeEvent',
+                event: 'initialized',
                 openhab: { name: item1.identifier, state: SWITCH.OFF, type: 'Switch' },
             });
         });
@@ -273,6 +273,7 @@ describe('controllerHandler.setupControllerHandler', function () {
                     ok: true,
                     data: {
                         topic: 'items/Item1',
+                        identifier: 'Item1',
                         payload: SWITCH.OFF,
                         payloadType: 'OnOff',
                         openhab: { name: 'item1', state: SWITCH.OFF, type: 'OnOff' },
@@ -356,6 +357,7 @@ describe('controllerHandler.setupControllerHandler', function () {
                     ok: true,
                     data: {
                         topic: `things/${thing1.identifier}`,
+                        identifier: thing1.identifier,
                         payload: 'OFFLINE',
                         payloadType: 'String',
                         openhab: { UID: `${thing1.identifier}`, statusInfo: { status: 'OFFLINE' } },

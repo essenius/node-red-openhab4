@@ -32,6 +32,7 @@
     <div class="form-row">
         <label for="node-input-action"><i class="fa fa-tasks"></i> Action</label>
     	<select id="node-input-action" name="node-input-action" style="width: 250px;">
+			<option value="">[message defined]</option>
 			<option value="command">Command</option>
 			<option value="update">Update</option>
     	</select>
@@ -63,7 +64,7 @@
             controller: { value: "", type: "openhab4-controller", required: true },
             concept: { value: "items", required: true },
             identifier: { value: "", required: false },
-            action: { value: "update", required: true },
+            action: { value: "update", required: false },
             payload: { value: "", required: false },
             priority: { value: "config", required: true }
         },
