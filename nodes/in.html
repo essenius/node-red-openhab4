@@ -120,17 +120,18 @@
             name: { value: "", required: false }, // we don't need node name
             controller: { value: "", type: "openhab4-controller", required: true },
             concept: { value: "items", required: true },
-            identifier: { value: "", required: true },
+            identifier: { value: "", required: false },
             eventTypes: { value: "['initialized', 'changed']", required: true },
             eventTypesAll: { value: true, required: true },
             changesOnly: { value: true, required: true }
         },
-        inputs: 0,
+        inputs: 1,
         outputs: 1,
         outputLabels: ["message"],
         icon: "openhab4-logo-in.svg",
         paletteLabel: "openhab4-in",
         label: function () {
+			this.inputs = this.identifier === "" ? 1 : 0;
             return globalThis.OPENHAB4.generateNodeName('in', this.name, this.identifier);
         },
         labelStyle: function () {
@@ -142,6 +143,7 @@
             openhabEditSave(RED, this);
         },
         oneditprepare: function () {
+			this.inputs = (this.identifier === "" ? 1 : 0);
             editPrepareCheckboxes(this);
             openhabEditPrepare(RED, this, "Select item...");
         },

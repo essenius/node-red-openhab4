@@ -12,6 +12,9 @@ Listens to events from a selected openHAB resource (things or items).
 - **Event Types** *(boolean)* - the event types to pass on.
 - **Filter events** *(boolean)* — Whether to pass changes only or all events.
 
+### Inputs
+- ***topic*** *(string)* — (Only if no `Resource` is selected) The address of the item to get events from.
+
 ### Outputs
 
 - **payload** *(string)* — The new state of the selected item.

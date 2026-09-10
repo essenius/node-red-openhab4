@@ -61,7 +61,7 @@ describe('inNodeHandler', function () {
         inNodeHandler.setupNode();
 
         // node.on called for close
-        expect(node.on.calledOnce, 'node.on called once').to.be.true;
+        expect(node.on.callCount).to.equal(2, 'node.on called twice');
 
         // subscribe called for ConnectionStatus, NodeError, items/TestItem (no input)
         expect(eventBus.subscribe.callCount).to.equal(2, 'Subscribe called 3 times');
@@ -110,7 +110,7 @@ describe('inNodeHandler', function () {
         // force an error by having no controller
         const inNodeHandler = new InNodeHandler(node, config, null, { generateTime: () => '12:34:56' });
         inNodeHandler.setupNode();
-        expect(node.on.callCount, 'Only on close called (no input channel)').to.equal(1);
+        expect(node.on.callCount, 'Only on setup and close called (no input channel)').to.equal(2);
         expect(node.status.getCall(0).args[0]).to.deep.equal(
             { fill: 'grey', shape: 'ring', text: '[12:34:56] initializing...' },
             'node.status called with initializing'
@@ -144,8 +144,7 @@ describe('inNodeHandler', function () {
             { fill: 'red', shape: 'ring', text: '[12:34:56] no resource specified' },
             'error status set'
         );
-        expect(node.error.calledOnce, 'node.error called').to.be.true;
-        expect(node.error.firstCall.args[1], 'null passed as second arg').to.be.null;
+        expect(node.error.calledOnce, 'node.error called').to.be.false;
     });
 
     it('should filter events accurately', async function () {
