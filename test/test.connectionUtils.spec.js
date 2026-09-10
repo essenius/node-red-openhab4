@@ -89,7 +89,7 @@ describe('connectionUtils.classifyError', function () {
     });
 
     it('classifies unaugmented http error as http', function () {
-        expect(classifyError({ type: ERROR_TYPE.HTTP })).to.deep.equal({ type: ERROR_TYPE.HTTP });
+        expect(classifyError({ type: ERROR_TYPE.HTTP })).to.deep.equal({ type: ERROR_TYPE.HTTP, retry: true });
     });
 
     it('leaves an error without type intact', function () {
